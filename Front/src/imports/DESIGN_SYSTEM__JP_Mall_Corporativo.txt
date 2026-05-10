@@ -1,0 +1,274 @@
+DESIGN_SYSTEM: JP Mall Corporativo
+PROJETO: Flamboyant Shopping | UFG 2026/1
+
+
+---
+
+
+1. OVERVIEW
+- objetivo: interface corporativa limpa, moderna e funcional
+- foco: produtividade, acessibilidade, baixo ruído visual
+- modos:
+  - light: padrão (uso em escritório)
+  - dark: uso prolongado / baixa luz
+- toggle: header
+- persistencia: localStorage
+
+
+---
+
+
+2. COLORS
+
+
+2.1 BRAND_LIGHT
+- primary_dark: #8B1A1A
+- primary: #D93030
+- background: #F7F4EF
+- accent: #C8A882
+
+
+2.2 NEUTRAL_LIGHT
+- white: #FFFFFF
+- text_primary: #1F2937
+- text_secondary: #4B5563
+- border: #E5E7EB
+- bg_input: #F9FAFB
+- bg_table_alt: #F3F4F6
+
+
+2.3 SEMANTIC_LIGHT
+- success: #10B981
+- warning: #F59E0B
+- error: #D93030
+- info: #3B82F6
+
+
+---
+
+
+3. COLORS_DARK
+
+
+3.1 BACKGROUND
+- base: #0F1117
+- surface: #1A1F2E
+- card: #242938
+- border: #2E3447
+- input: #1E2435
+
+
+3.2 BRAND
+- primary_dark: #8B1A1A
+- primary: #E04444
+- accent: #D4A96A
+
+
+3.3 TEXT
+- primary: #F1F5F9
+- secondary: #94A3B8
+- muted: #64748B
+
+
+3.4 SEMANTIC
+- success: #34D399
+- warning: #FBBF24
+- error: #E04444
+- info: #60A5FA
+
+
+---
+
+
+4. TYPOGRAPHY
+- font_primary: Inter
+- fallback: Roboto, system-ui, sans-serif
+- base_size: 16px
+
+
+SCALE:
+- h1: { size: 24px, weight: 700 }
+- h2: { size: 18-20px, weight: 700 }
+- h3: { size: 14px, weight: 700 }
+- body: { size: 14-16px, weight: 400 }
+- small: { size: 12px, weight: 400 }
+
+
+---
+
+
+5. SPACING
+- base_unit: 8px
+- scale:
+  - xs: 4px
+  - sm: 8px
+  - md: 16px
+  - lg: 24px
+  - xl: 32px
+- border_radius: 8px
+
+
+---
+
+
+6. COMPONENTS
+
+
+6.1 BUTTON
+- min_height: 44px
+
+
+light:
+- primary_bg: #D93030
+- primary_hover: #b92828
+
+
+dark:
+- primary_bg: #E04444
+- primary_hover: #F05555
+
+
+---
+
+
+6.2 INPUT
+
+
+light:
+- bg: #F9FAFB
+- border: #E5E7EB
+
+
+dark:
+- bg: #1E2435
+- border: #2E3447
+
+
+focus:
+- light: ring #D93030
+- dark: ring #E04444
+
+
+error:
+- light: #D93030
+- dark: #E04444
+
+
+label:
+- light: #4B5563
+- dark: #94A3B8
+
+
+---
+
+
+6.3 CARD
+
+
+light:
+- bg: #FFFFFF
+- border: #E5E7EB
+
+
+dark:
+- bg: #242938
+- border: #2E3447
+
+
+- radius: 8px
+
+
+---
+
+
+6.4 BADGES
+
+
+success:
+- light: bg-green-50 text-green-700 border-green-200
+- dark: bg-green-900/30 text-green-400 border-green-700
+
+
+warning:
+- light: bg-orange-50 text-orange-700 border-orange-200
+- dark: bg-orange-900/30 text-orange-400 border-orange-700
+
+
+error:
+- light: bg-red-50 text-#D93030 border-red-200
+- dark: bg-red-900/30 text-#E04444 border-red-700
+
+
+info:
+- light: bg-blue-50 text-blue-700 border-blue-200
+- dark: bg-blue-900/30 text-blue-400 border-blue-700
+
+
+---
+
+
+7. ACCESSIBILITY
+
+
+- contrast:
+  - light: WCAG AA/AAA
+  - dark: WCAG AA
+
+
+- buttons:
+  - light: OK (#D93030)
+  - dark: revisar (#E04444)
+
+
+- touch_target: 44px mínimo
+
+
+- focus:
+  - light: #D93030
+  - dark: #E04444
+
+
+---
+
+
+8. DARK_TOKENS (CSS VARIABLES)
+
+
+- --color-bg: #0F1117
+- --color-surface: #1A1F2E
+- --color-card: #242938
+- --color-border: #2E3447
+- --color-input-bg: #1E2435
+
+
+- --color-primary: #8B1A1A
+- --color-action: #E04444
+- --color-action-hover: #F05555
+- --color-accent: #D4A96A
+
+
+- --color-text-primary: #F1F5F9
+- --color-text-secondary: #94A3B8
+- --color-text-muted: #64748B
+
+
+- --color-success: #34D399
+- --color-warning: #FBBF24
+- --color-error: #E04444
+- --color-info: #60A5FA
+
+
+---
+
+
+9. IMPLEMENTATION
+
+
+toggle_dark_mode:
+document.documentElement.classList.toggle('dark')
+
+
+tailwind_example:
+bg-white dark:bg-[#242938]
+text-gray-800 dark:text-[#F1F5F9]
+border-gray-200 dark:border-[#2E3447]
