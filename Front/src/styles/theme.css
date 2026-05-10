@@ -1,0 +1,222 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* JP Mall Brand Colors - Light Mode */
+  --jp-primary-dark: #8B1A1A;
+  --jp-primary: #D93030;
+  --jp-background: #F7F4EF;
+  --jp-accent: #C8A882;
+  
+  /* Neutral Colors - Light */
+  --jp-white: #FFFFFF;
+  --jp-text-primary: #1F2937;
+  --jp-text-secondary: #4B5563;
+  --jp-border: #E5E7EB;
+  --jp-bg-input: #F9FAFB;
+  --jp-bg-table-alt: #F3F4F6;
+  
+  /* Semantic Colors - Light */
+  --jp-success: #10B981;
+  --jp-warning: #F59E0B;
+  --jp-error: #D93030;
+  --jp-info: #3B82F6;
+  
+  /* Original theme variables */
+  --font-size: 16px;
+  --background: #F7F4EF;
+  --foreground: #1F2937;
+  --card: #FFFFFF;
+  --card-foreground: #1F2937;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2937;
+  --primary: #D93030;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #1F2937;
+  --muted: #F3F4F6;
+  --muted-foreground: #4B5563;
+  --accent: #C8A882;
+  --accent-foreground: #1F2937;
+  --destructive: #D93030;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: transparent;
+  --input-background: #F9FAFB;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #D93030;
+  --chart-1: #D93030;
+  --chart-2: #3B82F6;
+  --chart-3: #10B981;
+  --chart-4: #F59E0B;
+  --chart-5: #C8A882;
+  --radius: 0.5rem;
+  --sidebar: #8B1A1A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #D93030;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #a43030;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #a43030;
+  --sidebar-ring: #D93030;
+}
+
+.dark {
+  /* JP Mall Dark Mode Colors */
+  --jp-bg-base: #0F1117;
+  --jp-bg-surface: #1A1F2E;
+  --jp-bg-card: #242938;
+  --jp-border: #2E3447;
+  --jp-bg-input: #1E2435;
+  
+  --jp-primary-dark: #8B1A1A;
+  --jp-primary: #E04444;
+  --jp-accent: #D4A96A;
+  
+  --jp-text-primary: #F1F5F9;
+  --jp-text-secondary: #94A3B8;
+  --jp-text-muted: #64748B;
+  
+  --jp-success: #34D399;
+  --jp-warning: #FBBF24;
+  --jp-error: #E04444;
+  --jp-info: #60A5FA;
+  
+  /* Theme variables for dark mode */
+  --background: #0F1117;
+  --foreground: #F1F5F9;
+  --card: #242938;
+  --card-foreground: #F1F5F9;
+  --popover: #242938;
+  --popover-foreground: #F1F5F9;
+  --primary: #E04444;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1A1F2E;
+  --secondary-foreground: #F1F5F9;
+  --muted: #1A1F2E;
+  --muted-foreground: #94A3B8;
+  --accent: #D4A96A;
+  --accent-foreground: #1F2937;
+  --destructive: #E04444;
+  --destructive-foreground: #FFFFFF;
+  --border: #2E3447;
+  --input: #2E3447;
+  --input-background: #1E2435;
+  --ring: #E04444;
+  --chart-1: #E04444;
+  --chart-2: #60A5FA;
+  --chart-3: #34D399;
+  --chart-4: #FBBF24;
+  --chart-5: #D4A96A;
+  --sidebar: #0F1117;
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-primary: #E04444;
+  --sidebar-primary-foreground: #F1F5F9;
+  --sidebar-accent: #1A1F2E;
+  --sidebar-accent-foreground: #F1F5F9;
+  --sidebar-border: #2E3447;
+  --sidebar-ring: #E04444;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /**
+  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  */
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+}
