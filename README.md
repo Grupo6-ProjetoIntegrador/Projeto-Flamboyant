@@ -99,5 +99,3 @@ Figma/
 - **Equipe BES-2026** — *Desenvolvimento* — [Projeto Flamboyant](https://github.com/seu-usuario/projeto-flamboyant)
 
 ---
-
-⌨️ com ❤️ pela equipe do Projeto-Flamboyant 😊
