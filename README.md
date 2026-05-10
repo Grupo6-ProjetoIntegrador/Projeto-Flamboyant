@@ -1,162 +1,101 @@
-# \# Projeto-Flamboyant
+# Projeto-Flamboyant 🏬
 
-# 
+O projeto tem como objetivo a concepção de uma plataforma integrada de gestão de lojistas, capaz de consolidar informações provenientes de diferentes áreas do shopping, permitindo rastreabilidade, análise estratégica e apoio à tomada de decisão.
 
-# O projeto tem como objetivo a concepção de uma plataforma integrada de gestão de lojistas, capaz de consolidar informações provenientes de diferentes áreas do shopping, permitindo rastreabilidade, análise estratégica e apoio à tomada de decisão.
+## 🚀 Começando
 
-# 
+Essas instruções permitirão que você obtenha uma cópia do projeto em operação na sua máquina local para fins de desenvolvimento e teste.
 
-# \---
+### 📋 Pré-requisitos
 
-# 
+Antes de começar, você vai precisar ter instalado na sua máquina:
 
-# \# BES-2026 · Protótipos Figma — Guia de Configuração
+- [Node.js](https://nodejs.org) v18 ou superior (recomendado: 20 LTS)
+- [pnpm](https://pnpm.io) (recomendado) ou npm/yarn
 
-# 
+Verifique se o Node.js está instalado:
 
-# \---
+```bash
+node --version
+```
 
-# 
+Instale o pnpm globalmente (caso ainda não tenha):
 
-# \## 1. Visão Geral do Projeto
+```bash
+npm install -g pnpm
+```
 
-# 
+### 🔧 Instalação
 
-# Este projeto é um protótipo de alta fidelidade exportado do Figma Make, representando o sistema interno do JP Mall. Ele utiliza React com Vite como bundler, Tailwind CSS v4 para estilização e uma coleção de componentes baseados em shadcn/ui e Radix UI.
+**1. Clone o repositório ou extraia o arquivo ZIP na sua máquina:**
 
-# 
+```bash
+git clone https://github.com/seu-usuario/projeto-flamboyant.git
+```
 
-# \### Estrutura de pastas
+**2. Acesse a pasta do projeto:**
 
-# 
+```bash
+cd Figma
+```
 
-# ```
+**3. Instale as dependências do projeto:**
 
-# Figma/
+```bash
+npm install
+```
 
-# ├── src/
+**4. Instale o `react` e `react-dom` manualmente:**
 
-# │   ├── app/
+> `react` e `react-dom` estão declarados como `peerDependencies` opcionais no `package.json`, o que significa que alguns gerenciadores de pacotes podem não instalá-los automaticamente. Execute este segundo comando para garantir que estejam presentes:
 
-# │   │   ├── components/    → Layout, modais, componentes UI
+```bash
+npm install react@18.3.1 react-dom@18.3.1
+```
 
-# │   │   ├── data/          → Dados mockados e store
+**5. Inicie o servidor de desenvolvimento:**
 
-# │   │   ├── pages/         → Páginas por seção (sinistros, comercial…)
+```bash
+npm run dev
+```
 
-# │   │   ├── App.tsx        → Raiz da aplicação
+Acesse em: [http://localhost:5173](http://localhost:5173)
 
-# │   │   ├── routes.tsx     → Definição de rotas
+## 🗂️ Estrutura do Projeto
 
-# │   │   └── store.ts       → Tipos e dados dos sinistros
+```
+Figma/
+├── src/
+│   ├── app/
+│   │   ├── components/    → Layout, modais, componentes UI
+│   │   ├── data/          → Dados mockados e store
+│   │   ├── pages/         → Páginas por seção (sinistros, comercial…)
+│   │   ├── App.tsx        → Raiz da aplicação
+│   │   ├── routes.tsx     → Definição de rotas
+│   │   └── store.ts       → Tipos e dados dos sinistros
+│   ├── assets/            → Imagens de assets
+│   ├── imports/           → Logo, PDF e design system
+│   ├── styles/            → CSS global, tema, Tailwind
+│   └── main.tsx           → Ponto de entrada
+├── index.html
+├── vite.config.ts
+└── package.json
+```
 
-# │   ├── assets/            → Imagens de assets
+## 🛠️ Construído com
 
-# │   ├── imports/           → Logo, PDF e design system
+- [React](https://react.dev) `18.3.1` — Framework principal
+- [Vite](https://vitejs.dev) `6.3.5` — Bundler e servidor de desenvolvimento
+- [TypeScript](https://www.typescriptlang.org) — Tipagem estática
+- [Tailwind CSS](https://tailwindcss.com) `4.1.12` — Estilização
+- [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://www.radix-ui.com) — Componentes de interface
+- [React Router](https://reactrouter.com) `7.13.0` — Roteamento
+- [Recharts](https://recharts.org) — Gráficos e visualizações
+- [React Hook Form](https://react-hook-form.com) — Gerenciamento de formulários
+- [Lucide React](https://lucide.dev) — Ícones
 
-# │   ├── styles/            → CSS global, tema, Tailwind
+## ✒️ Autores
 
-# │   └── main.tsx           → Ponto de entrada
+- **Equipe BES-2026** — *Desenvolvimento* — [Projeto Flamboyant](https://github.com/seu-usuario/projeto-flamboyant)
 
-# └── index.html
-
-# ```
-
-# 
-
-# \---
-
-# 
-
-# \## 2.1 Node.js
-
-# 
-
-# O projeto requer Node.js versão 18 ou superior (recomendado: 20 LTS).
-
-# 
-
-# Verifique a versão instalada:
-
-# 
-
-# ```bash
-
-# node --version
-
-# ```
-
-# 
-
-# Caso não tenha o Node.js instalado, baixe em: https://nodejs.org
-
-# 
-
-# \---
-
-# 
-
-# \## 2.2 Gerenciador de Pacotes
-
-# 
-
-# O projeto usa `pnpm` como gerenciador principal (indicado pelo arquivo `pnpm-workspace.yaml`), mas também funciona com `npm` ou `yarn`.
-
-# 
-
-# Instalar o pnpm globalmente (recomendado):
-
-# 
-
-# ```bash
-
-# npm install -g pnpm
-
-# ```
-
-# 
-
-# \---
-
-# 
-
-# \## 4. Instalação das Dependências
-
-# 
-
-# \### 4.1 — Instalar as dependências do projeto
-
-# 
-
-# Instala todos os pacotes declarados no `package.json`:
-
-# 
-
-# ```bash
-
-# npm install
-
-# ```
-
-# 
-
-# \### 4.2 — Instalar react e react-dom manualmente
-
-# 
-
-# `react` e `react-dom` estão declarados como `peerDependencies` opcionais no `package.json`, o que significa que alguns gerenciadores de pacotes podem não instalá-los automaticamente. Execute este segundo comando para garantir que estejam presentes:
-
-# 
-
-# ```bash
-
-# npm install react@18.3.1 react-dom@18.3.1
-
-# ```
-
-# 
-
-# 
-
-
-
+---
