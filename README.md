@@ -250,7 +250,11 @@ Projeto-Flamboyant/
 
 ## ✒️ Autores
 
-- **Equipe BES-2026** — *Desenvolvimento* — [Projeto Flamboyant](https://github.com/seu-usuario/projeto-flamboyant)
+- **DanielNovaiz** — [github.com/DanielNovaiz](https://github.com/DanielNovaiz)
+- **Felipe Fernandes** — [github.com/FELIIPE505](https://github.com/FELIIPE505)
+- **Herlison Silva Assunção** — [github.com/herli-son-ufg](https://github.com/herli-son-ufg)
+- **Matheus-slvmr** — [github.com/Matheus-slvmr](https://github.com/Matheus-slvmr)
+- **militao-discente** — [github.com/militao-discente](https://github.com/militao-discente)
 
 ---
 
