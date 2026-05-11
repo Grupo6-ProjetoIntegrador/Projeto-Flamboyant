@@ -1,0 +1,108 @@
+# ================================================================
+# Projeto-Flamboyant — .gitignore
+# Cobre: Figma (Node/Vite), API (Go/Gin/MongoDB), Postman
+# ================================================================
+
+
+# ───────────────────────────────────────────
+# Go — API/
+# ───────────────────────────────────────────
+
+# Binários compilados
+API/bin/
+API/*.exe
+API/*.out
+
+# Cache de build e testes
+API/vendor/
+API/tmp/
+API/coverage.out
+API/coverage.html
+API/*.test
+
+# Variáveis de ambiente
+API/.env
+API/.env.*
+API/config.local.yaml
+API/config.local.toml
+
+
+# ───────────────────────────────────────────
+# Node / Vite — Figma/
+# ───────────────────────────────────────────
+
+# Dependências
+Figma/node_modules/
+Figma/.pnp
+Figma/.pnp.js
+
+# Build
+Figma/dist/
+Figma/dist-ssr/
+Figma/build/
+
+# Cache Vite e TypeScript
+Figma/.vite/
+Figma/*.local
+Figma/*.tsbuildinfo
+
+# Cache pnpm
+Figma/.pnpm-store/
+Figma/.pnpm-debug.log*
+
+# Variáveis de ambiente
+Figma/.env
+Figma/.env.*
+
+
+# ───────────────────────────────────────────
+# Postman
+# ───────────────────────────────────────────
+
+# Environments contêm tokens, API keys e URLs sensíveis
+postman/environments/
+.postman/
+
+# Globals também podem ter credenciais
+postman/globals/
+
+
+# ───────────────────────────────────────────
+# Logs (qualquer subprojeto)
+# ───────────────────────────────────────────
+
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# ───────────────────────────────────────────
+# Sistema operacional
+# ───────────────────────────────────────────
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# ───────────────────────────────────────────
+# Editores
+# ───────────────────────────────────────────
+
+# VS Code — mantém extensions.json (recomendações de equipe)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/*.code-snippets
+
+# JetBrains / GoLand
+.idea/
+*.iml
+*.iws
+
+# Vim / Emacs
+*.sw?
+*~
+\#*\#
