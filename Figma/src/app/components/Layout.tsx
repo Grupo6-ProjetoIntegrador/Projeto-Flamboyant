@@ -32,7 +32,7 @@ interface NavItem {
 }
 
 const navigationItems: NavItem[] = [
-  { 
+  /*{ 
     id: "dashboard", 
     label: "Dashboard", 
     icon: Home, 
@@ -82,7 +82,7 @@ const navigationItems: NavItem[] = [
     label: "Marketing", 
     icon: Megaphone, 
     path: "/marketing" 
-  },
+  },*/
   { 
     id: "comercial", 
     label: "Comercial", 
@@ -97,7 +97,7 @@ const navigationItems: NavItem[] = [
       { label: "Relatórios", path: "/comercial/relatorios" },
     ]
   },
-  { 
+  /*{ 
     id: "institucional", 
     label: "Institucional", 
     icon: Building2, 
@@ -108,7 +108,7 @@ const navigationItems: NavItem[] = [
     label: "Relatórios", 
     icon: BarChart3, 
     path: "/relatorios" 
-  },
+  },*/
 ];
 
 export function Layout() {
