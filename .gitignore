@@ -59,12 +59,11 @@ Figma/.env.*
 # Postman
 # ───────────────────────────────────────────
 
-# Environments contêm tokens, API keys e URLs sensíveis
+# Environments e globals contêm tokens, API keys e URLs sensíveis
+# As demais pastas (collections, specs, flows, mocks) são versionadas
 postman/environments/
-.postman/
-
-# Globals também podem ter credenciais
 postman/globals/
+.postman/
 
 
 # ───────────────────────────────────────────
@@ -106,3 +105,4 @@ desktop.ini
 *.sw?
 *~
 \#*\#
+
