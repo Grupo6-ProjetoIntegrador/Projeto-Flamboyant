@@ -19,6 +19,39 @@ O projeto tem como objetivo a concepção de uma plataforma integrada de gestão
 
 ---
 
+> [!IMPORTANT]
+> **Atenção ao diretório de execução!**
+> Todos os comandos descritos neste guia devem ser executados dentro do diretório correto de cada parte do projeto. Executar um comando no diretório errado causará erros. Fique atento ao `cd` indicado antes de cada bloco de comandos.
+
+> [!WARNING]
+> **Não faça alterações diretamente na branch `main`!**
+>
+> Sempre crie uma branch separada antes de começar qualquer desenvolvimento:
+>
+> ```bash
+> git checkout main
+> git pull
+> git checkout -b feature/nome-da-sua-funcionalidade
+> ```
+>
+> **Por que isso é importante?**
+>
+> A `main` representa o estado estável e funcional do projeto — o código que todos os membros da equipe tomam como base. Commitar diretamente nela traz riscos sérios:
+>
+> - **Instabilidade para o time:** se um trabalho incompleto ou com bug for enviado à `main`, qualquer outro desenvolvedor que atualizar seu repositório receberá código quebrado, travando o progresso de toda a equipe.
+> - **Conflitos difíceis de resolver:** com múltiplos desenvolvedores enviando código simultaneamente para o mesmo branch, conflitos de merge se tornam frequentes e difíceis de rastrear.
+> - **Impossibilidade de code review:** trabalhar em branches separadas permite abrir Pull Requests, onde o código pode ser revisado antes de entrar na base principal — prática essencial para a qualidade do software.
+> - **Dificuldade em reverter erros:** sem o isolamento por branches, identificar e desfazer um bug introduzido na `main` exige muito mais esforço do que simplesmente fechar ou reverter uma branch isolada.
+>
+> Essa prática é um dos pilares do **Git Flow**, workflow criado por Vincent Driessen e adotado amplamente pela indústria de software, que define a `main` como exclusiva para código em produção — estável, revisado e validado.
+>
+> **Fontes:**
+> - ABREU, Almerindo. *Gitflow: O modelo de trabalho orientado à branches*. 2021. Disponível em: https://almerindoabreu.netlify.app/boas-práticas-git-flow/
+> - PRESUMIDO, Victor. *Git: Melhores práticas*. Disponível em: https://blog.victorpre.com/git-melhores-praticas/
+> - GitLab. *Version Control Best Practices*. Disponível em: https://about.gitlab.com/topics/version-control/version-control-best-practices/
+
+---
+
 ## 🚀 Começando
 
 Essas instruções permitirão que você obtenha uma cópia do projeto em operação na sua máquina local para fins de desenvolvimento e teste.
@@ -87,7 +120,7 @@ Acesse em: [http://localhost:5173](http://localhost:5173)
 Antes de começar, você vai precisar ter instalado:
 
 - [Go](https://go.dev/dl/) v1.21 ou superior
-- [MongoDB](https://www.mongodb.com/try/download/community) rodando localmente (porta padrão `27017`) ou uma connection string do [MongoDB Atlas](https://www.mongodb.com/atlas)
+- [Visual Studio Code](https://code.visualstudio.com/) com a extensão [Go](https://marketplace.visualstudio.com/items?itemName=golang.Go) instalada
 
 Verifique se o Go está instalado:
 
@@ -95,65 +128,39 @@ Verifique se o Go está instalado:
 go version
 ```
 
+Para instalar a extensão no VS Code:
+
+1. Abra o VS Code
+2. Acesse a aba **Extensions** (`Ctrl+Shift+X`)
+3. Pesquise por `Go` e instale a extensão oficial da **Go Team at Google**
+
 ### 🔧 Configuração e execução
 
-**1. Acesse a pasta da API:**
+**1. Abra a pasta da API no VS Code:**
 
 ```bash
 cd API
 ```
 
-**2. Crie o arquivo de variáveis de ambiente:**
-
-> Crie um arquivo `.env` na raiz de `API/` com o seguinte conteúdo:
-
-```env
-PORT=8080
-MONGO_URI=mongodb://localhost:27017
-MONGO_DB=jp-mall
-GIN_MODE=debug
-```
-
-**3. Instale as dependências Go:**
+**2. Instale as dependências Go:**
 
 ```bash
 go mod tidy
 ```
 
-**4. Execute em modo desenvolvimento:**
+**3. Execute a API:**
 
 ```bash
 go run cmd/main.go
 ```
 
-**Ou compile e execute o binário:**
-
-```bash
-go build -o bin/api cmd/main.go
-./bin/api
-```
-
 A API estará disponível em: [http://localhost:8080](http://localhost:8080)
 
-Para verificar se está no ar:
+Para verificar se está no ar, acesse no navegador ou dispare pelo Postman:
 
-```bash
-curl http://localhost:8080/ping
-```
-
-Resposta esperada:
-
-```json
-{ "message": "pong" }
-```
-
-**5. Popule o banco de dados:**
-
-Execute o script SQL disponível em `Banco de dados/jp-mall.sql`:
-
-```bash
-mysql -u root -p < "Banco de dados/jp-mall.sql"
-```
+- **Método:** `GET`
+- **URL:** `http://localhost:8080/ping`
+- **Resposta esperada:** `200 OK` → `{ "message": "pong" }`
 
 ---
 
@@ -161,25 +168,10 @@ mysql -u root -p < "Banco de dados/jp-mall.sql"
 
 ### 📥 Importando a coleção
 
-**Opção 1 — Via Postman Desktop (recomendado):**
-
 1. Abra o Postman
 2. Clique em **Import** no canto superior esquerdo
 3. Selecione a pasta `postman/collections/` deste repositório
 4. O Postman detectará os arquivos `.yaml` e importará a coleção automaticamente
-
-**Opção 2 — Via Postman CLI:**
-
-```bash
-# Instale o Postman CLI
-npm install -g @postman/cli
-
-# Faça login com sua API Key
-postman login --with-api-key SUA_API_KEY
-
-# Execute a coleção
-postman collection run postman/collections/
-```
 
 ### 🌐 Configurando o ambiente
 
@@ -189,19 +181,10 @@ postman collection run postman/collections/
 | Variável | Valor | Descrição |
 |---|---|---|
 | `base_url` | `http://localhost:8080` | URL base da API |
-| `mongo_db` | `jp-mall` | Nome do banco de dados |
 
 3. Selecione o ambiente criado no seletor do canto superior direito
 
 > **Atenção:** os arquivos de `environments/` e `globals/` estão no `.gitignore` pois podem conter credenciais. Cada membro da equipe deve criar o seu ambiente local conforme a tabela acima.
-
-**Testando o health check:**
-
-Com a API rodando e o ambiente configurado, dispare a primeira requisição:
-
-- **Método:** `GET`
-- **URL:** `{{base_url}}/ping`
-- **Resposta esperada:** `200 OK` → `{ "message": "pong" }`
 
 ---
 
@@ -209,13 +192,11 @@ Com a API rodando e o ambiente configurado, dispare a primeira requisição:
 
 ```
 Projeto-Flamboyant/
-├── API/                        → API REST em Go (Gin + MongoDB)
+├── API/                        → API REST em Go (Gin)
 │   ├── cmd/
 │   │   └── main.go             → Ponto de entrada da API
 │   ├── go.mod
 │   └── go.sum
-├── Banco de dados/
-│   └── jp-mall.sql             → Script de criação e população do banco
 ├── Figma/                      → Frontend React/Vite
 │   ├── src/
 │   │   ├── app/
@@ -232,7 +213,7 @@ Projeto-Flamboyant/
 │   ├── vite.config.ts
 │   └── package.json
 ├── GO/
-│   └── models.go               → Structs Go mapeando o banco de dados
+│   └── models.go               → Structs Go das entidades do projeto
 ├── postman/
 │   ├── collections/            → Coleções de requisições por recurso
 │   ├── specs/                  → Especificações OpenAPI/YAML da API
@@ -255,7 +236,6 @@ Projeto-Flamboyant/
 - [React Hook Form](https://react-hook-form.com) — Gerenciamento de formulários
 - [Go](https://go.dev) `1.21+` — Linguagem da API
 - [Gin](https://gin-gonic.com) — Framework web para a API
-- [MongoDB](https://www.mongodb.com) — Banco de dados NoSQL
 - [Postman](https://www.postman.com) — Testes e documentação da API
 
 ---
