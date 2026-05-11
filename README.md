@@ -26,13 +26,21 @@ O projeto tem como objetivo a concepção de uma plataforma integrada de gestão
 > [!WARNING]
 > **Não faça alterações diretamente na branch `main`!**
 >
-> Sempre crie uma branch separada antes de começar qualquer desenvolvimento:
+> Sempre crie uma branch separada antes de começar qualquer desenvolvimento.
 >
+> **Via terminal:**
 > ```bash
 > git checkout main
 > git pull
 > git checkout -b feature/nome-da-sua-funcionalidade
 > ```
+>
+> **Via GitHub Desktop:**
+> 1. Certifique-se de estar na branch `main` no seletor do topo
+> 2. Clique em **Fetch origin** para garantir que está atualizado
+> 3. Vá em **Branch → New Branch** (`Ctrl+Shift+N`)
+> 4. Digite o nome no padrão `feature/nome-da-funcionalidade` e clique em **Create Branch**
+> 5. A nova branch já estará selecionada e pronta para receber suas alterações
 >
 > **Por que isso é importante?**
 >
