@@ -3,35 +3,24 @@ import {
   Building2, MapPin, Search, Eye, CheckCircle, XCircle,
   ChevronRight, Info, Layers, RefreshCw, Clock, History
 } from "lucide-react";
-import { allLojistas } from "../../data/comercialData";
+//import { allLojistas } from "../../data/comercialData";
 import { LojistProfileModal } from "../../components/LojistProfileModal";
+import { FilterSelect } from "../../components/FilterSelect";
 import type { Lojista } from "../../data/comercialData";
 
-type Piso = "L1" | "L2" | "L3";
+type Piso = "P" | "S" | "T";
 type Corredor = "A" | "B" | "C";
 
 const PISO_LABELS: Record<Piso, string> = {
-  L1: "Piso 1 — Lojas Populares",
-  L2: "Piso 2 — Lojas Classe Média",
-  L3: "Piso 3 — Lojas Elite & Luxo",
-};
-
-const PISO_CLASS_BADGE: Record<Piso, { label: string; className: string }> = {
-  L1: { label: "Popular", className: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" },
-  L2: { label: "Classe Média", className: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400" },
-  L3: { label: "Elite & Luxo", className: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400" },
-};
-
-const PISO_DESCRIPTIONS: Record<Piso, string> = {
-  L1: "Marcas acessíveis, fast fashion, esportes e serviços essenciais — para o público geral.",
-  L2: "Marcas intermediárias premium, eletrônicos, beleza e entretenimento — experiência elevada.",
-  L3: "Marcas de alto padrão e luxo como Apple, Rolex, Tiffany — segmento VIP do shopping.",
+  P: "Primeiro Piso",
+  S: "Segundo Piso",
+  T: "Terceiro Piso",
 };
 
 const CORREDOR_LABELS: Record<Piso, Record<Corredor, string>> = {
-  L1: { A: "Corredor A — Moda Popular & Fast Fashion", B: "Corredor B — Esportes & Fitness", C: "Corredor C — Serviços & Bancos" },
-  L2: { A: "Corredor A — Eletrônicos & Tech", B: "Corredor B — Moda Premium & Beleza", C: "Corredor C — Entretenimento & Lazer" },
-  L3: { A: "Corredor A — Gastronomia Premium", B: "Corredor B — Moda Luxo & Joalheria", C: "Corredor C — Varejo Exclusivo" },
+  P: { A: "Corredor A", B: "Corredor B", C: "Corredor C" },
+  S: { A: "Corredor A", B: "Corredor B", C: "Corredor C" },
+  T: { A: "Corredor A", B: "Corredor B", C: "Corredor C" },
 };
 
 // RF-09: History of unit occupations
@@ -47,7 +36,7 @@ function UnitHistoryPanel({ lojista, onClose }: { lojista: Lojista; onClose: () 
           <div>
             <p className="text-xs text-white/70">Histórico de Ocupações</p>
             <h3 className="text-base font-bold text-white">{lojista.unidade}</h3>
-            <p className="text-sm text-white/80">Piso {lojista.piso} · Corredor {lojista.corredor} · {lojista.area} m²</p>
+            <p className="text-sm text-white/80">{lojista.piso} · Corredor {lojista.corredor} · {lojista.area} m²</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center">
             <XCircle className="w-4 h-4 text-white" />
@@ -68,7 +57,6 @@ function UnitHistoryPanel({ lojista, onClose }: { lojista: Lojista; onClose: () 
                 <div><span className="text-gray-500 dark:text-[#64748B]">Início: </span><span className="font-medium text-gray-900 dark:text-[#F1F5F9]">{lojista.contratoAtivo.inicio}</span></div>
                 <div><span className="text-gray-500 dark:text-[#64748B]">Fim: </span><span className="font-medium text-gray-900 dark:text-[#F1F5F9]">{lojista.contratoAtivo.fim}</span></div>
                 <div><span className="text-gray-500 dark:text-[#64748B]">Aluguel: </span><span className="font-semibold text-[#D93030]">{lojista.contratoAtivo.valorAluguel.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })}</span></div>
-                <div><span className="text-gray-500 dark:text-[#64748B]">Desempenho: </span><span className="font-semibold text-gray-900 dark:text-[#F1F5F9]">{lojista.contratoAtivo.desempenho}%</span></div>
               </div>
             </div>
           )}
@@ -165,7 +153,7 @@ function UnitBlock({
 }
 
 export function ComercialAvailability() {
-  const [activePiso, setActivePiso] = useState<Piso>("L1");
+  const [activePiso, setActivePiso] = useState<Piso>("P");
   const [filterSegmento, setFilterSegmento] = useState("Todos");
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [search, setSearch] = useState("");
@@ -173,11 +161,52 @@ export function ComercialAvailability() {
   const [profileLojista, setProfileLojista] = useState<Lojista | null>(null);
   const [historyLojista, setHistoryLojista] = useState<Lojista | null>(null);
 
+  // NOVO: Estado e Chamada da API
+  const [lojistasAPI, setLojistasAPI] = useState<Lojista[]>([]);
+
+  useEffect(() => {
+    fetch("http://localhost:8082/lojistas")
+      .then(res => res.json())
+      .then(data => {
+        const formatado = data.map((l: any) => {
+          let contratoFormatado = undefined;
+          if (l.contratoAtivo && l.contratoAtivo.id) {
+            contratoFormatado = {
+              id: l.contratoAtivo.id,
+              inicio: l.contratoAtivo.inicio,
+              fim: l.contratoAtivo.fim,
+              valorAluguel: l.contratoAtivo.valor_aluguel,
+              luvas: l.contratoAtivo.luvas,
+              percentualFaturamento: l.contratoAtivo.percentual_faturamento,
+              indiceReajuste: l.contratoAtivo.indice_reajuste,
+              tipo: l.contratoAtivo.tipo,
+              desempenho: l.contratoAtivo.desempenho,
+              diasRestantes: l.contratoAtivo.dias_restantes,
+              status: l.contratoAtivo.status
+            };
+          }
+          return {
+            ...l,
+            nome: l.nome?.String ?? "-",
+            cnpj: l.cnpj?.String ?? "-",
+            responsavel: l.responsavel?.String ?? "-",
+            email: l.email?.String ?? "-",
+            telefone: l.telefone?.String ?? "-",
+            status_relacionamento: l.status_relacionamento?.String ?? "-",
+            contratoAtivo: contratoFormatado
+          };
+        });
+        setLojistasAPI(formatado);
+      })
+      .catch(err => console.error("Erro ao buscar lojistas:", err));
+  }, []);
+
   const pisoData = useMemo(() => {
     const corridores: Record<Corredor, Lojista[]> = { A: [], B: [], C: [] };
-    allLojistas.filter(l => l.piso === activePiso).forEach(l => { corridores[l.corredor].push(l); });
+    // Usando lojistasAPI no lugar de allLojistas
+    lojistasAPI.filter(l => l.piso === activePiso).forEach(l => { corridores[l.corredor].push(l); });
     return corridores;
-  }, [activePiso]);
+  }, [activePiso, lojistasAPI]);
 
   const filteredPisoData = useMemo(() => {
     const filter = (list: Lojista[]) => list.filter(l => {
@@ -190,29 +219,34 @@ export function ComercialAvailability() {
   }, [pisoData, filterSegmento, filterStatus, search]);
 
   const globalStats = useMemo(() => {
-    const total = allLojistas.length;
-    const disponiveis = allLojistas.filter(l => l.status === "Disponível").length;
+    // Usando lojistasAPI no lugar de allLojistas
+    const total = lojistasAPI.length;
+    const disponiveis = lojistasAPI.filter(l => l.status === "Disponível").length;
     const ocupadas = total - disponiveis;
-    // RF-10: < 60 days
-    const vencendoBreve = allLojistas.filter(l => l.contratoAtivo && l.contratoAtivo.diasRestantes < 60).length;
+    const vencendoBreve = lojistasAPI.filter(l => l.contratoAtivo && l.contratoAtivo.diasRestantes < 60).length;
     return { total, disponiveis, ocupadas, vencendoBreve };
-  }, []);
+  }, [lojistasAPI]);
 
   const pisoStats = useMemo(() => {
     const s = (piso: Piso) => {
-      const arr = allLojistas.filter(l => l.piso === piso);
-      return { total: arr.length, ocupadas: arr.filter(l => l.status === "Ocupado").length, disponiveis: arr.filter(l => l.status === "Disponível").length };
+      // Usando lojistasAPI no lugar de allLojistas
+      const arr = lojistasAPI.filter(l => l.piso === piso);
+      return { 
+        total: arr.length, 
+        ocupadas: arr.filter(l => l.status === "Ocupado").length, 
+        disponiveis: arr.filter(l => l.status === "Disponível").length 
+      };
     };
-    return { L1: s("L1"), L2: s("L2"), L3: s("L3") };
-  }, []);
+    return { P: s("P"), S: s("S"), T: s("T") };
+  }, [lojistasAPI]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Disponibilidade de Unidades</h1>
-          <p className="text-gray-500 dark:text-[#94A3B8] mt-1">Planta do shopping por pisos e corredores.</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-[#F1F5F9]">Disponibilidade de Unidades</h1>
+          <p className="text-gray-500 dark:text-[#94A3B8] mt-0.5 text-sm">Planta do shopping por pisos e corredores.</p>
         </div>
         <div className="flex items-center gap-4 text-sm flex-wrap">
           <div className="flex items-center gap-2">
@@ -232,7 +266,7 @@ export function ComercialAvailability() {
 
       {/* Piso summary cards */}
       <div className="grid grid-cols-3 gap-4">
-        {(["L1", "L2", "L3"] as Piso[]).map(piso => {
+        {(["P", "S", "T"] as Piso[]).map(piso => {
           const s = pisoStats[piso];
           const taxa = Math.round((s.ocupadas / s.total) * 100);
           return (
@@ -250,8 +284,8 @@ export function ComercialAvailability() {
                 <div className="bg-[#D93030] h-1.5 rounded-full" style={{ width: `${taxa}%` }} />
               </div>
               <p className="text-xs font-semibold text-gray-700 dark:text-[#94A3B8] mt-1">{taxa}% ocupado · {s.disponiveis} livres</p>
-              <span className={`mt-2 inline-block text-xs px-2 py-0.5 rounded-full font-medium ${PISO_CLASS_BADGE[piso].className}`}>
-                {PISO_CLASS_BADGE[piso].label}
+              <span className="mt-2 inline-block text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 dark:bg-[#2E3447] text-gray-600 dark:text-[#94A3B8]">
+                {PISO_LABELS[piso]}
               </span>
             </button>
           );
@@ -259,34 +293,40 @@ export function ComercialAvailability() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex-1 min-w-40 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex-1 min-w-48 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar lojista ou unidade..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-900 dark:text-[#F1F5F9] placeholder-gray-400 focus:outline-none focus:border-[#D93030]"
+            className="w-full h-9 pl-9 pr-3 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-700 dark:text-[#CBD5E1] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors"
           />
         </div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer">
-          <option value="Todos">Todos</option>
-          <option value="Disponível">Disponíveis</option>
-          <option value="Ocupado">Ocupadas</option>
-        </select>
-        <select value={filterSegmento} onChange={e => setFilterSegmento(e.target.value)}
-          className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer">
-          <option value="Todos">Todos os Segmentos</option>
-          {["Moda", "Alimentação", "Serviços", "Eletrônicos", "Esportes", "Entretenimento", "Outros"].map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <button onClick={() => { setSearch(""); setFilterStatus("Todos"); setFilterSegmento("Todos"); }}
-          className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors">
-          <RefreshCw className="w-4 h-4" /> Limpar
-        </button>
+        <FilterSelect
+          value={filterStatus}
+          onChange={setFilterStatus}
+          options={[
+            { value: "Todos", label: "Todos" },
+            { value: "Disponível", label: "Disponíveis" },
+            { value: "Ocupado", label: "Ocupadas" },
+          ]}
+        />
+        <FilterSelect
+          value={filterSegmento}
+          onChange={setFilterSegmento}
+          options={[
+            { value: "Todos", label: "Todos os Segmentos" },
+            ...["Moda", "Alimentação", "Serviços", "Eletrônicos", "Esportes", "Entretenimento", "Outros"].map(s => ({ value: s, label: s })),
+          ]}
+        />
+        {(search || filterStatus !== "Todos" || filterSegmento !== "Todos") && (
+          <button onClick={() => { setSearch(""); setFilterStatus("Todos"); setFilterSegmento("Todos"); }}
+            className="h-9 flex items-center gap-1.5 px-3 border border-[#D93030]/25 bg-[#D93030]/5 text-[#D93030] rounded-xl text-sm hover:bg-[#D93030]/10 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> Limpar
+          </button>
+        )}
       </div>
 
       {/* Floor plan */}
@@ -305,7 +345,7 @@ export function ComercialAvailability() {
               </div>
             </div>
             <div className="flex gap-1 bg-gray-100 dark:bg-[#1A1F2E] rounded-lg p-1">
-              {(["L1", "L2", "L3"] as Piso[]).map(p => (
+              {(["P", "S", "T"] as Piso[]).map(p => (
                 <button key={p} onClick={() => setActivePiso(p)}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activePiso === p ? 'bg-[#D93030] text-white shadow-sm' : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-200 dark:hover:bg-[#2E3447]'}`}>
                   {p}
@@ -316,21 +356,6 @@ export function ComercialAvailability() {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Class description banner */}
-          <div className={`rounded-xl p-4 border flex items-start gap-3 ${
-            activePiso === 'L1' ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-700/30' :
-            activePiso === 'L2' ? 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-700/30' :
-            'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-700/30'
-          }`}>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${PISO_CLASS_BADGE[activePiso].className}`}>
-              {PISO_CLASS_BADGE[activePiso].label}
-            </span>
-            <p className={`text-xs leading-relaxed ${
-              activePiso === 'L1' ? 'text-blue-700 dark:text-blue-400' :
-              activePiso === 'L2' ? 'text-purple-700 dark:text-purple-400' :
-              'text-yellow-700 dark:text-yellow-400'
-            }`}>{PISO_DESCRIPTIONS[activePiso]}</p>
-          </div>
           {(["A", "B", "C"] as Corredor[]).map(corredor => {
             const units = filteredPisoData[corredor];
             const totalCorredor = pisoData[corredor].length;
@@ -389,27 +414,7 @@ export function ComercialAvailability() {
       </div>
 
       {/* Legend */}
-      <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4">
-        <p className="text-xs font-semibold text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Info className="w-3.5 h-3.5" /> Legenda
-        </p>
-        <div className="flex flex-wrap gap-4 text-xs text-gray-600 dark:text-[#94A3B8]">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-[#D93030]/10 border-2 border-[#D93030]/25" />
-            <span>Unidade Ocupada</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-white dark:bg-[#1A1F2E] border-2 border-dashed border-[#D93030]/40" />
-            <span>Disponível (RF-11)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative w-6 h-6 rounded-lg bg-[#D93030]/10 border-2 border-[#D93030]/25">
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-white dark:border-[#242938]" />
-            </div>
-            <span>Contrato vencendo em &lt;60 dias (RF-10)</span>
-          </div>
-        </div>
-      </div>
+      
 
       {/* Unit detail modal */}
       {selectedLojista && !profileLojista && (

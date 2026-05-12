@@ -1,9 +1,3 @@
--- ============================================================
--- jp-mall — Script de criação e população do banco de dados
--- Gerado a partir dos arquivos:
---   src/app/data/comercialData.ts  (lojistas, contratos, multas, propostas)
---   src/app/store.ts               (sinistros)
--- ============================================================
 
 CREATE DATABASE IF NOT EXISTS `jp-mall`
   DEFAULT CHARACTER SET utf8mb4

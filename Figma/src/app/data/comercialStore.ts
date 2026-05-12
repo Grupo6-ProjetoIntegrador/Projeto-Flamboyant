@@ -163,8 +163,8 @@ export function updateProposalStatus(id: string, newStatus: StatusProposta, obs?
     action: `Status alterado: "${old.status}" → "${newStatus}"`,
     details: obs ?? `Proposta ${id} atualizada para status "${newStatus}".`,
   });
-  // RN-01: Gerar contrato APENAS se status = "Aceita"
-  if (newStatus === 'Aceita') {
+  // RN-01: Gerar contrato APENAS se status = "Aprovado"
+  if (newStatus === 'Aprovado') {
     const alreadyGenerated = generatedContracts.some(c => c.proposalId === id);
     if (!alreadyGenerated) generateContractFromProposal(id);
   }
@@ -178,8 +178,8 @@ export function updateProposalStatus(id: string, newStatus: StatusProposta, obs?
 
 function generateContractFromProposal(proposalId: string): ContratoGerado | null {
   const proposal = getProposalById(proposalId);
-  // RN-01: Somente propostas aceitas geram contrato
-  if (!proposal || proposal.status !== 'Aceita') return null;
+  // RN-01: Somente propostas aprovadas geram contrato
+  if (!proposal || proposal.status !== 'Aprovado') return null;
   // RN-05: Contrato vinculado a lojista (lojista campo é obrigatório)
   if (!proposal.lojista) return null;
   // RN-04: Não pode ter dois contratos ativos na mesma unidade

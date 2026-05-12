@@ -18,7 +18,7 @@ export function Login() {
     const form = e.currentTarget;
     const email = (form.elements.namedItem('email') as HTMLInputElement)?.value || 'gerente@jpmall.com.br';
     setUserSession({ email, name: 'Gerente JP Mall', sector });
-    navigate("/dashboard");
+    navigate("/comercial/dashboard");
   };
 
   return (

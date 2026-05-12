@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import {
-  Download, Filter, Calendar, CheckSquare, Square, BarChart3,
+  Download, Filter, Calendar, CheckSquare, BarChart3,
   FileText, TrendingUp, RefreshCw, Check, ChevronDown,
-  Printer, Table, FileSpreadsheet, Activity
+  Printer, Table, FileSpreadsheet
 } from "lucide-react";
+import { FilterSelect } from "../../components/FilterSelect";
 import { allLojistas, propostasAtivas } from "../../data/comercialData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
@@ -37,11 +38,9 @@ const DEFAULT_FIELDS: ReportField[] = [
   { id: "luvas", label: "Valor das Luvas", category: "Contrato", selected: false },
   { id: "percentualFaturamento", label: "% Faturamento", category: "Contrato", selected: false },
   { id: "indiceReajuste", label: "Índice de Reajuste", category: "Contrato", selected: false },
-  { id: "desempenho", label: "Desempenho (%)", category: "Contrato", selected: false },
   { id: "diasRestantes", label: "Dias Restantes", category: "Contrato", selected: false },
   // Financeiro
   { id: "faturamentoMedio", label: "Faturamento Médio", category: "Financeiro", selected: false },
-  { id: "receitaPercentual", label: "Receita % Vendas/Mês", category: "Financeiro", selected: false },
   // Relacionamento — removido
 ];
 
@@ -69,7 +68,7 @@ export function ComercialReports() {
   const [filterPiso, setFilterPiso] = useState("Todos");
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [filterSegmento, setFilterSegmento] = useState("Todos");
-  const [reportType, setReportType] = useState<"contratos" | "multas" | "propostas" | "ocupacao" | "desempenho">("contratos");
+  const [reportType, setReportType] = useState<"contratos" | "propostas" | "ocupacao">("contratos");
   const [showPreview, setShowPreview] = useState(false);
   const [exportFormat, setExportFormat] = useState<"csv" | "pdf" | "xlsx">("xlsx");
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -118,18 +117,6 @@ export function ComercialReports() {
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 6);
   }, [reportData]);
 
-  const totalReceita = useMemo(() =>
-    reportData.filter(l => l.contratoAtivo).reduce((s, l) => s + l.contratoAtivo!.valorAluguel, 0),
-  [reportData]);
-
-  const totalSalesRevenue = useMemo(() =>
-    reportData.filter(l => l.contratoAtivo).reduce((s, l) => s + l.faturamentoMedio * (l.contratoAtivo!.percentualFaturamento / 100), 0),
-  [reportData]);
-
-  const vencendo = useMemo(() =>
-    reportData.filter(l => l.contratoAtivo && l.contratoAtivo.diasRestantes <= 90).length,
-  [reportData]);
-
   // Preview table data
   const previewRows = useMemo(() => {
     return reportData.slice(0, 15).map(l => {
@@ -155,10 +142,8 @@ export function ComercialReports() {
           case "luvas": row[f.label] = l.contratoAtivo ? fmt(l.contratoAtivo.luvas) : "—"; break;
           case "percentualFaturamento": row[f.label] = l.contratoAtivo ? `${l.contratoAtivo.percentualFaturamento}%` : "—"; break;
           case "indiceReajuste": row[f.label] = l.contratoAtivo?.indiceReajuste || "—"; break;
-          case "desempenho": row[f.label] = l.contratoAtivo ? `${l.contratoAtivo.desempenho}%` : "—"; break;
           case "diasRestantes": row[f.label] = l.contratoAtivo ? `${l.contratoAtivo.diasRestantes} dias` : "—"; break;
           case "faturamentoMedio": row[f.label] = fmt(l.faturamentoMedio); break;
-          case "receitaPercentual": row[f.label] = l.contratoAtivo ? fmt(l.faturamentoMedio * l.contratoAtivo.percentualFaturamento / 100) : "—"; break;
           default: row[f.label] = "—";
         }
       });
@@ -195,30 +180,6 @@ export function ComercialReports() {
         </div>
       </div>
 
-      {/* Summary KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4">
-          <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">Registros no Relatório</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">{reportData.length}</p>
-          <p className="text-xs text-gray-400 mt-1">unidades / lojistas</p>
-        </div>
-        <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4">
-          <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">Receita Mensal Total</p>
-          <p className="text-xl font-bold text-green-600 dark:text-green-400">{fmt(totalReceita)}</p>
-          <p className="text-xs text-gray-400 mt-1">contratos ativos</p>
-        </div>
-        <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4">
-          <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">Receita % Vendas/Mês</p>
-          <p className="text-xl font-bold text-[#D93030]">{fmt(totalSalesRevenue)}</p>
-          <p className="text-xs text-gray-400 mt-1">contribuição de % faturamento</p>
-        </div>
-        <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4">
-          <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">Contratos Vencendo</p>
-          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{vencendo}</p>
-          <p className="text-xs text-gray-400 mt-1">próximos 90 dias</p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Filters + Field selector */}
         <div className="lg:col-span-1 space-y-4">
@@ -227,26 +188,26 @@ export function ComercialReports() {
             <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#D93030]" /> Filtro por Período
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div>
-                <label className="text-xs text-gray-500 dark:text-[#64748B] mb-1 block">Data Inicial</label>
+                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Data Inicial</label>
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={e => setDateFrom(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030]"
+                  className="w-full h-9 px-3 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-700 dark:text-[#CBD5E1] focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 dark:text-[#64748B] mb-1 block">Data Final</label>
+                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Data Final</label>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={e => setDateTo(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030]"
+                  className="w-full h-9 px-3 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-700 dark:text-[#CBD5E1] focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 gap-1.5 pt-1">
                 {[
                   { label: "1 mês", from: "2026-03-17" },
                   { label: "3 meses", from: "2026-01-17" },
@@ -258,7 +219,7 @@ export function ComercialReports() {
                   <button
                     key={q.label}
                     onClick={() => { setDateFrom(q.from); setDateTo("2026-04-17"); }}
-                    className="px-2 py-1.5 text-xs border border-gray-200 dark:border-[#2E3447] rounded-lg text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] hover:border-[#D93030] transition-colors"
+                    className="h-7 px-1 text-xs border border-gray-200 dark:border-[#2E3447] rounded-xl text-gray-500 dark:text-[#94A3B8] bg-white dark:bg-[#1A1F2E] hover:border-[#D93030]/50 hover:text-[#D93030] transition-colors"
                   >
                     {q.label}
                   </button>
@@ -272,48 +233,46 @@ export function ComercialReports() {
             <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4 flex items-center gap-2">
               <Filter className="w-4 h-4 text-[#D93030]" /> Filtros do Relatório
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div>
-                <label className="text-xs text-gray-500 dark:text-[#64748B] mb-1 block">Piso</label>
-                <select
+                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Piso</label>
+                <FilterSelect
                   value={filterPiso}
-                  onChange={e => setFilterPiso(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer"
-                >
-                  <option value="Todos">Todos os Pisos</option>
-                  <option value="L1">Piso L1</option>
-                  <option value="L2">Piso L2</option>
-                  <option value="L3">Piso L3</option>
-                </select>
+                  onChange={setFilterPiso}
+                  options={[
+                    { value: "Todos", label: "Todos os Pisos" },
+                    { value: "P", label: "Primeiro Piso" },
+                    { value: "S", label: "Segundo Piso" },
+                    { value: "T", label: "Terceiro Piso" },
+                  ]}
+                />
               </div>
               <div>
-                <label className="text-xs text-gray-500 dark:text-[#64748B] mb-1 block">Status</label>
-                <select
+                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Status</label>
+                <FilterSelect
                   value={filterStatus}
-                  onChange={e => setFilterStatus(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer"
-                >
-                  <option value="Todos">Todos</option>
-                  <option value="Ocupado">Ocupados</option>
-                  <option value="Disponível">Disponíveis</option>
-                </select>
+                  onChange={setFilterStatus}
+                  options={[
+                    { value: "Todos", label: "Todos" },
+                    { value: "Ocupado", label: "Ocupados" },
+                    { value: "Disponível", label: "Disponíveis" },
+                  ]}
+                />
               </div>
               <div>
-                <label className="text-xs text-gray-500 dark:text-[#64748B] mb-1 block">Segmento</label>
-                <select
+                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Segmento</label>
+                <FilterSelect
                   value={filterSegmento}
-                  onChange={e => setFilterSegmento(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer"
-                >
-                  <option value="Todos">Todos</option>
-                  {["Moda", "Alimentação", "Serviços", "Eletrônicos", "Esportes", "Entretenimento", "Outros"].map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                  onChange={setFilterSegmento}
+                  options={[
+                    { value: "Todos", label: "Todos" },
+                    ...["Moda", "Alimentação", "Serviços", "Eletrônicos", "Esportes", "Entretenimento", "Outros"].map(s => ({ value: s, label: s })),
+                  ]}
+                />
               </div>
               <button
                 onClick={() => { setFilterPiso("Todos"); setFilterStatus("Todos"); setFilterSegmento("Todos"); }}
-                className="w-full flex items-center justify-center gap-2 border border-gray-200 dark:border-[#2E3447] text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] rounded-lg py-2 text-sm transition-colors"
+                className="w-full h-9 flex items-center justify-center gap-2 border border-[#D93030]/25 bg-[#D93030]/5 text-[#D93030] rounded-xl text-sm hover:bg-[#D93030]/10 transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Limpar Filtros
               </button>
@@ -372,7 +331,6 @@ export function ComercialReports() {
               { id: "contratos", label: "Contratos", icon: FileText },
               { id: "ocupacao", label: "Ocupação", icon: BarChart3 },
               { id: "propostas", label: "Propostas", icon: TrendingUp },
-              { id: "desempenho", label: "Desempenho", icon: Activity },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -410,14 +368,14 @@ export function ComercialReports() {
                 <ResponsiveContainer width="60%" height="100%">
                   <PieChart>
                     <Pie
-                      data={["L1", "L2", "L3"].map(p => ({
+                      data={["P", "S", "T"].map(p => ({
                         name: p,
                         value: allLojistas.filter(l => l.piso === p && l.status === "Ocupado").length,
                       }))}
                       cx="50%" cy="50%" outerRadius={80} innerRadius={45}
                       dataKey="value" paddingAngle={4}
                     >
-                      {["L1", "L2", "L3"].map((_, i) => (
+                      {["P", "S", "T"].map((_, i) => (
                         <Cell key={i} fill={CHART_COLORS[i]} />
                       ))}
                     </Pie>
@@ -425,7 +383,7 @@ export function ComercialReports() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-3">
-                  {["L1", "L2", "L3"].map((p, i) => {
+                  {["P", "S", "T"].map((p, i) => {
                     const count = allLojistas.filter(l => l.piso === p && l.status === "Ocupado").length;
                     return (
                       <div key={p} className="flex items-center gap-2">
@@ -448,12 +406,11 @@ export function ComercialReports() {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Aceita", value: propostasAtivas.filter(p => p.status === "Aceita").length },
-                        { name: "Em Negociação", value: propostasAtivas.filter(p => p.status === "Em Negociação").length },
-                        { name: "Em Análise", value: propostasAtivas.filter(p => p.status === "Em Análise").length },
-                        { name: "Pendente", value: propostasAtivas.filter(p => p.status === "Pendente").length },
-                        { name: "Recusada", value: propostasAtivas.filter(p => p.status === "Recusada").length },
-                        { name: "Expirada", value: propostasAtivas.filter(p => p.status === "Expirada").length },
+                        { name: "Ag. Financeiro", value: propostasAtivas.filter(p => p.status === "Aguardando análise financeira").length },
+                        { name: "Ag. Comitê", value: propostasAtivas.filter(p => p.status === "Aguardando análise do comitê").length },
+                        { name: "Aprovado", value: propostasAtivas.filter(p => p.status === "Aprovado").length },
+                        { name: "Reprovado", value: propostasAtivas.filter(p => p.status === "Reprovado").length },
+                        { name: "Cancelado", value: propostasAtivas.filter(p => p.status === "Cancelado").length },
                       ]}
                       cx="50%" cy="50%" outerRadius={80} dataKey="value" paddingAngle={3}
                     >
@@ -463,44 +420,17 @@ export function ComercialReports() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-2">
-                  {["Aceita", "Em Negociação", "Em Análise", "Pendente", "Recusada", "Expirada"].map((s, i) => (
+                  {[
+                    "Aguardando análise financeira",
+                    "Aguardando análise do comitê",
+                    "Aprovado",
+                    "Reprovado",
+                    "Cancelado",
+                  ].map((s, i) => (
                     <div key={s} className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
-                      <span className="text-xs text-gray-600 dark:text-[#94A3B8]">{s}</span>
+                      <span className="text-xs text-gray-600 dark:text-[#94A3B8] max-w-[120px] leading-tight">{s}</span>
                       <span className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9] ml-auto">{propostasAtivas.filter(p => p.status === s).length}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {reportType === "desempenho" && (
-            <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4">Desempenho dos Contratos</h3>
-              <div className="h-56 flex items-center justify-center">
-                <ResponsiveContainer width="60%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Excelente", value: reportData.filter(l => l.contratoAtivo && l.contratoAtivo.desempenho >= 80).length },
-                        { name: "Bom", value: reportData.filter(l => l.contratoAtivo && l.contratoAtivo.desempenho >= 60 && l.contratoAtivo.desempenho < 80).length },
-                        { name: "Regular", value: reportData.filter(l => l.contratoAtivo && l.contratoAtivo.desempenho >= 40 && l.contratoAtivo.desempenho < 60).length },
-                        { name: "Baixo", value: reportData.filter(l => l.contratoAtivo && l.contratoAtivo.desempenho < 40).length },
-                      ]}
-                      cx="50%" cy="50%" outerRadius={80} dataKey="value" paddingAngle={3}
-                    >
-                      {CHART_COLORS.map((c, i) => <Cell key={i} fill={c} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', backgroundColor: '#1E2435', color: '#F1F5F9' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-2">
-                  {["Excelente", "Bom", "Regular", "Baixo"].map((s, i) => (
-                    <div key={s} className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
-                      <span className="text-xs text-gray-600 dark:text-[#94A3B8]">{s}</span>
-                      <span className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9] ml-auto">{reportData.filter(l => l.contratoAtivo && l.contratoAtivo.desempenho >= (i * 20) && l.contratoAtivo.desempenho < ((i + 1) * 20)).length}</span>
                     </div>
                   ))}
                 </div>
@@ -572,28 +502,7 @@ export function ComercialReports() {
           </div>
 
           {/* Export actions */}
-          <div className="bg-gradient-to-r from-[#8B1A1A]/5 to-[#D93030]/5 dark:from-[#8B1A1A]/20 dark:to-[#D93030]/20 border border-[#D93030]/20 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4 flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4 text-[#D93030]" /> Opções de Exportação
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <button className="flex flex-col items-center gap-2 p-4 bg-white dark:bg-[#242938] rounded-xl border border-gray-200 dark:border-[#2E3447] hover:border-[#D93030] transition-all hover:shadow-sm group">
-                <FileSpreadsheet className="w-6 h-6 text-green-600 group-hover:text-[#D93030] transition-colors" />
-                <span className="text-xs font-medium text-gray-700 dark:text-[#F1F5F9]">Excel (.xlsx)</span>
-                <span className="text-xs text-gray-400">{selectedFields.length} campos</span>
-              </button>
-              <button className="flex flex-col items-center gap-2 p-4 bg-white dark:bg-[#242938] rounded-xl border border-gray-200 dark:border-[#2E3447] hover:border-[#D93030] transition-all hover:shadow-sm group">
-                <Table className="w-6 h-6 text-blue-600 group-hover:text-[#D93030] transition-colors" />
-                <span className="text-xs font-medium text-gray-700 dark:text-[#F1F5F9]">CSV (.csv)</span>
-                <span className="text-xs text-gray-400">{reportData.length} linhas</span>
-              </button>
-              <button className="flex flex-col items-center gap-2 p-4 bg-white dark:bg-[#242938] rounded-xl border border-gray-200 dark:border-[#2E3447] hover:border-[#D93030] transition-all hover:shadow-sm group">
-                <Printer className="w-6 h-6 text-red-600 group-hover:text-[#D93030] transition-colors" />
-                <span className="text-xs font-medium text-gray-700 dark:text-[#F1F5F9]">PDF</span>
-                <span className="text-xs text-gray-400">com gráficos</span>
-              </button>
-            </div>
-          </div>
+          
         </div>
       </div>
     </div>
