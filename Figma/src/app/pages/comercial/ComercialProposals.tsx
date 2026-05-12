@@ -4,6 +4,7 @@ import {
   XCircle, Clock, MessageSquare, RefreshCw, Send, Edit3,
   FileText, Paperclip, Upload, Trash2, Shield, History
 } from "lucide-react";
+import { FilterSelect } from "../../components/FilterSelect";
 import {
   getProposals, updateProposalStatus, addProposal, getGeneratedContracts,
   addDocument, getDocumentsByEntity, removeDocument, getAuditByEntity,
@@ -14,12 +15,11 @@ import { LojistProfileModal } from "../../components/LojistProfileModal";
 import type { Lojista, StatusProposta } from "../../data/comercialData";
 
 const STATUS_COLORS: Record<StatusProposta, string> = {
-  Pendente:       "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700/30",
-  "Em Análise":   "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-700/30",
-  "Em Negociação":"bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-700/30",
-  Aceita:         "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-700/30",
-  Recusada:       "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-700/30",
-  Expirada:       "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600/30",
+  "Aguardando análise financeira": "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700/30",
+  "Aguardando análise do comitê":  "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-700/30",
+  Aprovado:  "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-700/30",
+  Reprovado: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-700/30",
+  Cancelado: "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600/30",
 };
 
 const TIPO_COLORS: Record<string, string> = {
@@ -30,12 +30,11 @@ const TIPO_COLORS: Record<string, string> = {
 
 function StatusIcon({ status }: { status: StatusProposta }) {
   switch (status) {
-    case "Aceita":         return <CheckCircle className="w-4 h-4 text-green-500" />;
-    case "Recusada":       return <XCircle className="w-4 h-4 text-red-500" />;
-    case "Expirada":       return <XCircle className="w-4 h-4 text-gray-400" />;
-    case "Pendente":       return <Clock className="w-4 h-4 text-yellow-500" />;
-    case "Em Análise":     return <Eye className="w-4 h-4 text-purple-500" />;
-    case "Em Negociação":  return <MessageSquare className="w-4 h-4 text-blue-500" />;
+    case "Aguardando análise financeira": return <Clock className="w-4 h-4 text-yellow-500" />;
+    case "Aguardando análise do comitê":  return <Eye className="w-4 h-4 text-purple-500" />;
+    case "Aprovado":  return <CheckCircle className="w-4 h-4 text-green-500" />;
+    case "Reprovado": return <XCircle className="w-4 h-4 text-red-500" />;
+    case "Cancelado": return <XCircle className="w-4 h-4 text-gray-400" />;
     default: return null;
   }
 }
@@ -57,11 +56,13 @@ export function ComercialProposals() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("Todos");
   const [filterTipo, setFilterTipo] = useState<string>("Todos");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profileLojista, setProfileLojista] = useState<Lojista | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [newStatusTarget, setNewStatusTarget] = useState<StatusProposta>("Em Negociação");
+  const [newStatusTarget, setNewStatusTarget] = useState<StatusProposta>("Aguardando análise do comitê");
   const [statusObs, setStatusObs] = useState("");
   const [showAuditPanel, setShowAuditPanel] = useState(false);
 
@@ -71,27 +72,59 @@ export function ComercialProposals() {
     valor: '', area: '', vencimento: '', observacoes: '',
   });
 
-  const proposals = useMemo(() => getProposals(), [tick]);
+  // REMOVA OU COMENTE ESTA LINHA:
+  // const proposals = useMemo(() => getProposals(), [tick]);
+
+  // --- ADICIONE ESTE BLOCO NO LUGAR ---
+  const [propostasAPI, setPropostasAPI] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("http://localhost:8082/propostas")
+      .then(res => res.json())
+      .then(data => {
+        const formatado = data.map((p: any) => ({
+          ...p,
+          lojista: p.lojista_nome, // Traduzindo para o React
+          valorProposto: p.valor_proposto,
+          area: p.area_m2,
+          dataCriacao: p.data_criacao,
+          dataVencimento: p.data_vencimento,
+          observacoes: p.observacoes?.String ?? "",
+          lojistaId: p.lojista_id?.String ?? undefined
+        }));
+        setPropostasAPI(formatado);
+      })
+      .catch(err => console.error("Erro ao buscar propostas:", err));
+  }, [tick]);
   const generatedContracts = useMemo(() => getGeneratedContracts(), [tick]);
 
   const filtered = useMemo(() => {
-    return proposals.filter(p => {
+    return propostasAPI.filter(p => {
       const matchSearch = p.lojista.toLowerCase().includes(search.toLowerCase()) ||
         p.unidade.toLowerCase().includes(search.toLowerCase()) ||
         p.id.toLowerCase().includes(search.toLowerCase());
       const matchStatus = filterStatus === "Todos" || p.status === filterStatus;
       const matchTipo = filterTipo === "Todos" || p.tipo === filterTipo;
-      return matchSearch && matchStatus && matchTipo;
+      let matchDate = true;
+      if (dateFrom || dateTo) {
+        const parts = p.dataCriacao.split('/');
+        if (parts.length === 3) {
+          const propDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          if (dateFrom && propDate < dateFrom) matchDate = false;
+          if (dateTo && propDate > dateTo) matchDate = false;
+        }
+      }
+      return matchSearch && matchStatus && matchTipo && matchDate;
     });
-  }, [proposals, search, filterStatus, filterTipo, tick]);
+  }, [proposals, search, filterStatus, filterTipo, dateFrom, dateTo, tick]);
 
   const counts = useMemo(() => {
     const map: Record<string, number> = {};
-    proposals.forEach(p => { map[p.status] = (map[p.status] || 0) + 1; });
+    propostasAPI.forEach(p => { map[p.status] = (map[p.status] || 0) + 1; });
     return map;
   }, [proposals, tick]);
 
-  const selected = useMemo(() => proposals.find(p => p.id === selectedId), [proposals, selectedId, tick]);
+  const selected = useMemo(() => propostasAPI.find(p => p.id === selectedId), [proposals, selectedId, tick]);
   const lojistaMapped = selected?.lojistaId ? allLojistas.find(l => l.id === selected.lojistaId) : null;
   const selectedDocs = useMemo(() => selected ? getDocumentsByEntity(selected.id) : [], [selected, tick]);
   const selectedAudit = useMemo(() => selected ? getAuditByEntity(selected.id) : [], [selected, tick]);
@@ -132,26 +165,39 @@ export function ComercialProposals() {
 
   const handleNewProposal = () => {
     if (!newProp.lojista || !newProp.unidade || !newProp.valor) return;
-    addProposal({
-      lojistaId: undefined,
-      lojista: newProp.lojista,
+
+    // Prepara o JSON para o Go
+    const payload = {
+      lojista_nome: newProp.lojista,
       unidade: newProp.unidade,
       segmento: newProp.segmento,
       tipo: newProp.tipo,
-      valorProposto: parseFloat(newProp.valor) || 0,
-      area: parseFloat(newProp.area) || 0,
-      status: 'Pendente',
+      valor_proposto: parseFloat(newProp.valor) || 0,
+      area_m2: parseInt(newProp.area) || 0,
       responsavel: 'Gerência Comercial',
-      dataCriacao: new Date().toLocaleDateString('pt-BR'),
-      dataVencimento: newProp.vencimento || '30/06/2026',
-      observacoes: newProp.observacoes,
-    });
-    setShowNewModal(false);
-    setNewProp({ lojista:'', unidade:'', tipo:'Nova Instalação', segmento:'Moda', valor:'', area:'', vencimento:'', observacoes:'' });
-    refresh();
+      data_vencimento: newProp.vencimento || '30/06/2026',
+      observacoes: newProp.observacoes ? newProp.observacoes : undefined
+    };
+
+    // Dispara para a API
+    fetch("http://localhost:8082/propostas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Falha ao salvar proposta");
+      return res.json();
+    })
+    .then(() => {
+      setShowNewModal(false);
+      setNewProp({ lojista:'', unidade:'', tipo:'Nova Instalação', segmento:'Moda', valor:'', area:'', vencimento:'', observacoes:'' });
+      refresh(); // Atualiza a tela puxando do banco de novo
+    })
+    .catch(err => console.error("Erro ao criar proposta:", err));
   };
 
-  const canChangeStatus = selected && !['Aceita', 'Recusada', 'Expirada'].includes(selected.status);
+  const canChangeStatus = selected && !['Aprovado', 'Reprovado', 'Cancelado'].includes(selected.status);
 
   return (
     <div className="space-y-6">
@@ -168,8 +214,8 @@ export function ComercialProposals() {
       </div>
 
       {/* Status counters */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {(["Em Negociação","Em Análise","Pendente","Aceita","Recusada","Expirada"] as StatusProposta[]).map(s => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {(["Aguardando análise financeira","Aguardando análise do comitê","Aprovado","Reprovado","Cancelado"] as StatusProposta[]).map(s => (
           <button key={s} onClick={() => setFilterStatus(filterStatus === s ? "Todos" : s)}
             className={`rounded-xl p-3 text-center border transition-all ${filterStatus === s ? STATUS_COLORS[s] + ' ring-2 ring-offset-1 ring-current' : 'bg-white dark:bg-[#242938] border-gray-100 dark:border-[#2E3447] hover:border-gray-300 dark:hover:border-[#3E4557]'}`}>
             <p className="text-lg font-bold text-gray-900 dark:text-[#F1F5F9]">{counts[s] || 0}</p>
@@ -179,24 +225,37 @@ export function ComercialProposals() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex-1 min-w-48 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input type="text" placeholder="Buscar por lojista, unidade ou código..." value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-900 dark:text-[#F1F5F9] placeholder-gray-400 focus:outline-none focus:border-[#D93030]" />
+            className="w-full h-9 pl-9 pr-3 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-700 dark:text-[#CBD5E1] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors" />
         </div>
-        <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)}
-          className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer">
-          <option value="Todos">Todos os Tipos</option>
-          <option value="Nova Instalação">Nova Instalação</option>
-          <option value="Renovação">Renovação</option>
-          <option value="Readequação">Readequação</option>
-        </select>
-        <button onClick={() => { setSearch(""); setFilterStatus("Todos"); setFilterTipo("Todos"); }}
-          className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors">
-          <RefreshCw className="w-4 h-4" /> Limpar
-        </button>
+        <FilterSelect
+          value={filterTipo}
+          onChange={setFilterTipo}
+          options={[
+            { value: "Todos", label: "Todos os Tipos" },
+            { value: "Nova Instalação", label: "Nova Instalação" },
+            { value: "Renovação", label: "Renovação" },
+            { value: "Readequação", label: "Readequação" },
+          ]}
+        />
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap">De</span>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            className="h-9 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 text-sm text-gray-700 dark:text-[#CBD5E1] focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors" />
+          <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap">Até</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            className="h-9 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 text-sm text-gray-700 dark:text-[#CBD5E1] focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors" />
+        </div>
+        {(search || filterStatus !== "Todos" || filterTipo !== "Todos" || dateFrom || dateTo) && (
+          <button onClick={() => { setSearch(""); setFilterStatus("Todos"); setFilterTipo("Todos"); setDateFrom(""); setDateTo(""); }}
+            className="h-9 flex items-center gap-1.5 px-3 border border-[#B82025]/30 bg-[#B82025]/5 text-[#B82025] rounded-xl text-sm hover:bg-[#B82025]/10 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" /> Limpar
+          </button>
+        )}
       </div>
 
       {/* Content: list + detail */}
@@ -206,7 +265,7 @@ export function ComercialProposals() {
           <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-gray-100 dark:border-[#2E3447] bg-gray-50/50 dark:bg-[#1A1F2E] flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">{filtered.length} proposta{filtered.length !== 1 ? 's' : ''}</span>
-              <Filter className="w-4 h-4 text-gray-400" />
+              
             </div>
             <div className="divide-y divide-gray-100 dark:divide-[#2E3447] max-h-[600px] overflow-y-auto">
               {filtered.length === 0 ? (
@@ -311,23 +370,23 @@ export function ComercialProposals() {
                 <div className="border-t border-gray-100 dark:border-[#2E3447] pt-4 space-y-2">
                   {canChangeStatus && (
                     <>
-                      <button onClick={() => handleChangeStatus('Aceita')}
+                      <button onClick={() => handleChangeStatus('Aprovado')}
                         className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-                        <CheckCircle className="w-4 h-4" /> Aceitar Proposta
+                        <CheckCircle className="w-4 h-4" /> Aprovar Proposta
                       </button>
                       <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => handleChangeStatus('Em Negociação')}
-                          className="flex items-center justify-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors">
-                          <MessageSquare className="w-3.5 h-3.5" /> Em Negociação
-                        </button>
-                        <button onClick={() => handleChangeStatus('Em Análise')}
+                        <button onClick={() => handleChangeStatus('Aguardando análise do comitê')}
                           className="flex items-center justify-center gap-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors">
-                          <Eye className="w-3.5 h-3.5" /> Em Análise
+                          <Eye className="w-3.5 h-3.5" /> Comitê
+                        </button>
+                        <button onClick={() => handleChangeStatus('Aguardando análise financeira')}
+                          className="flex items-center justify-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors">
+                          <Clock className="w-3.5 h-3.5" /> Financeiro
                         </button>
                       </div>
-                      <button onClick={() => handleChangeStatus('Recusada')}
+                      <button onClick={() => handleChangeStatus('Reprovado')}
                         className="w-full flex items-center justify-center gap-2 border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-                        <XCircle className="w-4 h-4" /> Recusar Proposta
+                        <XCircle className="w-4 h-4" /> Reprovar Proposta
                       </button>
                     </>
                   )}
@@ -336,7 +395,7 @@ export function ComercialProposals() {
                   <div className="border-t border-gray-100 dark:border-[#2E3447] pt-3">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-semibold text-gray-600 dark:text-[#94A3B8] flex items-center gap-1">
-                        <Paperclip className="w-3.5 h-3.5" /> Documentos (RF-08) — {selectedDocs.length}
+                        <Paperclip className="w-3.5 h-3.5" /> Documentos  — {selectedDocs.length}
                       </p>
                       <button onClick={handleFileUpload}
                         className="flex items-center gap-1 text-xs text-[#D93030] hover:text-[#b92828] font-medium">
@@ -367,7 +426,7 @@ export function ComercialProposals() {
                   <div className="border-t border-gray-100 dark:border-[#2E3447] pt-3">
                     <button onClick={() => setShowAuditPanel(p => !p)}
                       className="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-[#94A3B8] hover:text-[#D93030] transition-colors">
-                      <Shield className="w-3.5 h-3.5" /> Trilha de Auditoria (RNF-04/05) — {selectedAudit.length} registro{selectedAudit.length !== 1 ? 's' : ''}
+                      <Shield className="w-3.5 h-3.5" /> Histórico de Alterações — {selectedAudit.length} registro{selectedAudit.length !== 1 ? 's' : ''}
                     </button>
                     {showAuditPanel && selectedAudit.length > 0 && (
                       <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
@@ -416,11 +475,11 @@ export function ComercialProposals() {
             <div className="p-5 space-y-4">
               <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3">
                 <p className="text-xs text-gray-500 dark:text-[#64748B]">Status atual: <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">{selected.status}</span></p>
-                <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">Novo status: <span className={`font-semibold ${newStatusTarget === 'Aceita' ? 'text-green-600' : newStatusTarget === 'Recusada' ? 'text-red-600' : 'text-blue-600'}`}>{newStatusTarget}</span></p>
+                <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">Novo status: <span className={`font-semibold ${newStatusTarget === 'Aprovado' ? 'text-green-600' : newStatusTarget === 'Reprovado' ? 'text-red-600' : 'text-purple-600'}`}>{newStatusTarget}</span></p>
               </div>
-              {newStatusTarget === 'Aceita' && (
+              {newStatusTarget === 'Aprovado' && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/30 rounded-lg p-3 text-xs text-green-700 dark:text-green-400">
-                  <strong>RN-01:</strong> Ao aceitar, um contrato será gerado automaticamente.
+                  <strong>RN-01:</strong> Ao aprovar, um contrato será gerado automaticamente.
                 </div>
               )}
               <div>

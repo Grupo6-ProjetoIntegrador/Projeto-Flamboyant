@@ -4,7 +4,7 @@ import {
   Clock, RefreshCw, Eye, Download, Building2, TrendingUp,
   ArrowUpRight, ArrowDownRight, Sparkles
 } from "lucide-react";
-import { allLojistas } from "../../data/comercialData";
+/* import { allLojistas } from "../../data/comercialData"; */
 import { getGeneratedContracts, subscribe } from "../../data/comercialStore";
 import { LojistProfileModal } from "../../components/LojistProfileModal";
 import type { Lojista, StatusContrato } from "../../data/comercialData";
@@ -24,6 +24,50 @@ export function ComercialContracts() {
   const [tick, setTick] = useState(0);
   const refresh = () => setTick(t => t + 1);
 
+  // --- ADICIONE ESTE BLOCO AQUI ---
+  const [lojistasAPI, setLojistasAPI] = useState<Lojista[]>([]);
+
+ useEffect(() => {
+    fetch("http://localhost:8082/lojistas")
+      .then(res => res.json())
+      .then(data => {
+        const formatado = data.map((l: any) => {
+          
+          // Traduzindo o contrato do formato do Go para o formato do React
+          let contratoFormatado = undefined;
+          if (l.contratoAtivo && l.contratoAtivo.id) {
+            contratoFormatado = {
+              id: l.contratoAtivo.id,
+              inicio: l.contratoAtivo.inicio,
+              fim: l.contratoAtivo.fim,
+              valorAluguel: l.contratoAtivo.valor_aluguel,             // Traduzido!
+              luvas: l.contratoAtivo.luvas,
+              percentualFaturamento: l.contratoAtivo.percentual_faturamento, // Traduzido!
+              indiceReajuste: l.contratoAtivo.indice_reajuste,         // Traduzido!
+              tipo: l.contratoAtivo.tipo,
+              desempenho: l.contratoAtivo.desempenho,
+              diasRestantes: l.contratoAtivo.dias_restantes,           // Traduzido!
+              status: l.contratoAtivo.status
+            };
+          }
+
+          return {
+            ...l,
+            nome: l.nome?.String ?? "-",
+            cnpj: l.cnpj?.String ?? "-",
+            responsavel: l.responsavel?.String ?? "-",
+            email: l.email?.String ?? "-",
+            telefone: l.telefone?.String ?? "-",
+            status_relacionamento: l.status_relacionamento?.String ?? "-",
+            contratoAtivo: contratoFormatado
+          };
+        });
+        
+        setLojistasAPI(formatado);
+      })
+      .catch(err => console.error("Erro ao buscar lojistas:", err));
+  }, [tick]);
+
   useEffect(() => {
     const unsub = subscribe(refresh);
     return unsub;
@@ -38,8 +82,8 @@ export function ComercialContracts() {
   const [selectedLojista, setSelectedLojista] = useState<Lojista | null>(null);
 
   const lojistasComContrato = useMemo(
-    () => allLojistas.filter(l => l.status === 'Ocupado' && l.contratoAtivo),
-    []
+    () => lojistasAPI.filter(l => l.status === 'Ocupado' && l.contratoAtivo),
+    [lojistasAPI] // Mude a dependência aqui também!
   );
 
   // Include generated contracts as extra "virtual" lojistas

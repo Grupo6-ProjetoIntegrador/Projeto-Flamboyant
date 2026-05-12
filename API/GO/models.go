@@ -21,13 +21,13 @@ import (
 type Segmento string
 
 const (
-	SegmentoModa          Segmento = "Moda"
-	SegmentoAlimentacao   Segmento = "Alimentação"
-	SegmentoServicos      Segmento = "Serviços"
-	SegmentoEletronicos   Segmento = "Eletrônicos"
-	SegmentoEsportes      Segmento = "Esportes"
+	SegmentoModa           Segmento = "Moda"
+	SegmentoAlimentacao    Segmento = "Alimentação"
+	SegmentoServicos       Segmento = "Serviços"
+	SegmentoEletronicos    Segmento = "Eletrônicos"
+	SegmentoEsportes       Segmento = "Esportes"
 	SegmentoEntretenimento Segmento = "Entretenimento"
-	SegmentoOutros        Segmento = "Outros"
+	SegmentoOutros         Segmento = "Outros"
 )
 
 type StatusLoja string
@@ -72,25 +72,25 @@ const (
 type TipoContrato string
 
 const (
-	TipoAluguelFixo          TipoContrato = "Aluguel Fixo"
+	TipoAluguelFixo           TipoContrato = "Aluguel Fixo"
 	TipoAluguelMaisPercentual TipoContrato = "Aluguel + Percentual"
-	TipoSoPercentual         TipoContrato = "Só Percentual"
+	TipoSoPercentual          TipoContrato = "Só Percentual"
 )
 
 type StatusContrato string
 
 const (
-	StatusContratoAtivo      StatusContrato = "Ativo"
+	StatusContratoAtivo       StatusContrato = "Ativo"
 	StatusContratoEmRenovacao StatusContrato = "Em Renovação"
-	StatusContratoVencendo   StatusContrato = "Vencendo"
-	StatusContratoVencido    StatusContrato = "Vencido"
+	StatusContratoVencendo    StatusContrato = "Vencendo"
+	StatusContratoVencido     StatusContrato = "Vencido"
 )
 
 type StatusMulta string
 
 const (
-	StatusMultaPaga      StatusMulta = "Paga"
-	StatusMultaPendente  StatusMulta = "Pendente"
+	StatusMultaPaga       StatusMulta = "Paga"
+	StatusMultaPendente   StatusMulta = "Pendente"
 	StatusMultaContestada StatusMulta = "Contestada"
 )
 
@@ -106,30 +106,30 @@ const (
 type StatusProposta string
 
 const (
-	StatusPropostaPendente      StatusProposta = "Pendente"
-	StatusPropostaEmAnalise     StatusProposta = "Em Análise"
-	StatusPropostaEmNegociacao  StatusProposta = "Em Negociação"
-	StatusPropostaAceita        StatusProposta = "Aceita"
-	StatusPropostaRecusada      StatusProposta = "Recusada"
-	StatusPropostaExpirada      StatusProposta = "Expirada"
+	StatusPropostaPendente     StatusProposta = "Pendente"
+	StatusPropostaEmAnalise    StatusProposta = "Em Análise"
+	StatusPropostaEmNegociacao StatusProposta = "Em Negociação"
+	StatusPropostaAceita       StatusProposta = "Aceita"
+	StatusPropostaRecusada     StatusProposta = "Recusada"
+	StatusPropostaExpirada     StatusProposta = "Expirada"
 )
 
 type SeveridadeSinistro string
 
 const (
-	SeveridadeBaixa  SeveridadeSinistro = "Baixa"
-	SeveridadeMedia  SeveridadeSinistro = "Média"
-	SeveridadeAlta   SeveridadeSinistro = "Alta"
+	SeveridadeBaixa SeveridadeSinistro = "Baixa"
+	SeveridadeMedia SeveridadeSinistro = "Média"
+	SeveridadeAlta  SeveridadeSinistro = "Alta"
 )
 
 type StatusSinistro string
 
 const (
-	StatusSinistroAberto             StatusSinistro = "Aberto"
+	StatusSinistroAberto              StatusSinistro = "Aberto"
 	StatusSinistroAguardandoRegulador StatusSinistro = "Aguardando Regulador"
-	StatusSinistroEmAnalise          StatusSinistro = "Em Análise"
-	StatusSinistroAprovado           StatusSinistro = "Aprovado"
-	StatusSinistroPago               StatusSinistro = "Pago"
+	StatusSinistroEmAnalise           StatusSinistro = "Em Análise"
+	StatusSinistroAprovado            StatusSinistro = "Aprovado"
+	StatusSinistroPago                StatusSinistro = "Pago"
 )
 
 // ============================================================
@@ -138,29 +138,30 @@ const (
 // ============================================================
 
 type Lojista struct {
-	ID                  string               `db:"id"                   json:"id"`
-	Nome                sql.NullString       `db:"nome"                 json:"nome"`
-	CNPJ                sql.NullString       `db:"cnpj"                 json:"cnpj"`
-	Segmento            Segmento             `db:"segmento"             json:"segmento"`
-	Responsavel         sql.NullString       `db:"responsavel"          json:"responsavel"`
-	Email               sql.NullString       `db:"email"                json:"email"`
-	Telefone            sql.NullString       `db:"telefone"             json:"telefone"`
-	Unidade             string               `db:"unidade"              json:"unidade"`
-	Piso                Piso                 `db:"piso"                 json:"piso"`
-	Corredor            Corredor             `db:"corredor"             json:"corredor"`
-	AreaM2              int                  `db:"area_m2"              json:"area_m2"`
-	Status              StatusLoja           `db:"status"               json:"status"`
-	StatusRelacionamento sql.NullString      `db:"status_relacionamento" json:"status_relacionamento"`
-	FaturamentoMedio    int64                `db:"faturamento_medio"    json:"faturamento_medio"`
+	ID                   string         `gorm:"primaryKey" db:"id" json:"id"`
+	Nome                 sql.NullString `db:"nome"                 json:"nome"`
+	CNPJ                 sql.NullString `db:"cnpj"                 json:"cnpj"`
+	Segmento             Segmento       `db:"segmento"             json:"segmento"`
+	Responsavel          sql.NullString `db:"responsavel"          json:"responsavel"`
+	Email                sql.NullString `db:"email"                json:"email"`
+	Telefone             sql.NullString `db:"telefone"             json:"telefone"`
+	Unidade              string         `db:"unidade"              json:"unidade"`
+	Piso                 Piso           `db:"piso"                 json:"piso"`
+	Corredor             Corredor       `db:"corredor"             json:"corredor"`
+	AreaM2               int            `db:"area_m2"              json:"area_m2"`
+	Status               StatusLoja     `db:"status"               json:"status"`
+	StatusRelacionamento sql.NullString `db:"status_relacionamento" json:"status_relacionamento"`
+	FaturamentoMedio     int64          `db:"faturamento_medio"    json:"faturamento_medio"`
 }
+
 
 // LojistaComRelacoes é usado em consultas que fazem JOIN com
 // as tabelas dependentes, retornando dados completos do lojista.
 type LojistaComRelacoes struct {
 	Lojista
-	Contrato  *Contrato           `json:"contrato,omitempty"`
-	Multas    []Multa             `json:"multas,omitempty"`
-	Propostas []PropostaHistorico `json:"propostas_historico,omitempty"`
+	ContratoAtivo *Contrato           `gorm:"foreignKey:LojistaID" json:"contratoAtivo"`
+	Multas        []Multa             `gorm:"foreignKey:LojistaID" json:"multas"`
+	Propostas     []PropostaHistorico `gorm:"foreignKey:LojistaID" json:"propostas"`
 }
 
 // ============================================================
@@ -205,12 +206,12 @@ type Multa struct {
 // ============================================================
 
 type PropostaHistorico struct {
-	ID        string         `db:"id"         json:"id"`
-	LojistaID string         `db:"lojista_id" json:"lojista_id"`
-	Data      string         `db:"data"       json:"data"`
-	Tipo      TipoProposta   `db:"tipo"       json:"tipo"`
-	Valor     float64        `db:"valor"      json:"valor"`
-	Status    StatusProposta `db:"status"     json:"status"`
+	ID         string         `db:"id"         json:"id"`
+	LojistaID  string         `db:"lojista_id" json:"lojista_id"`
+	Data       string         `db:"data"       json:"data"`
+	Tipo       TipoProposta   `db:"tipo"       json:"tipo"`
+	Valor      float64        `db:"valor"      json:"valor"`
+	Status     StatusProposta `db:"status"     json:"status"`
 	Observacao sql.NullString `db:"observacao" json:"observacao"`
 }
 
@@ -221,19 +222,19 @@ type PropostaHistorico struct {
 // ============================================================
 
 type Proposta struct {
-	ID            string         `db:"id"             json:"id"`
-	LojistaID     sql.NullString `db:"lojista_id"     json:"lojista_id"`
-	LojistaNome   string         `db:"lojista_nome"   json:"lojista_nome"`
-	Unidade       string         `db:"unidade"        json:"unidade"`
-	Segmento      Segmento       `db:"segmento"       json:"segmento"`
-	Tipo          TipoProposta   `db:"tipo"           json:"tipo"`
-	ValorProposto float64        `db:"valor_proposto" json:"valor_proposto"`
-	AreaM2        int            `db:"area_m2"        json:"area_m2"`
-	Status        StatusProposta `db:"status"         json:"status"`
-	Responsavel   string         `db:"responsavel"    json:"responsavel"`
-	DataCriacao   string         `db:"data_criacao"   json:"data_criacao"`
-	DataVencimento string        `db:"data_vencimento" json:"data_vencimento"`
-	Observacoes   sql.NullString `db:"observacoes"    json:"observacoes"`
+	ID             string         `db:"id"             json:"id"`
+	LojistaID      sql.NullString `db:"lojista_id"     json:"lojista_id"`
+	LojistaNome    string         `db:"lojista_nome"   json:"lojista_nome"`
+	Unidade        string         `db:"unidade"        json:"unidade"`
+	Segmento       Segmento       `db:"segmento"       json:"segmento"`
+	Tipo           TipoProposta   `db:"tipo"           json:"tipo"`
+	ValorProposto  float64        `db:"valor_proposto" json:"valor_proposto"`
+	AreaM2         int            `db:"area_m2"        json:"area_m2"`
+	Status         StatusProposta `db:"status"         json:"status"`
+	Responsavel    string         `db:"responsavel"    json:"responsavel"`
+	DataCriacao    string         `db:"data_criacao"   json:"data_criacao"`
+	DataVencimento string         `db:"data_vencimento" json:"data_vencimento"`
+	Observacoes    sql.NullString `db:"observacoes"    json:"observacoes"`
 }
 
 // ============================================================
@@ -262,40 +263,40 @@ type Sinistro struct {
 
 // CriarLojistaRequest é o payload para POST /lojistas
 type CriarLojistaRequest struct {
-	Nome      string     `json:"nome"      validate:"required,max=100"`
-	CNPJ      string     `json:"cnpj"      validate:"required,max=20"`
-	Segmento  Segmento   `json:"segmento"  validate:"required"`
+	Nome        string   `json:"nome"      validate:"required,max=100"`
+	CNPJ        string   `json:"cnpj"      validate:"required,max=20"`
+	Segmento    Segmento `json:"segmento"  validate:"required"`
 	Responsavel string   `json:"responsavel" validate:"required,max=100"`
-	Email     string     `json:"email"     validate:"required,email,max=150"`
-	Telefone  string     `json:"telefone"  validate:"max=20"`
-	Unidade   string     `json:"unidade"   validate:"required,max=10"`
-	Piso      Piso       `json:"piso"      validate:"required"`
-	Corredor  Corredor   `json:"corredor"  validate:"required"`
-	AreaM2    int        `json:"area_m2"   validate:"required,gt=0"`
+	Email       string   `json:"email"     validate:"required,email,max=150"`
+	Telefone    string   `json:"telefone"  validate:"max=20"`
+	Unidade     string   `json:"unidade"   validate:"required,max=10"`
+	Piso        Piso     `json:"piso"      validate:"required"`
+	Corredor    Corredor `json:"corredor"  validate:"required"`
+	AreaM2      int      `json:"area_m2"   validate:"required,gt=0"`
 }
 
 // AtualizarLojistaRequest é o payload para PUT /lojistas/:id
 type AtualizarLojistaRequest struct {
-	Nome      string     `json:"nome"        validate:"omitempty,max=100"`
-	Segmento  Segmento   `json:"segmento"    validate:"omitempty"`
-	Responsavel string   `json:"responsavel" validate:"omitempty,max=100"`
-	Email     string     `json:"email"       validate:"omitempty,email,max=150"`
-	Telefone  string     `json:"telefone"    validate:"omitempty,max=20"`
-	Status    StatusLoja `json:"status"      validate:"omitempty"`
+	Nome        string     `json:"nome"        validate:"omitempty,max=100"`
+	Segmento    Segmento   `json:"segmento"    validate:"omitempty"`
+	Responsavel string     `json:"responsavel" validate:"omitempty,max=100"`
+	Email       string     `json:"email"       validate:"omitempty,email,max=150"`
+	Telefone    string     `json:"telefone"    validate:"omitempty,max=20"`
+	Status      StatusLoja `json:"status"      validate:"omitempty"`
 }
 
 // CriarPropostaRequest é o payload para POST /propostas
 type CriarPropostaRequest struct {
-	LojistaID     *string      `json:"lojista_id"`
-	LojistaNome   string       `json:"lojista_nome"   validate:"required,max=100"`
-	Unidade       string       `json:"unidade"        validate:"required,max=10"`
-	Segmento      Segmento     `json:"segmento"       validate:"required"`
-	Tipo          TipoProposta `json:"tipo"           validate:"required"`
-	ValorProposto float64      `json:"valor_proposto" validate:"required,gt=0"`
-	AreaM2        int          `json:"area_m2"        validate:"required,gt=0"`
-	Responsavel   string       `json:"responsavel"    validate:"required,max=100"`
-	DataVencimento string      `json:"data_vencimento" validate:"required"`
-	Observacoes   *string      `json:"observacoes"`
+	LojistaID      *string      `json:"lojista_id"`
+	LojistaNome    string       `json:"lojista_nome"   validate:"required,max=100"`
+	Unidade        string       `json:"unidade"        validate:"required,max=10"`
+	Segmento       Segmento     `json:"segmento"       validate:"required"`
+	Tipo           TipoProposta `json:"tipo"           validate:"required"`
+	ValorProposto  float64      `json:"valor_proposto" validate:"required,gt=0"`
+	AreaM2         int          `json:"area_m2"        validate:"required,gt=0"`
+	Responsavel    string       `json:"responsavel"    validate:"required,max=100"`
+	DataVencimento string       `json:"data_vencimento" validate:"required"`
+	Observacoes    *string      `json:"observacoes"`
 }
 
 // AtualizarStatusPropostaRequest é o payload para PATCH /propostas/:id/status
@@ -315,11 +316,11 @@ type CriarSinistroRequest struct {
 
 // AtualizarSinistroRequest é o payload para PUT /sinistros/:id
 type AtualizarSinistroRequest struct {
-	Status           StatusSinistro  `json:"status"             validate:"omitempty"`
-	Regulador        *string         `json:"regulador"`
-	ValorIndenizacao *float64        `json:"valor_indenizacao"  validate:"omitempty,gte=0"`
-	ValorFranquia    *float64        `json:"valor_franquia"     validate:"omitempty,gte=0"`
-	AlertaFraude     *bool           `json:"alerta_fraude"`
+	Status           StatusSinistro `json:"status"             validate:"omitempty"`
+	Regulador        *string        `json:"regulador"`
+	ValorIndenizacao *float64       `json:"valor_indenizacao"  validate:"omitempty,gte=0"`
+	ValorFranquia    *float64       `json:"valor_franquia"     validate:"omitempty,gte=0"`
+	AlertaFraude     *bool          `json:"alerta_fraude"`
 }
 
 // CriarMultaRequest é o payload para POST /lojistas/:id/multas
