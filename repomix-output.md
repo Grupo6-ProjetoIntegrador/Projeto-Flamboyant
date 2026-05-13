@@ -479,861 +479,6 @@ type CriarMultaRequest struct {
 }
 ````
 
-## File: Figma/src/app/components/FilterSelect.tsx
-````typescript
-import { useState, useRef, useEffect } from "react";
-import { ChevronDown, Check } from "lucide-react";
-
-export interface FilterOption {
-  value: string;
-  label: string;
-}
-
-interface FilterSelectProps {
-  value: string;
-  onChange: (value: string) => void;
-  options: FilterOption[];
-  className?: string;
-  placeholder?: string;
-}
-
-export function FilterSelect({ value, onChange, options, className = "", placeholder }: FilterSelectProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const selectedLabel = options.find(o => o.value === value)?.label ?? placeholder ?? value;
-
-  useEffect(() => {
-    if (!open) return;
-    function handleOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [open]);
-
-  return (
-    <div ref={ref} className={`relative ${className}`}>
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className={`h-9 w-full flex items-center justify-between gap-2 px-3 bg-white dark:bg-[#1A1F2E] border rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#B82025]/20 ${
-          open
-            ? "border-[#B82025] ring-2 ring-[#B82025]/15"
-            : "border-[#B82025] hover:border-[#D93030]"
-        }`}
-      >
-        <span className="truncate text-[#333333] dark:text-[#CBD5E1]">{selectedLabel}</span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-[#B82025] flex-shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          strokeWidth={2}
-        />
-      </button>
-
-      {open && (
-        <div className="absolute top-[calc(100%+5px)] left-0 z-[200] min-w-full w-max max-w-[260px] bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg shadow-md overflow-hidden">
-          {options.map(option => {
-            const isSelected = option.value === value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => { onChange(option.value); setOpen(false); }}
-                className={`w-full text-left flex items-center justify-between gap-3 px-3 py-2 text-sm transition-colors ${
-                  isSelected
-                    ? "text-[#B82025] font-semibold bg-[#B82025]/6 dark:bg-[#B82025]/10"
-                    : "text-[#333333] dark:text-[#CBD5E1] hover:bg-[#D93030] hover:text-white"
-                }`}
-              >
-                <span className="truncate">{option.label}</span>
-                {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0 text-[#B82025]" strokeWidth={2.5} />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-````
-
-## File: Figma/src/imports/pasted_text/layout-sidebar-update.tsx
-````typescript
-Realize as seguintes alterações no projeto. Siga cada instrução com precisão, sem remover funcionalidades não mencionadas e sem alterar o estilo visual existente.
-
----
-
-## 1. MENU LATERAL — `src/app/components/Layout.tsx`
-
-**1.1 Remover todos os itens do menu exceto "Comercial".**
-
-No array `navigationItems`, apague completamente os seguintes objetos e todos os seus `subTabs`:
-- `Dashboard` (path `/dashboard`)
-- `Lojistas` (path `/lojistas/diretorio`)
-- `Treinamentos` (path `/treinamentos`)
-- `Seguros` (path `/seguros`)
-- `Manutenção` (path `/manutencao`)
-- `Sinistros` (path `/sinistros/novo`)
-- `Marketing` (path `/marketing`)
-- `Institucional` (path `/institucional`)
-- `Relatórios` (path `/relatorios`)
-
-Mantenha apenas o item `Comercial` com seus `subTabs` atuais (Dashboard, Propostas, Contratos, Histórico, Disponibilidade, Relatórios).
-
-**1.2 Remover também em `src/app/routes.tsx`** todas as rotas relacionadas aos menus removidos acima. Mantenha apenas a rota de login, a rota raiz com `Layout`, e as sub-rotas do comercial.
-
-**1.3 Persistência de sub-aba ao navegar.**
-
-Nas sub-abas internas do Comercial (Dashboard, Propostas, Contratos, Histórico, Disponibilidade, Relatórios), preserve o estado da última aba visitada ao retornar para ela durante a mesma sessão. Use `sessionStorage` para guardar a chave da aba ativa de cada página. Ao montar o componente, leia o valor salvo e restaure a aba correspondente.
-
-**1.4 Redesenho visual e comportamento da sidebar.**
-
-Atualize o menu lateral em `Layout.tsx` para seguir exatamente este comportamento:
-
-**Estado aberto:**
-- Sidebar fixa à esquerda com fundo vermelho escuro (use a cor já existente no design system do projeto, ex: `#8B1A1A` ou a variável CSS equivalente)
-- No topo: logo do Flamboyant existente no projeto (`src/imports/logo_2024.png`) acompanhada do texto `"Gestão Premium"` em fonte menor, leve e em cor clara
-- Itens de menu com ícone + texto lado a lado; ícones levemente menores, mais finos e polidos (tamanho `w-4 h-4`, `strokeWidth={1.5}`)
-- Item ativo (rota atual) com fundo levemente mais claro e bordas arredondadas (`rounded-md`), sem quebrar o alinhamento dos demais itens
-- No rodapé: área fixa com avatar colorido (iniciais do usuário em círculo), nome completo e e-mail do usuário logado (leia da `sessionStorage` se disponível)
-- No canto superior direito da sidebar: botão com ícone de seta apontando para a esquerda (`ChevronLeft` do lucide-react) para fechar a sidebar
-
-**Estado fechado:**
-- A sidebar colapsa completamente (largura `0` ou `translate-x-[-100%]`), desaparecendo da tela
-- Aparece um botão flutuante fixo no canto superior esquerdo da tela (`fixed top-4 left-4 z-50`) com ícone de 3 barras (`Menu` do lucide-react) para reabrir a sidebar
-- O conteúdo principal ocupa toda a largura disponível
-
-**Animações:**
-- Use `transition-all duration-300 ease-in-out` tanto na sidebar quanto no botão flutuante
-- Ao clicar na seta `<`: sidebar fecha com transição suave (300ms), o ícone de seta desaparece e o botão de 3 barras aparece com `opacity-100`
-- Ao clicar nas 3 barras: sidebar abre com transição suave (300ms), o botão de 3 barras desaparece e a seta reaparece
-- Use um estado React `const [sidebarOpen, setSidebarOpen] = useState(true)` para controlar a visibilidade
-- Persista o estado da sidebar no `localStorage` com a chave `"sidebar_open"` para manter a preferência do usuário entre sessões
-
-**1.5 Substituir "Piso 1 / 2 / 3" por "P / S / T" em todo o sistema.**
-
-Em todos os arquivos `.tsx` e `.ts` do projeto, substitua:
-- `'L1'` → `'P'` e `"Piso 1"` → `"P"` (exibição)
-- `'L2'` → `'S'` e `"Piso 2"` → `"S"` (exibição)
-- `'L3'` → `'T'` e `"Piso 3"` → `"T"` (exibição)
-
-Isso inclui o tipo `piso: 'L1' | 'L2' | 'L3'` em `comercialData.ts` (altere para `'P' | 'S' | 'T'`), todos os dados dos lojistas no array `keyStores`, os filtros de piso nos componentes, os labels dos gráficos e qualquer texto de exibição que mencione "Piso 1", "Piso 2" ou "Piso 3". Mantenha os prefixos dos IDs de unidade intactos (ex: `L1-001` permanece `L1-001` — apenas a exibição do piso muda).
-
----
-
-## 2. DASHBOARD COMERCIAL — `src/app/pages/comercial/ComercialDashboard.tsx`
-
-Remova completamente os seguintes elementos visuais e seu código relacionado:
-
-- O card **"Receita Total / Mês"** e suas subdivisões (Receita Aluguel e Receita Vendas)
-- O gráfico **"Evolução da Receita Mensal"** (`revenueEvolution`) e todo o bloco JSX que o envolve
-- O gráfico **"Receita por Categoria"** (`receitaBySegmento`)
-- O gráfico **"Receita por Piso"** (`receitaByPiso`)
-- As funções `totalRevenue`, `baseAluguel`, `receitaMensal`, `receitaAluguel`, `receitaVendas` e os `useMemo` relacionados
-
-Mantenha todos os outros cards de KPI (total de lojas, ocupação, disponíveis, vencendo, propostas ativas) e os demais elementos do dashboard.
-
-**Após a remoção, replique nesta página os gráficos que existem em `ComercialReports.tsx`:**
-- Gráfico de barras de ocupação por segmento (`segmentosChart`)
-- Gráfico de pizza de distribuição por tipo de contrato (`multasChart`)
-- Os demais gráficos presentes na aba de relatórios que não sejam de receita ou desempenho
-
-Importe os dados e funções necessárias de `comercialData.ts` e `comercialStore.ts` para renderizá-los no dashboard com o mesmo visual já utilizado em `ComercialReports.tsx`.
-
----
-
-## 3. PROPOSTAS — `src/app/pages/comercial/ComercialProposals.tsx` e `src/app/data/comercialData.ts`
-
-**3.1 Alterar os status possíveis de propostas.**
-
-Em `comercialData.ts`, altere o tipo `StatusProposta` para:
-
-```ts
-export type StatusProposta =
-  | "Aguardando análise financeira"
-  | "Aguardando análise do comitê"
-  | "Aprovado"
-  | "Reprovado"
-  | "Cancelado";
-```
-
-Em `ComercialProposals.tsx`, atualize o objeto `STATUS_COLORS` e o componente `StatusIcon` para mapear os novos status com cores e ícones coerentes:
-- `"Aguardando análise financeira"` → amarelo, ícone `Clock`
-- `"Aguardando análise do comitê"` → roxo, ícone `Eye`
-- `"Aprovado"` → verde, ícone `CheckCircle`
-- `"Reprovado"` → vermelho, ícone `XCircle`
-- `"Cancelado"` → cinza, ícone `XCircle`
-
-Atualize também os dados do array `propostasAtivas` em `comercialData.ts` para que os status existentes sejam migrados para os novos valores mais próximos (ex: "Aceita" → "Aprovado", "Em Análise" → "Aguardando análise financeira", "Em Negociação" → "Aguardando análise do comitê", "Recusada" → "Reprovado", "Expirada" → "Cancelado", "Pendente" → "Aguardando análise financeira").
-
-**3.2 Adicionar filtro por período na aba de Propostas.**
-
-Copie o filtro de data (`dateFrom` e `dateTo` com inputs `<input type="date">`) que existe em `ComercialHistory.tsx` e adicione-o na barra de filtros de `ComercialProposals.tsx`, mantendo os filtros já existentes (status, tipo, segmento, piso, busca por nome).
-
-**Não adicione períodos pré-definidos** (botões como "Último mês", "Último trimestre" etc.). O filtro deve ter apenas os dois campos de data: "De" e "Até".
-
-Aplique o filtro de data sobre o campo `dataCriacao` das propostas.
-
----
-
-## 4. CONTRATOS — `src/app/pages/comercial/ComercialContracts.tsx`
-
-Remova completamente o arquivo `ComercialContracts.tsx`.
-
-Em `src/app/routes.tsx`, remova a rota `/comercial/contratos`.
-
-Em `src/app/components/Layout.tsx`, remova o subTab `{ label: "Contratos", path: "/comercial/contratos" }` do item Comercial.
-
-Em `src/app/data/comercialStore.ts`, remova as funções `getGeneratedContracts` e `addGeneratedContract` e seus dados relacionados, caso existam e não sejam utilizadas por outros componentes.
-
----
-
-## 5. HISTÓRICO — `src/app/pages/comercial/ComercialHistory.tsx`
-
-Remova completamente o arquivo `ComercialHistory.tsx`.
-
-Em `src/app/routes.tsx`, remova a rota `/comercial/historico`.
-
-Em `src/app/components/Layout.tsx`, remova o subTab `{ label: "Histórico", path: "/comercial/historico" }` do item Comercial.
-
----
-
-## 6. RELATÓRIOS — `src/app/pages/comercial/ComercialReports.tsx`
-
-**6.1 Remover os 4 cards de KPI do topo da página.**
-
-Remova o bloco JSX que contém os cards com os seguintes dados:
-- Receita Mensal Total
-- Receita % Vendas/Mês
-- E quaisquer outros cards de KPI no topo da página de relatórios
-
-**6.2 Remover a aba "Desempenho" e seu conteúdo.**
-
-No array de abas de tipo de relatório (`reportType`), remova o item `{ id: "desempenho", label: "Desempenho", icon: Activity }`.
-
-Remova o bloco JSX `{reportType === "desempenho" && (...)}` e todo o código relacionado ao gráfico de desempenho dos contratos.
-
-Remova do array de campos disponíveis (`FIELDS`) os campos:
-- `{ id: "desempenho", label: "Desempenho (%)", ... }`
-- `{ id: "receitaPercentual", label: "Receita % Vendas/Mês", ... }`
-
-**6.3 Os gráficos restantes (ocupação por segmento, distribuição por tipo de contrato, e demais que não sejam de receita ou desempenho) já devem ter sido replicados no Dashboard conforme o item 2. Mantenha-os também aqui em Relatórios.**
-````
-
-## File: Figma/src/styles/globals.css
-````css
-
-````
-
-## File: API/cmd/main.go
-````go
-package main
-
-import (
-	"database/sql"
-	"errors"
-	"fmt"
-	"log"
-	"net/http"
-	"time"
-
-	models "go-api/GO"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"gorm.io/driver/postgres" // <-- Driver alterado aqui
-	"gorm.io/gorm"
-)
-
-var DB *gorm.DB
-
-func initDB() {
-	var err error
-	// Substitua os valores abaixo pelas credenciais do seu pgAdmin/PostgreSQL
-	dsn := "host=localhost user=postgres password=postgre dbname=jpmall port=5432 sslmode=disable TimeZone=America/Sao_Paulo"
-	
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Erro ao conectar ao banco de dados PostgreSQL:", err)
-	}
-	fmt.Println("Conexão com PostgreSQL estabelecida com sucesso!")
-}
-
-func main() {
-	initDB()
-
-	fmt.Println("Sincronizando tabelas...")
-	err := DB.AutoMigrate(
-		&models.Lojista{},
-		&models.Contrato{},
-		&models.Multa{},
-		&models.PropostaHistorico{},
-		&models.Proposta{},
-		&models.Sinistro{},
-	)
-
-	if err != nil {
-		log.Fatal("Erro ao rodar AutoMigrate:", err)
-	}
-	fmt.Println("Tabelas (Lojistas, Contratos, Multas, Propostas, Sinistros) criadas com sucesso!")
-
-	r := gin.Default()
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://localhost:5174"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
-		AllowCredentials: true,
-	}))
-
-	// Rotas do CRUD de Lojistas
-	r.GET("/lojistas", getLojistas)
-	// --- ADICIONE ESTAS DUAS LINHAS ---
-	r.GET("/propostas", getPropostas)
-	r.POST("/propostas", createProposta)
-	r.GET("/lojistas/:id", getLojistaByID)
-	r.POST("/lojistas", createLojista)
-	r.PUT("/lojistas/:id", updateLojista)
-	r.DELETE("/lojistas/:id", deleteLojista)
-
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "Servidor JP Mall rodando e banco conectado!"})
-	})
-
-	fmt.Println("Servidor iniciado em http://localhost:8082")
-	r.Run(":8082")
-}
-
-func getLojistas(c *gin.Context) {
-	var lojistas []models.LojistaComRelacoes
-	
-	// Usamos Table("lojista") para indicar a tabela base, e Preload para trazer as relações
-	if err := DB.Table("lojista").
-		Preload("ContratoAtivo").
-		Preload("Multas").
-		Preload("Propostas").
-		Find(&lojistas).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	
-	c.JSON(http.StatusOK, lojistas)
-}
-
-func getLojistaByID(c *gin.Context) {
-	id := c.Param("id")
-	var lojista models.Lojista
-	if err := DB.First(&lojista, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Lojista não encontrado"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, lojista)
-}
-
-func createLojista(c *gin.Context) {
-	var input models.CriarLojistaRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	lojista := models.Lojista{
-		ID:                   uuid.NewString(),
-		Nome:                 sql.NullString{String: input.Nome, Valid: true},
-		CNPJ:                 sql.NullString{String: input.CNPJ, Valid: true},
-		Segmento:             input.Segmento,
-		Responsavel:          sql.NullString{String: input.Responsavel, Valid: true},
-		Email:                sql.NullString{String: input.Email, Valid: true},
-		Telefone:             sql.NullString{String: input.Telefone, Valid: true},
-		Unidade:              input.Unidade,
-		Piso:                 input.Piso,
-		Corredor:             input.Corredor,
-		AreaM2:               input.AreaM2,
-		Status:               models.StatusLojaOcupado,
-		StatusRelacionamento: sql.NullString{Valid: false},
-		FaturamentoMedio:     0,
-	}
-
-	if err := DB.Create(&lojista).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusCreated, lojista)
-}
-
-func updateLojista(c *gin.Context) {
-	id := c.Param("id")
-	var input models.AtualizarLojistaRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var lojista models.Lojista
-	if err := DB.First(&lojista, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Lojista não encontrado"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if input.Nome != "" {
-		lojista.Nome = sql.NullString{String: input.Nome, Valid: true}
-	}
-	if input.Segmento != "" {
-		lojista.Segmento = input.Segmento
-	}
-	if input.Responsavel != "" {
-		lojista.Responsavel = sql.NullString{String: input.Responsavel, Valid: true}
-	}
-	if input.Email != "" {
-		lojista.Email = sql.NullString{String: input.Email, Valid: true}
-	}
-	if input.Telefone != "" {
-		lojista.Telefone = sql.NullString{String: input.Telefone, Valid: true}
-	}
-	if input.Status != "" {
-		lojista.Status = input.Status
-	}
-
-	if err := DB.Save(&lojista).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, lojista)
-}
-
-func deleteLojista(c *gin.Context) {
-	id := c.Param("id")
-	result := DB.Delete(&models.Lojista{}, "id = ?", id)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
-		return
-	}
-	if result.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Lojista não encontrado"})
-		return
-	}
-	c.Status(http.StatusNoContent)
-}
-func getPropostas(c *gin.Context) {
-	var propostas []models.Proposta
-	if err := DB.Find(&propostas).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, propostas)
-}
-
-func createProposta(c *gin.Context) {
-	var input models.CriarPropostaRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	proposta := models.Proposta{
-		ID:             uuid.NewString(),
-		LojistaNome:    input.LojistaNome,
-		Unidade:        input.Unidade,
-		Segmento:       input.Segmento,
-		Tipo:           input.Tipo,
-		ValorProposto:  input.ValorProposto,
-		AreaM2:         input.AreaM2,
-		Status:         models.StatusPropostaPendente,
-		Responsavel:    input.Responsavel,
-		DataCriacao:    time.Now().Format("02/01/2006"), // Pega a data de hoje formatada
-		DataVencimento: input.DataVencimento,
-	}
-
-	if input.Observacoes != nil {
-		proposta.Observacoes = sql.NullString{String: *input.Observacoes, Valid: true}
-	}
-
-	if err := DB.Create(&proposta).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, proposta)
-}
-````
-
-## File: API/go.mod
-````
-module go-api
-
-go 1.26.3
-
-require (
-	github.com/gin-contrib/cors v1.7.7
-	github.com/gin-gonic/gin v1.12.0
-	github.com/google/uuid v1.6.0
-	gorm.io/driver/postgres v1.6.0
-	gorm.io/gorm v1.31.1
-)
-
-require (
-	github.com/bytedance/gopkg v0.1.3 // indirect
-	github.com/bytedance/sonic v1.15.0 // indirect
-	github.com/bytedance/sonic/loader v0.5.0 // indirect
-	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
-	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/go-playground/locales v0.14.1 // indirect
-	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.30.1 // indirect
-	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/goccy/go-yaml v1.19.2 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.6.0 // indirect
-	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
-	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.3.1 // indirect
-	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
-	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
-)
-````
-
-## File: Banco de dados/jp-mall.sql
-````sql
-CREATE DATABASE IF NOT EXISTS `jp-mall`
-  DEFAULT CHARACTER SET utf8mb4
-  DEFAULT COLLATE utf8mb4_unicode_ci;
-
-USE `jp-mall`;
-
--- ------------------------------------------------------------
--- Tabela: lojistas
--- Fonte: comercialData.ts → keyStores + unidades disponíveis
--- ------------------------------------------------------------
-CREATE TABLE lojistas (
-  id               VARCHAR(10)  NOT NULL,
-  nome             VARCHAR(100),
-  cnpj             VARCHAR(20),
-  segmento         ENUM('Moda','Alimentação','Serviços','Eletrônicos','Esportes','Entretenimento','Outros') NOT NULL,
-  responsavel      VARCHAR(100),
-  email            VARCHAR(150),
-  telefone         VARCHAR(20),
-  unidade          VARCHAR(10)  NOT NULL,
-  piso             ENUM('L1','L2','L3') NOT NULL,
-  corredor         ENUM('A','B','C') NOT NULL,
-  area_m2          INT          NOT NULL,
-  status           ENUM('Ocupado','Disponível') NOT NULL DEFAULT 'Disponível',
-  status_relacionamento ENUM('Excelente','Bom','Regular','Crítico'),
-  faturamento_medio BIGINT      NOT NULL DEFAULT 0,
-  PRIMARY KEY (id)
-) ENGINE=InnoDB;
-
-INSERT INTO lojistas VALUES
-  ('L1-001', 'Renner', '92.754.738/0001-62', 'Moda', 'Marcela Fontana', 'marcela.fontana@renner.com.br', '(62) 3344-5566', 'L1-001', 'L1', 'A', 800, 'Ocupado', 'Excelente', 1850000),
-  ('L1-002', 'C&A', '45.242.914/0001-05', 'Moda', 'Roberto Siqueira', 'roberto.siqueira@cea.com.br', '(62) 3210-9988', 'L1-002', 'L1', 'A', 700, 'Ocupado', 'Bom', 1420000),
-  ('L1-003', 'Riachuelo', '33.200.056/0001-28', 'Moda', 'Fernanda Leite', 'f.leite@riachuelo.com.br', '(62) 3344-7788', 'L1-003', 'L1', 'A', 650, 'Ocupado', 'Bom', 1280000),
-  ('L1-004', 'Zara', '72.700.786/0001-99', 'Moda', 'Ana Paula Rocha', 'ana.rocha@zara.com.br', '(62) 3512-3344', 'L1-004', 'L1', 'A', 450, 'Ocupado', 'Excelente', 2100000),
-  ('L1-005', 'H&M', '23.613.404/0001-58', 'Moda', 'Carlos Matos', 'c.matos@hm.com', '(62) 3212-1100', 'L1-005', 'L1', 'A', 500, 'Ocupado', 'Excelente', 1950000),
-  ('L1-006', 'Arezzo', '16.590.234/0001-76', 'Moda', 'Beatriz Cardoso', 'beatriz.c@arezzo.com.br', '(62) 3321-5544', 'L1-006', 'L1', 'A', 180, 'Ocupado', 'Excelente', 780000),
-  ('L1-007', 'Chilli Beans', '04.392.000/0001-22', 'Moda', 'Thiago Assunção', 'thiago.a@chillibeans.com.br', '(62) 3301-2200', 'L1-007', 'L1', 'A', 80, 'Ocupado', 'Bom', 390000),
-  ('L1-008', 'Farm', '03.799.255/0001-81', 'Moda', 'Juliana Prado', 'j.prado@farm.com.br', '(62) 3456-7890', 'L1-008', 'L1', 'A', 190, 'Ocupado', 'Excelente', 920000),
-  ('L1-031', 'Decathlon', '03.471.761/0001-68', 'Esportes', 'Pierre Dubois', 'pierre.dubois@decathlon.com.br', '(62) 3600-1200', 'L1-031', 'L1', 'B', 1200, 'Ocupado', 'Excelente', 3200000),
-  ('L1-032', 'Centauro', '42.830.506/0001-65', 'Esportes', 'Márcio Silveira', 'm.silveira@centauro.com.br', '(62) 3412-3344', 'L1-032', 'L1', 'B', 400, 'Ocupado', 'Excelente', 1350000),
-  ('L1-033', 'Nike Store', '56.998.476/0001-10', 'Esportes', 'Lucas Andrade', 'lucas.a@nike.com', '(62) 3400-1122', 'L1-033', 'L1', 'B', 250, 'Ocupado', 'Excelente', 1100000),
-  ('L1-034', 'Adidas', '61.088.094/0001-57', 'Esportes', 'Claudia Becker', 'claudia.b@adidas.com', '(62) 3501-4455', 'L1-034', 'L1', 'B', 230, 'Ocupado', 'Bom', 890000),
-  ('L1-061', 'Bradesco', '60.746.948/0001-12', 'Serviços', 'Rafael Monteiro', 'rafael.monteiro@bradesco.com.br', '(62) 3100-5000', 'L1-061', 'L1', 'C', 120, 'Ocupado', 'Excelente', 0),
-  ('L1-062', 'Itaú Uniclass', '60.872.504/0001-23', 'Serviços', 'Vanessa Torres', 'vanessa.torres@itau.com.br', '(62) 3300-7788', 'L1-062', 'L1', 'C', 100, 'Ocupado', 'Excelente', 0),
-  ('L1-063', 'Claro', '40.432.544/0001-47', 'Serviços', 'Diego Nascimento', 'd.nascimento@claro.com.br', '(62) 3400-2020', 'L1-063', 'L1', 'C', 70, 'Ocupado', 'Regular', 420000),
-  ('L2-001', 'Fast Shop', '61.797.924/0001-67', 'Eletrônicos', 'Marcus Ribeiro', 'marcus.ribeiro@fastshop.com.br', '(62) 3600-3344', 'L2-001', 'L2', 'A', 350, 'Ocupado', 'Excelente', 2800000),
-  ('L2-002', 'Apple Store', '00.015.477/0001-00', 'Eletrônicos', 'Jennifer Kim', 'jennifer.kim@apple.com', '(62) 3700-7777', 'L2-002', 'L2', 'A', 280, 'Ocupado', 'Excelente', 5500000),
-  ('L2-003', 'Samsung Experience', '17.901.255/0001-49', 'Eletrônicos', 'Min Jun Park', 'minjun.park@samsung.com', '(62) 3500-5500', 'L2-003', 'L2', 'A', 200, 'Ocupado', 'Excelente', 2200000),
-  ('L2-004', 'Magazine Luiza', '47.960.950/0001-21', 'Eletrônicos', 'Priscila Madureira', 'p.madureira@magazineluiza.com.br', '(62) 3800-1234', 'L2-004', 'L2', 'A', 500, 'Ocupado', 'Bom', 3100000),
-  ('L2-031', 'O Boticário', '75.659.658/0001-83', 'Outros', 'Ana Lima', 'ana.lima@boticario.com.br', '(62) 3233-4455', 'L2-031', 'L2', 'B', 150, 'Ocupado', 'Excelente', 680000),
-  ('L2-032', 'Natura', '71.673.990/0001-77', 'Outros', 'Carla Soares', 'carla.soares@natura.net', '(62) 3301-4488', 'L2-032', 'L2', 'B', 140, 'Ocupado', 'Excelente', 620000),
-  ('L2-033', 'Starbucks Reserve', '08.164.083/0001-48', 'Alimentação', 'Rodrigo Campos', 'r.campos@starbucks.com.br', '(62) 3441-2200', 'L2-033', 'L2', 'B', 200, 'Ocupado', 'Excelente', 1100000),
-  ('L2-034', 'Uniqlo', '32.521.444/0001-39', 'Moda', 'Yuki Tanaka', 'y.tanaka@uniqlo.com', '(62) 3600-4400', 'L2-034', 'L2', 'B', 600, 'Ocupado', 'Excelente', 2800000),
-  ('L2-061', 'Smart Fit', '21.386.077/0001-27', 'Serviços', 'Felipe Gomes', 'felipe.gomes@smartfit.com.br', '(62) 3800-9900', 'L2-061', 'L2', 'C', 800, 'Ocupado', 'Excelente', 580000),
-  ('L2-063', 'Cinemark', '62.578.458/0001-60', 'Entretenimento', 'Sandra Almeida', 's.almeida@cinemark.com.br', '(62) 3900-1100', 'L2-063', 'L2', 'C', 2500, 'Ocupado', 'Excelente', 4200000),
-  ('L3-001', 'McDonald''s', '47.079.633/0001-01', 'Alimentação', 'Renata Freitas', 'renata.freitas@mcdonalds.com.br', '(62) 3312-5500', 'L3-001', 'L3', 'A', 320, 'Ocupado', 'Excelente', 2900000),
-  ('L3-002', 'Outback Steakhouse', '15.110.258/0001-45', 'Alimentação', 'George Mitchell', 'george.mitchell@outback.com.br', '(62) 3500-2200', 'L3-002', 'L3', 'A', 400, 'Ocupado', 'Excelente', 3500000),
-  ('L3-003', 'Subway', '11.080.473/0001-35', 'Alimentação', 'Carlos Junior', 'carlosjr@subway.com.br', '(62) 3212-8899', 'L3-003', 'L3', 'A', 120, 'Ocupado', 'Bom', 480000),
-  ('L3-004', 'Burger King', '13.574.594/0001-96', 'Alimentação', 'Marcos Tavares', 'marcos.tavares@burgerking.com.br', '(62) 3444-5566', 'L3-004', 'L3', 'A', 280, 'Ocupado', 'Excelente', 1800000),
-  ('L3-005', 'Fogo de Chão', '09.386.049/0001-27', 'Alimentação', 'Alessandro Moura', 'a.moura@fogodechao.com.br', '(62) 3600-8800', 'L3-005', 'L3', 'A', 500, 'Ocupado', 'Excelente', 4800000),
-  ('L3-006', 'Bob''s', '14.982.647/0001-52', 'Alimentação', 'Samir Couto', 'samir.couto@bobs.com.br', '(62) 3200-9900', 'L3-006', 'L3', 'A', 140, 'Ocupado', 'Bom', 560000),
-  ('L3-007', 'Giraffas', '52.148.007/0001-73', 'Alimentação', 'Vanessa Rezende', 'v.rezende@giraffas.com.br', '(62) 3400-7711', 'L3-007', 'L3', 'A', 160, 'Ocupado', 'Regular', 490000),
-  ('L3-028', 'Pizza Hut', '10.490.715/0001-01', 'Alimentação', 'Paulo Mendes', 'paulo.mendes@pizzahut.com.br', '(62) 3512-9900', 'L3-028', 'L3', 'B', 200, 'Ocupado', 'Bom', 820000),
-  ('L3-029', 'KFC', '17.311.723/0001-92', 'Alimentação', 'Anderson Rocha', 'anderson.rocha@kfc.com.br', '(62) 3312-4455', 'L3-029', 'L3', 'B', 180, 'Ocupado', 'Bom', 750000),
-  ('L3-030', 'Spoleto', '05.351.939/0001-18', 'Alimentação', 'Rita Cardoso', 'rita.cardoso@spoleto.com.br', '(62) 3400-5544', 'L3-030', 'L3', 'B', 130, 'Ocupado', 'Bom', 540000),
-  ('L3-055', 'Tok&Stok', '07.620.072/0001-61', 'Outros', 'Isabella Ferreira', 'isabella.ferreira@tokstok.com.br', '(62) 3600-7766', 'L3-055', 'L3', 'C', 400, 'Ocupado', 'Bom', 980000),
-  ('L3-056', 'Livraria Cultura', '60.665.981/0001-93', 'Outros', 'Eduardo Braga', 'e.braga@livrariacultura.com.br', '(62) 3301-9988', 'L3-056', 'L3', 'C', 350, 'Ocupado', 'Regular', 620000),
-  ('L3-057', 'CVC Viagens', '10.760.260/0001-19', 'Serviços', 'Tatiane Moreira', 'tatiane.moreira@cvc.com.br', '(62) 3312-3344', 'L3-057', 'L3', 'C', 80, 'Ocupado', 'Bom', 350000),
-  ('L1-023', NULL, NULL, 'Moda', NULL, NULL, NULL, 'L1-023', 'L1', 'A', 85, 'Disponível', NULL, 0),
-  ('L1-047', NULL, NULL, 'Esportes', NULL, NULL, NULL, 'L1-047', 'L1', 'B', 120, 'Disponível', NULL, 0),
-  ('L1-068', NULL, NULL, 'Serviços', NULL, NULL, NULL, 'L1-068', 'L1', 'C', 70, 'Disponível', NULL, 0),
-  ('L2-015', NULL, NULL, 'Eletrônicos', NULL, NULL, NULL, 'L2-015', 'L2', 'A', 100, 'Disponível', NULL, 0),
-  ('L2-039', NULL, NULL, 'Outros', NULL, NULL, NULL, 'L2-039', 'L2', 'B', 90, 'Disponível', NULL, 0),
-  ('L2-062', NULL, NULL, 'Serviços', NULL, NULL, NULL, 'L2-062', 'L2', 'C', 95, 'Disponível', NULL, 0),
-  ('L3-008', NULL, NULL, 'Alimentação', NULL, NULL, NULL, 'L3-008', 'L3', 'A', 100, 'Disponível', NULL, 0),
-  ('L3-031', NULL, NULL, 'Alimentação', NULL, NULL, NULL, 'L3-031', 'L3', 'B', 90, 'Disponível', NULL, 0),
-  ('L3-054', NULL, NULL, 'Alimentação', NULL, NULL, NULL, 'L3-054', 'L3', 'B', 80, 'Disponível', NULL, 0),
-  ('L3-072', NULL, NULL, 'Outros', NULL, NULL, NULL, 'L3-072', 'L3', 'C', 85, 'Disponível', NULL, 0);
-
--- ------------------------------------------------------------
--- Tabela: contratos
--- Fonte: comercialData.ts → keyStores[].contratoAtivo
--- ------------------------------------------------------------
-CREATE TABLE contratos (
-  id                      VARCHAR(20)  NOT NULL,
-  lojista_id              VARCHAR(10)  NOT NULL,
-  inicio                  VARCHAR(12)  NOT NULL,
-  fim                     VARCHAR(12)  NOT NULL,
-  valor_aluguel           DECIMAL(12,2) NOT NULL,
-  luvas                   DECIMAL(12,2) NOT NULL,
-  percentual_faturamento  DECIMAL(5,2) NOT NULL DEFAULT 0,
-  indice_reajuste         ENUM('IGPM','IPCA') NOT NULL,
-  tipo                    ENUM('Aluguel Fixo','Aluguel + Percentual','Só Percentual') NOT NULL,
-  desempenho              INT          NOT NULL,
-  dias_restantes          INT          NOT NULL,
-  status                  ENUM('Ativo','Em Renovação','Vencendo','Vencido') NOT NULL,
-  PRIMARY KEY (id),
-  FOREIGN KEY (lojista_id) REFERENCES lojistas(id)
-) ENGINE=InnoDB;
-
-INSERT INTO contratos VALUES
-  ('CTR-2024-001', 'L1-001', '01/03/2024', '28/02/2027', 72000, 450000, 3.5, 'IGPM', 'Aluguel + Percentual', 95, 683, 'Ativo'),
-  ('CTR-2023-002', 'L1-002', '01/06/2023', '31/05/2026', 61000, 380000, 3.0, 'IPCA', 'Aluguel + Percentual', 82, 44, 'Vencendo'),
-  ('CTR-2024-003', 'L1-003', '01/01/2024', '31/12/2026', 55000, 310000, 3.2, 'IGPM', 'Aluguel + Percentual', 79, 258, 'Ativo'),
-  ('CTR-2025-004', 'L1-004', '01/04/2025', '31/03/2028', 98000, 620000, 4.0, 'IPCA', 'Aluguel + Percentual', 97, 1079, 'Ativo'),
-  ('CTR-2024-005', 'L1-005', '01/07/2024', '30/06/2027', 88000, 550000, 3.8, 'IPCA', 'Aluguel + Percentual', 93, 804, 'Ativo'),
-  ('CTR-2023-006', 'L1-006', '01/09/2023', '31/08/2026', 32000, 180000, 4.5, 'IGPM', 'Aluguel + Percentual', 91, 136, 'Ativo'),
-  ('CTR-2024-007', 'L1-007', '01/01/2024', '31/12/2025', 18000, 95000, 5.0, 'IPCA', 'Aluguel + Percentual', 76, 258, 'Vencendo'),
-  ('CTR-2025-008', 'L1-008', '01/02/2025', '31/01/2028', 41000, 220000, 4.2, 'IGPM', 'Aluguel + Percentual', 89, 1020, 'Ativo'),
-  ('CTR-2022-031', 'L1-031', '01/08/2022', '31/07/2027', 95000, 700000, 2.8, 'IGPM', 'Aluguel + Percentual', 98, 1200, 'Ativo'),
-  ('CTR-2024-032', 'L1-032', '01/04/2024', '31/03/2027', 52000, 290000, 3.5, 'IPCA', 'Aluguel + Percentual', 90, 714, 'Ativo'),
-  ('CTR-2023-033', 'L1-033', '01/10/2023', '30/09/2026', 68000, 420000, 4.0, 'IPCA', 'Aluguel + Percentual', 96, 166, 'Ativo'),
-  ('CTR-2024-034', 'L1-034', '01/05/2024', '30/04/2027', 58000, 340000, 3.8, 'IGPM', 'Aluguel + Percentual', 84, 744, 'Ativo'),
-  ('CTR-2021-061', 'L1-061', '01/01/2021', '31/12/2025', 28000, 150000, 0, 'IPCA', 'Aluguel Fixo', 99, 258, 'Vencendo'),
-  ('CTR-2024-062', 'L1-062', '01/08/2024', '31/07/2027', 26000, 130000, 0, 'IPCA', 'Aluguel Fixo', 100, 835, 'Ativo'),
-  ('CTR-2023-063', 'L1-063', '01/03/2023', '28/02/2026', 19000, 80000, 2.0, 'IGPM', 'Aluguel + Percentual', 61, 47, 'Vencendo'),
-  ('CTR-2024-101', 'L2-001', '01/06/2024', '31/05/2027', 75000, 480000, 2.5, 'IGPM', 'Aluguel + Percentual', 92, 774, 'Ativo'),
-  ('CTR-2023-102', 'L2-002', '01/09/2023', '31/08/2028', 150000, 1200000, 2.0, 'IPCA', 'Aluguel + Percentual', 100, 1231, 'Ativo'),
-  ('CTR-2025-103', 'L2-003', '01/01/2025', '31/12/2027', 82000, 500000, 2.8, 'IPCA', 'Aluguel + Percentual', 94, 988, 'Ativo'),
-  ('CTR-2022-104', 'L2-004', '01/01/2022', '31/12/2026', 68000, 380000, 2.2, 'IGPM', 'Aluguel + Percentual', 80, 258, 'Ativo'),
-  ('CTR-2024-131', 'L2-031', '01/03/2024', '28/02/2027', 34000, 180000, 4.5, 'IGPM', 'Aluguel + Percentual', 92, 683, 'Ativo'),
-  ('CTR-2025-132', 'L2-032', '01/06/2025', '31/05/2028', 31000, 160000, 4.2, 'IPCA', 'Aluguel + Percentual', 90, 1140, 'Ativo'),
-  ('CTR-2024-133', 'L2-033', '01/09/2024', '31/08/2027', 45000, 280000, 5.0, 'IGPM', 'Aluguel + Percentual', 95, 866, 'Ativo'),
-  ('CTR-2025-134', 'L2-034', '01/03/2025', '28/02/2030', 110000, 800000, 3.5, 'IPCA', 'Aluguel + Percentual', 97, 1777, 'Ativo'),
-  ('CTR-2023-161', 'L2-061', '01/06/2023', '31/05/2028', 48000, 300000, 0, 'IGPM', 'Aluguel Fixo', 88, 1140, 'Ativo'),
-  ('CTR-2019-163', 'L2-063', '01/01/2019', '31/12/2028', 180000, 2000000, 2.0, 'IGPM', 'Aluguel + Percentual', 96, 1719, 'Ativo'),
-  ('CTR-2022-201', 'L3-001', '01/04/2022', '31/03/2027', 90000, 600000, 3.0, 'IGPM', 'Aluguel + Percentual', 99, 349, 'Ativo'),
-  ('CTR-2024-202', 'L3-002', '01/08/2024', '31/07/2027', 105000, 700000, 3.5, 'IGPM', 'Aluguel + Percentual', 97, 835, 'Ativo'),
-  ('CTR-2024-203', 'L3-003', '01/01/2024', '31/12/2026', 22000, 110000, 5.0, 'IPCA', 'Aluguel + Percentual', 74, 258, 'Ativo'),
-  ('CTR-2023-204', 'L3-004', '01/07/2023', '30/06/2026', 75000, 450000, 3.2, 'IGPM', 'Aluguel + Percentual', 91, 74, 'Vencendo'),
-  ('CTR-2023-205', 'L3-005', '01/11/2023', '31/10/2028', 135000, 950000, 3.0, 'IGPM', 'Aluguel + Percentual', 98, 1657, 'Ativo'),
-  ('CTR-2025-206', 'L3-006', '01/02/2025', '31/01/2028', 26000, 130000, 4.5, 'IPCA', 'Aluguel + Percentual', 78, 1020, 'Ativo'),
-  ('CTR-2023-207', 'L3-007', '01/04/2023', '31/03/2026', 20000, 90000, 4.0, 'IGPM', 'Aluguel + Percentual', 65, 349, 'Ativo'),
-  ('CTR-2024-228', 'L3-028', '01/05/2024', '30/04/2027', 38000, 200000, 4.0, 'IPCA', 'Aluguel + Percentual', 77, 743, 'Ativo'),
-  ('CTR-2025-229', 'L3-029', '01/01/2025', '31/12/2027', 35000, 180000, 4.2, 'IGPM', 'Aluguel + Percentual', 82, 988, 'Ativo'),
-  ('CTR-2024-230', 'L3-030', '01/07/2024', '30/06/2027', 24000, 120000, 4.5, 'IPCA', 'Aluguel + Percentual', 80, 804, 'Ativo'),
-  ('CTR-2024-255', 'L3-055', '01/04/2024', '31/03/2027', 42000, 230000, 3.0, 'IGPM', 'Aluguel + Percentual', 81, 714, 'Ativo'),
-  ('CTR-2022-256', 'L3-056', '01/06/2022', '31/05/2026', 28000, 150000, 3.5, 'IPCA', 'Aluguel + Percentual', 62, 44, 'Vencendo'),
-  ('CTR-2025-257', 'L3-057', '01/03/2025', '28/02/2028', 16000, 75000, 4.0, 'IPCA', 'Aluguel + Percentual', 75, 1047, 'Ativo');
-
--- ------------------------------------------------------------
--- Tabela: multas
--- Fonte: comercialData.ts → keyStores[].multas
--- ------------------------------------------------------------
-CREATE TABLE multas (
-  id          VARCHAR(15)  NOT NULL,
-  lojista_id  VARCHAR(10)  NOT NULL,
-  data        VARCHAR(12)  NOT NULL,
-  tipo        VARCHAR(80)  NOT NULL,
-  valor       DECIMAL(10,2) NOT NULL,
-  descricao   TEXT         NOT NULL,
-  status      ENUM('Paga','Pendente','Contestada') NOT NULL,
-  PRIMARY KEY (id),
-  FOREIGN KEY (lojista_id) REFERENCES lojistas(id)
-) ENGINE=InnoDB;
-
-INSERT INTO multas VALUES
-  ('MUL-001', 'L1-001', '15/08/2024', 'Atraso no Pagamento', 3600, 'Atraso de 5 dias no pagamento de aluguel ago/2024', 'Paga'),
-  ('MUL-002', 'L1-002', '10/11/2023', 'Uso indevido de área comum', 5000, 'Uso de corredor externo para exposição sem autorização', 'Paga'),
-  ('MUL-003', 'L1-002', '18/03/2024', 'Atraso no Pagamento', 3050, 'Atraso de 4 dias no pagamento de março/2024', 'Paga'),
-  ('MUL-007', 'L1-007', '20/06/2024', 'Fachada fora do padrão', 2500, 'Outdoor não aprovado pelo mall instalado na fachada', 'Paga'),
-  ('MUL-034', 'L1-034', '12/09/2024', 'Obras sem aprovação', 8000, 'Remodelação da fachada sem autorização prévia do mall', 'Contestada'),
-  ('MUL-063a', 'L1-063', '10/05/2024', 'Atraso no Pagamento', 950, 'Atraso de 3 dias no pagamento de maio/2024', 'Paga'),
-  ('MUL-063b', 'L1-063', '12/09/2024', 'Atraso no Pagamento', 950, 'Atraso de 3 dias no pagamento de setembro/2024', 'Paga'),
-  ('MUL-063c', 'L1-063', '08/01/2025', 'Atraso no Pagamento', 950, 'Atraso de 2 dias no pagamento de janeiro/2025', 'Pendente'),
-  ('MUL-104', 'L2-004', '25/07/2023', 'Atraso no Pagamento', 3400, 'Atraso de 5 dias no pagamento de julho/2023', 'Paga'),
-  ('MUL-203', 'L3-003', '02/02/2025', 'Descumprimento de horário', 2000, 'Funcionamento fora do horário estabelecido sem autorização prévia', 'Paga'),
-  ('MUL-207a', 'L3-007', '15/07/2024', 'Atraso no Pagamento', 1000, 'Atraso de 5 dias no pagamento de julho/2024', 'Paga'),
-  ('MUL-207b', 'L3-007', '14/10/2024', 'Irregularidade sanitária', 5000, 'Notificação da Vigilância Sanitária repercutida no mall', 'Contestada'),
-  ('MUL-228', 'L3-028', '20/11/2024', 'Atraso no Pagamento', 1900, 'Atraso de 5 dias novembro/2024', 'Paga'),
-  ('MUL-256', 'L3-056', '05/04/2025', 'Atraso no Pagamento', 1400, 'Atraso de 5 dias em abril/2025', 'Paga');
-
--- ------------------------------------------------------------
--- Tabela: propostas_historico
--- Fonte: comercialData.ts → keyStores[].propostas
--- ------------------------------------------------------------
-CREATE TABLE propostas_historico (
-  id          VARCHAR(15)  NOT NULL,
-  lojista_id  VARCHAR(10)  NOT NULL,
-  data        VARCHAR(12)  NOT NULL,
-  tipo        ENUM('Nova Proposta','Renovação','Readequação') NOT NULL,
-  valor       DECIMAL(12,2) NOT NULL,
-  status      ENUM('Pendente','Em Análise','Em Negociação','Aceita','Recusada','Expirada') NOT NULL,
-  observacao  TEXT,
-  PRIMARY KEY (id),
-  FOREIGN KEY (lojista_id) REFERENCES lojistas(id)
-) ENGINE=InnoDB;
-
-INSERT INTO propostas_historico VALUES
-  ('PROP-H-001', 'L1-001', '10/01/2024', 'Renovação', 72000, 'Aceita', 'Renovação com reajuste de 8% pelo IGPM'),
-  ('PROP-H-002', 'L1-001', '05/02/2021', 'Nova Proposta', 62000, 'Aceita', 'Expansão com área adicional de 200m²'),
-  ('PROP-H-003', 'L1-002', '10/04/2026', 'Renovação', 66000, 'Em Negociação', 'Proposta de renovação com reajuste de 8%'),
-  ('PROP-H-004', 'L1-002', '15/04/2023', 'Renovação', 61000, 'Aceita', 'Renovação com readequação de área'),
-  ('PROP-H-005', 'L1-003', '15/11/2023', 'Renovação', 55000, 'Aceita', 'Negociação rápida, sem pendências'),
-  ('PROP-H-006', 'L1-004', '20/01/2025', 'Nova Proposta', 98000, 'Aceita', 'Nova instalação, ponto premium'),
-  ('PROP-H-007', 'L1-005', '01/05/2024', 'Nova Proposta', 88000, 'Aceita', NULL),
-  ('PROP-H-008', 'L1-006', '01/07/2023', 'Renovação', 32000, 'Aceita', 'Reajuste de 7% acordado'),
-  ('PROP-H-009', 'L1-007', '05/04/2026', 'Renovação', 20000, 'Em Negociação', 'Reajuste proposto de 11%'),
-  ('PROP-H-010', 'L1-007', '28/11/2023', 'Renovação', 18000, 'Aceita', NULL),
-  ('PROP-H-011', 'L1-008', '10/12/2024', 'Nova Proposta', 41000, 'Aceita', 'Transferência de outra unidade'),
-  ('PROP-H-012', 'L1-031', '01/06/2022', 'Nova Proposta', 95000, 'Aceita', 'Âncora esportiva exclusiva para o piso 1'),
-  ('PROP-H-013', 'L1-032', '10/02/2024', 'Renovação', 52000, 'Aceita', NULL),
-  ('PROP-H-014', 'L1-033', '01/08/2023', 'Renovação', 68000, 'Aceita', 'Reajuste de 9% negociado'),
-  ('PROP-H-015', 'L1-034', '15/03/2024', 'Nova Proposta', 58000, 'Aceita', NULL),
-  ('PROP-H-016', 'L1-061', '02/04/2026', 'Renovação', 31000, 'Em Análise', 'Banco solicita prazo de análise interna de 30 dias'),
-  ('PROP-H-017', 'L1-061', '20/11/2020', 'Nova Proposta', 28000, 'Aceita', NULL),
-  ('PROP-H-018', 'L1-062', '01/06/2024', 'Renovação', 26000, 'Aceita', 'Renovação antecipada com ajuste'),
-  ('PROP-H-019', 'L1-063', '05/04/2026', 'Renovação', 20500, 'Pendente', 'Aguardando aprovação interna da operadora'),
-  ('PROP-H-020', 'L1-063', '01/01/2023', 'Nova Proposta', 19000, 'Aceita', NULL),
-  ('PROP-H-021', 'L2-001', '01/04/2024', 'Renovação', 75000, 'Aceita', 'Fidelização de lojista âncora'),
-  ('PROP-H-022', 'L2-002', '20/06/2023', 'Nova Proposta', 150000, 'Aceita', 'Negociação estratégica com selo de loja certificada Apple'),
-  ('PROP-H-023', 'L2-003', '01/11/2024', 'Nova Proposta', 82000, 'Aceita', NULL),
-  ('PROP-H-024', 'L2-004', '01/11/2021', 'Nova Proposta', 68000, 'Aceita', NULL),
-  ('PROP-H-025', 'L2-031', '10/01/2024', 'Renovação', 34000, 'Aceita', NULL),
-  ('PROP-H-026', 'L2-032', '01/04/2025', 'Renovação', 31000, 'Aceita', NULL),
-  ('PROP-H-027', 'L2-033', '10/04/2026', 'Readequação', 48000, 'Em Negociação', 'Proposta de aumento de área com novo contrato'),
-  ('PROP-H-028', 'L2-033', '01/07/2024', 'Nova Proposta', 45000, 'Aceita', 'Primeiro Starbucks Reserve de Goiânia'),
-  ('PROP-H-029', 'L2-034', '01/12/2024', 'Nova Proposta', 110000, 'Aceita', 'Primeira loja em Goiânia — exclusividade por 5 anos'),
-  ('PROP-H-030', 'L2-061', '01/04/2023', 'Nova Proposta', 48000, 'Aceita', 'Contrato longo prazo 5 anos com reajuste anual IGPM'),
-  ('PROP-H-031', 'L2-063', '01/10/2018', 'Nova Proposta', 180000, 'Aceita', 'Contrato âncora de entretenimento 10 anos'),
-  ('PROP-H-032', 'L3-001', '01/02/2022', 'Renovação', 90000, 'Aceita', NULL),
-  ('PROP-H-033', 'L3-002', '01/06/2024', 'Renovação', 105000, 'Aceita', 'Expansão de área de 350 para 400m²'),
-  ('PROP-H-034', 'L3-002', '15/04/2026', 'Readequação', 115000, 'Em Negociação', 'Proposta de nova expansão + reforma da cozinha'),
-  ('PROP-H-035', 'L3-003', '20/11/2023', 'Nova Proposta', 22000, 'Aceita', NULL),
-  ('PROP-H-036', 'L3-004', '08/04/2026', 'Renovação', 82000, 'Em Negociação', 'Negociação com pedido de desconto pela inflação do setor'),
-  ('PROP-H-037', 'L3-004', '01/05/2023', 'Nova Proposta', 75000, 'Aceita', NULL),
-  ('PROP-H-038', 'L3-005', '01/09/2023', 'Nova Proposta', 135000, 'Aceita', 'Âncora premium da praça de alimentação'),
-  ('PROP-H-039', 'L3-006', '01/12/2024', 'Renovação', 26000, 'Aceita', NULL),
-  ('PROP-H-040', 'L3-007', '01/02/2023', 'Nova Proposta', 20000, 'Aceita', NULL),
-  ('PROP-H-041', 'L3-028', '01/03/2024', 'Nova Proposta', 38000, 'Aceita', NULL),
-  ('PROP-H-042', 'L3-029', '01/11/2024', 'Nova Proposta', 35000, 'Aceita', NULL),
-  ('PROP-H-043', 'L3-030', '01/05/2024', 'Renovação', 24000, 'Aceita', NULL),
-  ('PROP-H-044', 'L3-055', '01/02/2024', 'Nova Proposta', 42000, 'Aceita', NULL),
-  ('PROP-H-045', 'L3-056', '05/04/2026', 'Renovação', 29000, 'Pendente', 'Aguardando definição interna sobre fechamento de filiais'),
-  ('PROP-H-046', 'L3-056', '01/04/2022', 'Nova Proposta', 28000, 'Aceita', NULL),
-  ('PROP-H-047', 'L3-057', '01/01/2025', 'Renovação', 16000, 'Aceita', NULL);
-
--- ------------------------------------------------------------
--- Tabela: propostas
--- Fonte: comercialData.ts → propostasAtivas
--- ------------------------------------------------------------
-CREATE TABLE propostas (
-  id               VARCHAR(20)  NOT NULL,
-  lojista_id       VARCHAR(10),
-  lojista_nome     VARCHAR(100) NOT NULL,
-  unidade          VARCHAR(10)  NOT NULL,
-  segmento         ENUM('Moda','Alimentação','Serviços','Eletrônicos','Esportes','Entretenimento','Outros') NOT NULL,
-  tipo             ENUM('Nova Instalação','Renovação','Readequação') NOT NULL,
-  valor_proposto   DECIMAL(12,2) NOT NULL,
-  area_m2          INT          NOT NULL,
-  status           ENUM('Pendente','Em Análise','Em Negociação','Aceita','Recusada','Expirada') NOT NULL,
-  responsavel      VARCHAR(100) NOT NULL,
-  data_criacao     VARCHAR(12)  NOT NULL,
-  data_vencimento  VARCHAR(12)  NOT NULL,
-  observacoes      TEXT,
-  PRIMARY KEY (id),
-  FOREIGN KEY (lojista_id) REFERENCES lojistas(id)
-) ENGINE=InnoDB;
-
-INSERT INTO propostas VALUES
-  ('PROP-2026-001', 'L1-002', 'C&A', 'L1-002', 'Moda', 'Renovação', 66000, 700, 'Em Negociação', 'Gerência Comercial', '10/04/2026', '30/05/2026', 'Proposta de renovação com reajuste de 8% sobre IPCA. Lojista solicita menor percentual de faturamento.'),
-  ('PROP-2026-002', NULL, 'Zara Home (Novo)', 'L2-039', 'Outros', 'Nova Instalação', 38000, 90, 'Em Análise', 'Gerência Comercial', '08/04/2026', '15/05/2026', 'Grupo Inditex propõe inaugurar Zara Home na unidade disponível L2-039.'),
-  ('PROP-2026-003', 'L3-004', 'Burger King', 'L3-004', 'Alimentação', 'Renovação', 82000, 280, 'Em Negociação', 'Gerência Comercial', '08/04/2026', '05/06/2026', 'BK solicita desconto de 5% alegando retração do setor de fast food.'),
-  ('PROP-2026-004', NULL, 'Espaço Gourmet Premium', 'L3-008', 'Alimentação', 'Nova Instalação', 45000, 100, 'Pendente', 'Gerência Comercial', '07/04/2026', '22/05/2026', 'Novo conceito de restaurante premium. Aguardando documentação do licitante.'),
-  ('PROP-2026-005', 'L2-033', 'Starbucks Reserve', 'L2-033', 'Alimentação', 'Readequação', 48000, 220, 'Em Negociação', 'Gerência Comercial', '05/04/2026', '25/05/2026', 'Proposta de expansão de 200 para 220m² com novo layout de balcão.'),
-  ('PROP-2026-006', NULL, 'Tech World', 'L2-015', 'Eletrônicos', 'Nova Instalação', 52000, 100, 'Em Análise', 'Gerência Comercial', '04/04/2026', '20/05/2026', 'Franquia nacional de acessórios e dispositivos tech.'),
-  ('PROP-2026-007', 'L1-007', 'Chilli Beans', 'L1-007', 'Moda', 'Renovação', 20000, 80, 'Em Negociação', 'Gerência Comercial', '01/04/2026', '15/05/2026', 'Reajuste de 11% proposto. Lojista contrapropôs 7%.'),
-  ('PROP-2026-008', NULL, 'Academia Forma Perfeita', 'L2-062', 'Serviços', 'Nova Instalação', 35000, 95, 'Pendente', 'Gerência Comercial', '01/04/2026', '10/05/2026', 'Proposta de academia boutique para complementar Smart Fit.'),
-  ('PROP-2026-009', 'L1-061', 'Bradesco', 'L1-061', 'Serviços', 'Renovação', 31000, 120, 'Em Análise', 'Gerência Comercial', '02/04/2026', '20/05/2026', 'Banco pede 30 dias para análise interna.'),
-  ('PROP-2026-010', 'L3-056', 'Livraria Cultura', 'L3-056', 'Outros', 'Renovação', 29000, 350, 'Pendente', 'Gerência Comercial', '30/03/2026', '10/05/2026', 'Lojista avalia fechamento de unidades. Decisão pendente.'),
-  ('PROP-2026-011', NULL, 'Studio Z', 'L1-023', 'Moda', 'Nova Instalação', 24000, 85, 'Em Análise', 'Gerência Comercial', '28/03/2026', '12/05/2026', 'Rede jovem de moda street wear.'),
-  ('PROP-2026-012', NULL, 'Healthy Bowl', 'L3-031', 'Alimentação', 'Nova Instalação', 28000, 90, 'Aceita', 'Gerência Comercial', '20/03/2026', '20/04/2026', 'Aceite confirmado. Obras autorizadas para início em 25/04.'),
-  ('PROP-2026-013', 'L1-063', 'Claro', 'L1-063', 'Serviços', 'Renovação', 20500, 70, 'Pendente', 'Gerência Comercial', '15/03/2026', '01/05/2026', 'Aguardando retorno da operadora após envio de proposta.'),
-  ('PROP-2026-014', NULL, 'Grão Expresso', 'L3-054', 'Alimentação', 'Nova Instalação', 22000, 80, 'Aceita', 'Gerência Comercial', '10/03/2026', '10/04/2026', 'Cafeteria artesanal. Contrato assinado em 15/03.'),
-  ('PROP-2026-015', 'L3-002', 'Outback Steakhouse', 'L3-002', 'Alimentação', 'Readequação', 115000, 420, 'Em Negociação', 'Gerência Comercial', '15/04/2026', '15/05/2026', 'Proposta de expansão para 420m² incluindo nova cozinha industrial.'),
-  ('PROP-2026-016', NULL, 'Havaianas Flagship', 'L1-047', 'Moda', 'Nova Instalação', 32000, 120, 'Em Análise', 'Gerência Comercial', '12/04/2026', '25/05/2026', 'Proposta de loja flagship premium. Havaianas avaliando layout.'),
-  ('PROP-2026-017', NULL, 'Mundo Digital', 'L3-072', 'Outros', 'Nova Instalação', 18000, 85, 'Recusada', 'Gerência Comercial', '01/03/2026', '01/04/2026', 'Perfil comercial inadequado para o posicionamento do mall.'),
-  ('PROP-2026-018', 'L1-002', 'C&A (Readequação)', 'L1-002', 'Moda', 'Readequação', 58000, 600, 'Expirada', 'Gerência Comercial', '01/01/2026', '01/03/2026', 'Proposta de redução de área não aceita dentro do prazo.');
-
--- ------------------------------------------------------------
--- Tabela: sinistros
--- Fonte: store.ts → initialClaims
--- ------------------------------------------------------------
-CREATE TABLE sinistros (
-  id               VARCHAR(10)  NOT NULL,
-  loja             VARCHAR(100) NOT NULL,
-  tipo             VARCHAR(80)  NOT NULL,
-  severidade       ENUM('Baixa','Média','Alta') NOT NULL,
-  status           ENUM('Aberto','Aguardando Regulador','Em Análise','Aprovado','Pago') NOT NULL,
-  data             DATE         NOT NULL,
-  descricao        TEXT         NOT NULL,
-  regulador        VARCHAR(100),
-  valor_indenizacao DECIMAL(12,2),
-  valor_franquia   DECIMAL(12,2),
-  alerta_fraude    TINYINT(1)   NOT NULL DEFAULT 0,
-  PRIMARY KEY (id)
-) ENGINE=InnoDB;
-
-INSERT INTO sinistros VALUES
-  ('SIN-001', 'Loja 104 - Vestuário', 'Vazamento / Infiltração', 'Alta', 'Aberto', '2026-04-06', 'Rompimento de cano na laje superior causando alagamento no estoque da loja.', NULL, NULL, NULL, 0),
-  ('SIN-002', 'Loja 210 - Eletrônicos', 'Pico de Energia', 'Média', 'Aguardando Regulador', '2026-04-05', 'Curto circuito no quadro de distribuição, queima de 3 computadores e 1 monitor vitrine.', NULL, NULL, NULL, 1),
-  ('SIN-003', 'Praça de Alimentação', 'Incêndio', 'Alta', 'Em Análise', '2026-04-01', 'Princípio de incêndio na coifa do restaurante 05.', 'Carlos Mendes (Susep 1234)', NULL, NULL, 0),
-  ('SIN-004', 'Quiosque 12 - Joias', 'Dano Físico / Vandalismo', 'Baixa', 'Pago', '2026-03-25', 'Vidro do expositor trincado durante a madrugada.', 'Ana Souza (Susep 9876)', 4500, 500, 0);
-````
-
 ## File: Figma/ATTRIBUTIONS.md
 ````markdown
 This Figma Make file includes components from [shadcn/ui](https://ui.shadcn.com/) used under [MIT license](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md).
@@ -1567,215 +712,88 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
 }
 ````
 
-## File: Figma/src/app/components/LojistProfileModal.tsx
+## File: Figma/src/app/components/FilterSelect.tsx
 ````typescript
-import { X, Building2, User, Phone, Mail, FileText, Calendar, ChevronRight, ClipboardList } from "lucide-react";
-import type { Lojista } from "../data/comercialData";
+import { useState, useRef, useEffect } from "react";
+import { ChevronDown, Check } from "lucide-react";
 
-interface LojistProfileModalProps {
-  lojista: Lojista;
-  onClose: () => void;
+export interface FilterOption {
+  value: string;
+  label: string;
 }
 
-const statusContratoColors: Record<string, string> = {
-  Ativo: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
-  "Em Renovação": "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400",
-  Vencendo: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400",
-  Vencido: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
-};
-
-const statusPropostaColors: Record<string, string> = {
-  "Aprovado": "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
-  "Aguardando análise do comitê": "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400",
-  "Aguardando análise financeira": "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400",
-  "Reprovado": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
-  "Cancelado": "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400",
-};
-
-const PISO_LABEL: Record<string, string> = {
-  P: "Primeiro Piso",
-  S: "Segundo Piso",
-  T: "Terceiro Piso",
-};
-
-function fmt(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
+interface FilterSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: FilterOption[];
+  className?: string;
+  placeholder?: string;
 }
 
-export function LojistProfileModal({ lojista, onClose }: LojistProfileModalProps) {
-  const c = lojista.contratoAtivo;
+export function FilterSelect({ value, onChange, options, className = "", placeholder }: FilterSelectProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selectedLabel = options.find(o => o.value === value)?.label ?? placeholder ?? value;
+
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div
-        className="relative bg-white dark:bg-[#1E2435] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-100 dark:border-[#2E3447]"
-        onClick={(e) => e.stopPropagation()}
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`h-9 w-full flex items-center justify-between gap-2 px-3 bg-white dark:bg-[#1A1F2E] border rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#B82025]/20 ${
+          open
+            ? "border-[#B82025] ring-2 ring-[#B82025]/15"
+            : "border-[#B82025] hover:border-[#D93030]"
+        }`}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-[#8B1A1A] to-[#D93030] px-6 py-5 rounded-t-2xl">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">{lojista.nome || "Unidade Disponível"}</h2>
-                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                  <span className="text-white/80 text-sm">{lojista.unidade}</span>
-                  <span className="text-white/50 text-sm">·</span>
-                  <span className="text-white/80 text-sm">{lojista.segmento}</span>
-                  <span className="text-white/50 text-sm">·</span>
-                  <span className="text-white/80 text-sm">{PISO_LABEL[lojista.piso] ?? lojista.piso} / Corredor {lojista.corredor}</span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
-          </div>
+        <span className="truncate text-[#333333] dark:text-[#CBD5E1]">{selectedLabel}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-[#B82025] flex-shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          strokeWidth={2}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute top-[calc(100%+5px)] left-0 z-[200] min-w-full w-max max-w-[260px] bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg shadow-md overflow-hidden">
+          {options.map(option => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => { onChange(option.value); setOpen(false); }}
+                className={`w-full text-left flex items-center justify-between gap-3 px-3 py-2 text-sm transition-colors ${
+                  isSelected
+                    ? "text-[#B82025] font-semibold bg-[#B82025]/6 dark:bg-[#B82025]/10"
+                    : "text-[#333333] dark:text-[#CBD5E1] hover:bg-[#D93030] hover:text-white"
+                }`}
+              >
+                <span className="truncate">{option.label}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0 text-[#B82025]" strokeWidth={2.5} />}
+              </button>
+            );
+          })}
         </div>
-
-        <div className="p-6 space-y-5">
-          {/* Info Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-50 dark:bg-[#242938] rounded-xl p-4 space-y-3">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider flex items-center gap-2">
-                <User className="w-3.5 h-3.5" /> Dados do Responsável
-              </h3>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-900 dark:text-[#F1F5F9]">{lojista.responsavel || "—"}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-[#94A3B8] break-all">{lojista.email || "—"}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-[#94A3B8]">{lojista.telefone || "—"}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <FileText className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-[#94A3B8]">CNPJ: {lojista.cnpj || "—"}</span>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-[#242938] rounded-xl p-4 space-y-3">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider flex items-center gap-2">
-                <Building2 className="w-3.5 h-3.5" /> Localização & Métricas
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-gray-400 dark:text-[#64748B]">Piso</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{PISO_LABEL[lojista.piso] ?? lojista.piso}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 dark:text-[#64748B]">Corredor</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{lojista.corredor}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 dark:text-[#64748B]">Área</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{lojista.area} m²</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 dark:text-[#64748B]">Fat. Médio/Mês</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{fmt(lojista.faturamentoMedio)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contrato Ativo */}
-          {c && (
-            <div className="border border-gray-200 dark:border-[#2E3447] rounded-xl overflow-hidden">
-              <div className="px-5 py-3 bg-gray-50 dark:bg-[#1A1F2E] flex items-center justify-between flex-wrap gap-2">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#D93030]" /> Contrato Ativo — {c.id}
-                </h3>
-                <div className="flex items-center gap-2">
-                  {c.diasRestantes < 60 && (
-                    <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
-                      ⚠ {c.diasRestantes} dias restantes
-                    </span>
-                  )}
-                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${statusContratoColors[c.status]}`}>
-                    {c.status}
-                  </span>
-                </div>
-              </div>
-              <div className="p-5">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3">
-                    <p className="text-xs text-gray-400 dark:text-[#64748B] mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Vigência</p>
-                    <p className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9]">{c.inicio}</p>
-                    <p className="text-xs text-gray-400 dark:text-[#64748B]">até {c.fim}</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3">
-                    <p className="text-xs text-gray-400 dark:text-[#64748B] mb-1">Aluguel Mensal</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{fmt(c.valorAluguel)}</p>
-                    <p className="text-xs text-gray-400 dark:text-[#64748B]">{c.indiceReajuste}</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3">
-                    <p className="text-xs text-gray-400 dark:text-[#64748B] mb-1">Luvas</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{fmt(c.luvas)}</p>
-                    <p className="text-xs text-gray-400 dark:text-[#64748B]">{c.tipo}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Histórico de Propostas */}
-          <div className="border border-gray-200 dark:border-[#2E3447] rounded-xl overflow-hidden">
-            <div className="px-5 py-3 bg-gray-50 dark:bg-[#1A1F2E] flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-[#D93030]" /> Histórico de Propostas
-              </h3>
-              <span className="text-xs text-gray-400 dark:text-[#64748B]">{lojista.propostas.length} propostas</span>
-            </div>
-            <div className="p-4">
-              {lojista.propostas.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-[#64748B] text-center py-4">Nenhuma proposta registrada</p>
-              ) : (
-                <div className="space-y-2">
-                  {lojista.propostas.map((p) => (
-                    <div key={p.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-[#242938] rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-semibold text-gray-700 dark:text-[#F1F5F9]">{p.tipo}</span>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusPropostaColors[p.status] || "bg-gray-100 text-gray-600"}`}>{p.status}</span>
-                          <span className="text-xs text-gray-400 dark:text-[#475569] ml-auto flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> {p.data}
-                          </span>
-                        </div>
-                        {p.observacao && (
-                          <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5 truncate">{p.observacao}</p>
-                        )}
-                      </div>
-                      <span className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9] whitespace-nowrap">{fmt(p.valor)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="flex gap-3 pt-1">
-            <button className="flex-1 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-              <FileText className="w-4 h-4" /> Nova Proposta
-            </button>
-            <button className="flex-1 border border-gray-200 dark:border-[#2E3447] text-gray-700 dark:text-[#F1F5F9] hover:bg-gray-50 dark:hover:bg-[#242938] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-              <ChevronRight className="w-4 h-4" /> Ver Contrato Completo
-            </button>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -7607,6 +6625,3789 @@ export function cn(...inputs: ClassValue[]) {
 }
 ````
 
+## File: Figma/src/app/pages/ClaimDetails.tsx
+````typescript
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router";
+import { 
+  getClaimById, 
+  updateClaim, 
+  Claim, 
+  ClaimStatus 
+} from "../store";
+import { 
+  Building2, 
+  Calendar, 
+  AlertTriangle, 
+  CheckCircle2,
+  Clock,
+  UserCheck,
+  DollarSign,
+  FileText,
+  UploadCloud,
+  ArrowLeft,
+  Briefcase
+} from "lucide-react";
+
+export function ClaimDetails() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [claim, setClaim] = useState<Claim | null>(null);
+  const [regulator, setRegulator] = useState("");
+  const [indemnity, setIndemnity] = useState<number | "">("");
+  const [deductible, setDeductible] = useState<number | "">("");
+  
+  // Simulation of user role/permission
+  const isFinance = true; 
+
+  useEffect(() => {
+    if (id) {
+      const data = getClaimById(id);
+      if (data) {
+        setClaim(data);
+        if (data.regulator) setRegulator(data.regulator);
+        if (data.indemnityValue !== undefined) setIndemnity(data.indemnityValue);
+        if (data.deductibleValue !== undefined) setDeductible(data.deductibleValue);
+      }
+    }
+  }, [id]);
+
+  if (!claim) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 border-4 border-[#8B1A1A] border-t-transparent rounded-full mb-4"></div>
+        <p className="text-gray-500">Carregando detalhes do sinistro...</p>
+      </div>
+    );
+  }
+
+  const handleAssignRegulator = () => {
+    if (!regulator.trim()) return;
+    updateClaim(claim.id, { 
+      regulator, 
+      status: "Em Análise" 
+    });
+    setClaim(prev => prev ? { ...prev, regulator, status: "Em Análise" } : null);
+  };
+
+  const handleApproveTechnical = () => {
+    updateClaim(claim.id, { status: "Aprovado" });
+    setClaim(prev => prev ? { ...prev, status: "Aprovado" } : null);
+  };
+
+  const handleSaveFinancials = () => {
+    const indVal = Number(indemnity);
+    const dedVal = Number(deductible);
+    
+    updateClaim(claim.id, { 
+      indemnityValue: indVal, 
+      deductibleValue: dedVal 
+    });
+    
+    setClaim(prev => prev ? { 
+      ...prev, 
+      indemnityValue: indVal, 
+      deductibleValue: dedVal 
+    } : null);
+  };
+
+  const handleApprovePayment = () => {
+    updateClaim(claim.id, { status: "Pago" });
+    setClaim(prev => prev ? { ...prev, status: "Pago" } : null);
+  };
+
+  const getStatusColor = (status: ClaimStatus) => {
+    switch (status) {
+      case "Aberto": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "Aguardando Regulador": return "bg-orange-100 text-orange-800 border-orange-200";
+      case "Em Análise": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "Aprovado": return "bg-green-100 text-green-800 border-green-200";
+      case "Pago": return "bg-gray-100 text-gray-800 border-gray-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const netValue = (Number(indemnity) || 0) - (Number(deductible) || 0);
+  const canApprovePayment = claim.status === "Aprovado" && netValue >= 0 && claim.indemnityValue !== undefined;
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      {/* Header Back Button & Status */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+        <button 
+          onClick={() => navigate(-1)}
+          className="text-gray-500 hover:text-[#8B1A1A] inline-flex items-center text-sm font-medium transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Voltar para Lista
+        </button>
+        
+        <div className={`px-4 py-1.5 rounded-full border text-sm font-bold flex items-center shadow-sm ${getStatusColor(claim.status)}`}>
+          {claim.status === "Aprovado" && <CheckCircle2 className="w-4 h-4 mr-2" />}
+          {claim.status === "Aguardando Regulador" && <Clock className="w-4 h-4 mr-2" />}
+          Status Atual: {claim.status.toUpperCase()}
+        </div>
+      </div>
+
+      {/* Main Info Card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="h-2 bg-[#8B1A1A] w-full"></div>
+        <div className="p-8">
+          <div className="flex justify-between items-start border-b border-gray-100 pb-6 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{claim.id}</h1>
+              <div className="flex items-center text-sm text-gray-500 space-x-4">
+                <span className="flex items-center"><Building2 className="w-4 h-4 mr-1.5 text-[#C8A882]" /> {claim.store}</span>
+                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5 text-[#C8A882]" /> {new Date(claim.date).toLocaleDateString('pt-BR')}</span>
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <span className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium border
+                ${claim.severity === 'Alta' ? 'bg-red-50 text-[#D93030] border-red-100' : ''}
+                ${claim.severity === 'Média' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : ''}
+                ${claim.severity === 'Baixa' ? 'bg-green-50 text-green-700 border-green-100' : ''}
+              `}>
+                <span className={`w-2 h-2 rounded-full mr-2 
+                  ${claim.severity === 'Alta' ? 'bg-[#D93030]' : ''}
+                  ${claim.severity === 'Média' ? 'bg-yellow-500' : ''}
+                  ${claim.severity === 'Baixa' ? 'bg-green-500' : ''}
+                `}></span>
+                Gravidade {claim.severity}
+              </span>
+              
+              {claim.fraudAlert && (
+                <div className="mt-3 flex items-center text-sm font-bold text-[#D93030] bg-red-50 px-3 py-1 rounded border border-red-200">
+                  <AlertTriangle className="w-4 h-4 mr-1.5" />
+                  Alerta de Fraude Sistêmica
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-6">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Tipo de Ocorrência</h3>
+                <p className="text-base font-medium text-gray-900">{claim.type}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Descrição Detalhada</h3>
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-gray-700 leading-relaxed text-sm min-h-[120px]">
+                  {claim.description}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Evidências Anexadas ({claim.files?.length || 0})</h3>
+              {claim.files && claim.files.length > 0 ? (
+                <ul className="space-y-2">
+                  {claim.files.map((file, idx) => (
+                    <li key={idx} className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-[#8B1A1A] transition-colors cursor-pointer group">
+                      <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#8B1A1A] mr-3" />
+                      <span className="text-sm text-gray-700 font-medium truncate">{file}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
+                  Nenhum arquivo anexado.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Regulation Session */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col h-full">
+          <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
+            <div className="w-8 h-8 rounded bg-[#C8A882]/20 text-[#8B1A1A] flex items-center justify-center mr-3">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Sessão de Regulamentação</h2>
+          </div>
+          
+          <div className="space-y-4 flex-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Atribuir Regulador Responsável
+              </label>
+              <div className="flex space-x-2">
+                <input 
+                  type="text" 
+                  value={regulator}
+                  onChange={(e) => setRegulator(e.target.value)}
+                  placeholder="Nome ou código do regulador"
+                  className="flex-1 border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#8B1A1A] focus:border-[#8B1A1A]"
+                  disabled={claim.status !== 'Aberto' && claim.status !== 'Aguardando Regulador' && claim.status !== 'Em Análise'}
+                />
+                {(claim.status === 'Aberto' || claim.status === 'Aguardando Regulador' || claim.status === 'Em Análise') && (
+                  <button 
+                    onClick={handleAssignRegulator}
+                    className="bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-900 transition-colors"
+                  >
+                    Atribuir
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {claim.regulator && (
+              <div className="bg-blue-50 border border-blue-100 rounded-md p-4 flex items-start">
+                <Briefcase className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-900">Regulador Designado</p>
+                  <p className="text-sm text-blue-800">{claim.regulator}</p>
+                  <p className="text-xs text-blue-600 mt-1">Status de análise em andamento no sistema do regulador.</p>
+                </div>
+              </div>
+            )}
+            
+            {claim.status === 'Em Análise' && (
+              <div className="pt-6 mt-auto">
+                <p className="text-xs text-gray-500 mb-2">Ação do Regulador (Simulação)</p>
+                <button 
+                  onClick={handleApproveTechnical}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-md font-medium text-sm transition-colors shadow-sm flex items-center justify-center"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Aprovação Técnica (Parecer Favorável)
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Financial Session */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col h-full relative overflow-hidden">
+          {/* Disabled Overlay if not ready */}
+          {claim.status !== 'Aprovado' && claim.status !== 'Pago' && (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center border-l border-gray-100">
+              <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 text-center max-w-[80%]">
+                <Clock className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                <h3 className="font-bold text-gray-900 text-sm mb-1">Aprovação Pendente</h3>
+                <p className="text-xs text-gray-500">
+                  Os trâmites financeiros serão liberados apenas após a aprovação técnica do regulador.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
+            <div className="w-8 h-8 rounded bg-green-100 text-green-700 flex items-center justify-center mr-3">
+              <DollarSign className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Sessão Financeira</h2>
+          </div>
+
+          <div className="space-y-5 flex-1">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Valor Indenização (R$)
+                </label>
+                <input 
+                  type="number" 
+                  value={indemnity}
+                  onChange={(e) => setIndemnity(Number(e.target.value) || "")}
+                  placeholder="0,00"
+                  className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-green-500 focus:border-green-500"
+                  disabled={claim.status === 'Pago'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Franquia / Desconto (R$)
+                </label>
+                <input 
+                  type="number" 
+                  value={deductible}
+                  onChange={(e) => setDeductible(Number(e.target.value) || "")}
+                  placeholder="0,00"
+                  className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-red-500 focus:border-red-500 text-red-600"
+                  disabled={claim.status === 'Pago'}
+                />
+                <span className="text-[10px] text-gray-500 block mt-1">Pode ser zero.</span>
+              </div>
+            </div>
+
+            {(indemnity !== "" || deductible !== "") && claim.status !== 'Pago' && (
+              <button 
+                onClick={handleSaveFinancials}
+                className="w-full bg-gray-100 text-gray-700 py-2 rounded border border-gray-200 text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                Salvar Valores
+              </button>
+            )}
+
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600">Total Indenização</span>
+                <span className="text-sm font-medium">R$ {(Number(indemnity) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center mb-2 border-b border-gray-200 pb-2">
+                <span className="text-sm text-gray-600">(-) Franquia Aplicada</span>
+                <span className="text-sm font-medium text-red-600">- R$ {(Number(deductible) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center pt-1">
+                <span className="text-base font-bold text-gray-900">Total a Pagar</span>
+                <span className={`text-xl font-bold ${netValue > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                  R$ {Math.max(0, netValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-4 mt-auto">
+              {claim.status === 'Pago' ? (
+                <div className="bg-green-50 border border-green-200 rounded-md p-3 text-center text-green-800 font-medium flex items-center justify-center text-sm">
+                  <CheckCircle2 className="w-5 h-5 mr-2" />
+                  Pagamento Aprovado e Processado
+                </div>
+              ) : (
+                <button 
+                  onClick={handleApprovePayment}
+                  disabled={!canApprovePayment}
+                  className={`w-full py-3 rounded-md font-bold text-sm transition-all shadow-sm flex items-center justify-center
+                    ${canApprovePayment 
+                      ? 'bg-[#8B1A1A] hover:bg-[#a43030] text-white shadow-md transform hover:-translate-y-0.5' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
+                    }
+                  `}
+                >
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Aprovar Restituição e Encerrar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/ClaimsHistory.tsx
+````typescript
+import { useState } from "react";
+import { Search, Filter, ChevronLeft, ChevronRight, Eye, Download } from "lucide-react";
+import { Link } from "react-router";
+
+// Mock Data
+const claims = [
+  { id: "SIN-2023-0891", store: "Zara - Piso L2", date: "15/10/2023", type: "Vazamento / Inundação", status: "Em Análise", severity: "Alta" },
+  { id: "SIN-2023-0890", store: "Starbucks - Piso L1", date: "12/10/2023", type: "Incêndio Fiação", status: "Aberto", severity: "Média" },
+  { id: "SIN-2023-0885", store: "Renner - Piso L2", date: "05/10/2023", type: "Dano Elétrico", status: "Pago", severity: "Baixa" },
+  { id: "SIN-2023-0880", store: "Centauro - Piso L3", date: "28/09/2023", type: "Vazamento / Inundação", status: "Recusado", severity: "Alta" },
+  { id: "SIN-2023-0878", store: "Fast Shop - Piso L1", date: "25/09/2023", type: "Dano Elétrico", status: "Pago", severity: "Média" },
+  { id: "SIN-2023-0875", store: "Outback - Piso L3", date: "20/09/2023", type: "Incêndio Fiação", status: "Em Análise", severity: "Alta" },
+  { id: "SIN-2023-0870", store: "Vivara - Piso L1", date: "15/09/2023", type: "Furto / Roubo", status: "Pago", severity: "Baixa" },
+  { id: "SIN-2023-0865", store: "Riachuelo - Piso L2", date: "10/09/2023", type: "Dano Estrutural", status: "Aberto", severity: "Média" },
+];
+
+const getStatusStyles = (status: string) => {
+  switch (status) {
+    case "Aberto":
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    case "Em Análise":
+      return "bg-amber-100 text-amber-800 border-amber-200";
+    case "Pago":
+      return "bg-emerald-100 text-emerald-800 border-emerald-200";
+    case "Recusado":
+      return "bg-red-100 text-red-800 border-red-200";
+    default:
+      return "bg-gray-100 text-gray-800 border-gray-200";
+  }
+};
+
+const getSeverityStyles = (severity: string) => {
+  switch (severity) {
+    case "Alta":
+      return "text-[#D93030]";
+    case "Média":
+      return "text-amber-600";
+    case "Baixa":
+      return "text-emerald-600";
+    default:
+      return "text-gray-500";
+  }
+};
+
+export function ClaimsHistory() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#8B1A1A]">Histórico de Sinistros</h1>
+          <p className="text-gray-600 mt-1">Consulte e rastreie todas as ocorrências passadas.</p>
+        </div>
+        <button className="flex items-center gap-2 bg-[#D93030] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b92828] transition-colors shadow-sm">
+          <Download className="w-4 h-4" />
+          Exportar Relatório
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-[#FAF7F2] p-4 rounded-xl shadow-sm border border-[#E8DCCB]">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por Nº do Sinistro ou Loja..."
+              className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#E8DCCB] rounded-lg focus:ring-2 focus:ring-[#8B1A1A] focus:border-transparent outline-none transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex gap-4">
+            <select 
+              className="bg-white border border-[#E8DCCB] text-gray-700 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-[#8B1A1A] outline-none"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="Todos">Status: Todos</option>
+              <option value="Aberto">Aberto</option>
+              <option value="Em Análise">Em Análise</option>
+              <option value="Pago">Pago</option>
+              <option value="Recusado">Recusado</option>
+            </select>
+            
+            <select className="bg-white border border-[#E8DCCB] text-gray-700 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-[#8B1A1A] outline-none hidden sm:block">
+              <option value="Todos">Gravidade: Todas</option>
+              <option value="Alta">Alta</option>
+              <option value="Média">Média</option>
+              <option value="Baixa">Baixa</option>
+            </select>
+            
+            <button className="flex items-center justify-center bg-white border border-[#E8DCCB] p-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-[#8B1A1A] transition-colors" title="Filtros Avançados">
+              <Filter className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-[#FAF7F2] rounded-xl shadow-sm border border-[#E8DCCB] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#E8DCCB]/50 border-b border-[#E8DCCB]">
+                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Nº Sinistro</th>
+                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Loja</th>
+                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Data do Evento</th>
+                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Tipo / Ocorrência</th>
+                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Status</th>
+                <th className="px-6 py-4 text-center text-sm font-semibold text-[#8B1A1A]">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E8DCCB]">
+              {claims.map((claim) => (
+                <tr key={claim.id} className="hover:bg-white transition-colors group">
+                  <td className="px-6 py-4">
+                    <span className="font-medium text-[#8B1A1A]">{claim.id}</span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-700 font-medium">{claim.store}</td>
+                  <td className="px-6 py-4 text-gray-600">{claim.date}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-700">{claim.type}</span>
+                      <span className={`text-xs font-medium ${getSeverityStyles(claim.severity)}`} title={`Gravidade: ${claim.severity}`}>
+                        • {claim.severity}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusStyles(claim.status)}`}>
+                      {claim.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <Link to={`/sinistro/${claim.id}`} className="inline-flex p-2 text-gray-400 hover:text-[#D93030] hover:bg-red-50 rounded-lg transition-colors">
+                      <Eye className="w-4 h-4" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Pagination */}
+        <div className="px-6 py-4 border-t border-[#E8DCCB] flex items-center justify-between bg-[#FAF7F2]">
+          <span className="text-sm text-gray-500">Mostrando 1 a 8 de 45 registros</span>
+          <div className="flex items-center gap-1">
+            <button className="p-2 border border-[#E8DCCB] rounded-lg text-gray-500 hover:bg-white hover:text-[#8B1A1A] disabled:opacity-50 transition-colors" disabled>
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button className="px-3 py-1 bg-[#8B1A1A] text-white rounded-lg text-sm font-medium">1</button>
+            <button className="px-3 py-1 border border-[#E8DCCB] text-gray-600 hover:bg-white rounded-lg text-sm font-medium transition-colors">2</button>
+            <button className="px-3 py-1 border border-[#E8DCCB] text-gray-600 hover:bg-white rounded-lg text-sm font-medium transition-colors">3</button>
+            <span className="px-2 text-gray-400">...</span>
+            <button className="px-3 py-1 border border-[#E8DCCB] text-gray-600 hover:bg-white rounded-lg text-sm font-medium transition-colors">6</button>
+            <button className="p-2 border border-[#E8DCCB] rounded-lg text-gray-500 hover:bg-white hover:text-[#8B1A1A] transition-colors">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/comercial/ComercialHistory.tsx
+````typescript
+import { useState, useMemo, useEffect } from "react";
+import {
+  Search, Clock, CheckCircle, FileText,
+  RefreshCw, Calendar, ChevronDown, ChevronUp, Eye, Building2
+} from "lucide-react";
+import { allLojistas, propostasAtivas } from "../../data/comercialData";
+import { LojistProfileModal } from "../../components/LojistProfileModal";
+import { subscribe } from "../../data/comercialStore";
+import type { Lojista } from "../../data/comercialData";
+
+interface HistoricoEvent {
+  id: string;
+  data: string;
+  sortKey: string;
+  tipo: "Proposta" | "Contrato" | "Renovação" | "Readequação";
+  titulo: string;
+  descricao: string;
+  lojista: string;
+  unidade: string;
+  valor?: number;
+  status: string;
+  lojistaObj?: Lojista;
+}
+
+const TIPO_CFG: Record<string, { color: string; bg: string }> = {
+  Proposta:    { color: "text-blue-600 dark:text-blue-400",   bg: "bg-blue-100 dark:bg-blue-900/30" },
+  Contrato:    { color: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/30" },
+  Renovação:   { color: "text-teal-600 dark:text-teal-400",   bg: "bg-teal-100 dark:bg-teal-900/30" },
+  Readequação: { color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30" },
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  Aceita:         "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
+  Ativo:          "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
+  Pendente:       "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400",
+  "Em Negociação":"bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400",
+  "Em Análise":   "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400",
+  Recusada:       "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+  Expirada:       "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400",
+  Vencendo:       "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400",
+  Vencido:        "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+};
+
+function fmtCurrency(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
+}
+
+function toSortKey(dateStr: string): string {
+  const [d, m, y] = dateStr.split("/");
+  if (!d || !m || !y) return "0000-00-00";
+  return `${y}-${m}-${d}`;
+}
+
+const TIPO_ICON: Record<string, any> = {
+  Contrato: CheckCircle,
+  Proposta: FileText,
+  Renovação: RefreshCw,
+  Readequação: Clock,
+};
+
+export function ComercialHistory() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const u = subscribe(() => setTick(t => t + 1)); return u; }, []);
+
+  const [search, setSearch] = useState("");
+  const [filterTipo, setFilterTipo] = useState("Todos");
+  const [filterPiso, setFilterPiso] = useState("Todos");
+  const [dateFrom, setDateFrom] = useState("2019-01-01");
+  const [dateTo, setDateTo] = useState("2026-04-30");
+  const [showCount, setShowCount] = useState(40);
+  const [selectedLojista, setSelectedLojista] = useState<Lojista | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const allEvents = useMemo<HistoricoEvent[]>(() => {
+    const events: HistoricoEvent[] = [];
+
+    allLojistas.forEach(lojista => {
+      if (lojista.status !== "Ocupado") return;
+
+      if (lojista.contratoAtivo) {
+        const c = lojista.contratoAtivo;
+        events.push({
+          id: `ctr-${c.id}`,
+          data: c.inicio,
+          sortKey: toSortKey(c.inicio),
+          tipo: "Contrato",
+          titulo: `Contrato iniciado — ${lojista.nome}`,
+          descricao: `${c.id} · ${c.tipo} · Aluguel: ${fmtCurrency(c.valorAluguel)}/mês · ${c.indiceReajuste} · Vigência: ${c.inicio} a ${c.fim}`,
+          lojista: lojista.nome,
+          unidade: lojista.unidade,
+          valor: c.valorAluguel,
+          status: c.status,
+          lojistaObj: lojista,
+        });
+      }
+
+      lojista.propostas.forEach(p => {
+        const tipo: HistoricoEvent["tipo"] =
+          p.tipo === "Renovação" ? "Renovação" :
+          p.tipo === "Readequação" ? "Readequação" : "Proposta";
+        events.push({
+          id: `proph-${p.id}`,
+          data: p.data,
+          sortKey: toSortKey(p.data),
+          tipo,
+          titulo: `${p.tipo} — ${lojista.nome}`,
+          descricao: p.observacao || `Proposta de ${p.tipo.toLowerCase()} para ${lojista.unidade}.`,
+          lojista: lojista.nome,
+          unidade: lojista.unidade,
+          valor: p.valor,
+          status: p.status,
+          lojistaObj: lojista,
+        });
+      });
+    });
+
+    propostasAtivas
+      .filter(p => !p.lojistaId)
+      .forEach(p => {
+        const tipo: HistoricoEvent["tipo"] =
+          p.tipo === "Renovação" ? "Renovação" :
+          p.tipo === "Readequação" ? "Readequação" : "Proposta";
+        events.push({
+          id: `prop-${p.id}`,
+          data: p.dataCriacao,
+          sortKey: toSortKey(p.dataCriacao),
+          tipo,
+          titulo: `${p.tipo} — ${p.lojista}`,
+          descricao: p.observacoes || `Nova proposta para unidade ${p.unidade}.`,
+          lojista: p.lojista,
+          unidade: p.unidade,
+          valor: p.valorProposto,
+          status: p.status,
+        });
+      });
+
+    return events.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+  }, [tick]);
+
+  const filtered = useMemo(() => {
+    const from = new Date(dateFrom + "T00:00:00");
+    const to = new Date(dateTo + "T23:59:59");
+    return allEvents.filter(e => {
+      const parts = e.data.split("/");
+      let inPeriod = true;
+      if (parts.length === 3) {
+        const eDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`);
+        if (!isNaN(eDate.getTime())) inPeriod = eDate >= from && eDate <= to;
+      }
+      const matchSearch =
+        e.lojista.toLowerCase().includes(search.toLowerCase()) ||
+        e.titulo.toLowerCase().includes(search.toLowerCase()) ||
+        e.unidade.toLowerCase().includes(search.toLowerCase());
+      const matchTipo = filterTipo === "Todos" || e.tipo === filterTipo;
+      const matchPiso = filterPiso === "Todos" || e.unidade.startsWith(filterPiso);
+      return inPeriod && matchSearch && matchTipo && matchPiso;
+    });
+  }, [allEvents, search, filterTipo, filterPiso, dateFrom, dateTo]);
+
+  const counts = useMemo(() => ({
+    Contrato: allEvents.filter(e => e.tipo === "Contrato").length,
+    Proposta: allEvents.filter(e => e.tipo === "Proposta").length,
+    Renovação: allEvents.filter(e => e.tipo === "Renovação").length,
+    Readequação: allEvents.filter(e => e.tipo === "Readequação").length,
+  }), [allEvents]);
+
+  const MONTH_NAMES: Record<string, string> = {
+    "01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril",
+    "05": "Maio", "06": "Junho", "07": "Julho", "08": "Agosto",
+    "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
+  };
+
+  const groupedByMonth = useMemo(() => {
+    const map: Record<string, HistoricoEvent[]> = {};
+    filtered.slice(0, showCount).forEach(e => {
+      const [, m, y] = e.data.split("/");
+      if (!y || !m) return;
+      const key = `${y}-${m}`;
+      if (!map[key]) map[key] = [];
+      map[key].push(e);
+    });
+    return Object.entries(map).sort(([a], [b]) => b.localeCompare(a));
+  }, [filtered, showCount]);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Histórico Comercial</h1>
+        <p className="text-gray-500 dark:text-[#94A3B8] mt-1">
+          Linha do tempo completa — contratos, propostas e renovações.
+        </p>
+      </div>
+
+      {/* Period Selector */}
+      <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar className="w-4 h-4 text-[#D93030]" />
+          <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">Filtro por Período</span>
+        </div>
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 dark:text-[#64748B]">De</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="px-3 py-1.5 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030]" />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 dark:text-[#64748B]">Até</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="px-3 py-1.5 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030]" />
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {[
+              { label: "1 mês", from: "2026-03-23" },
+              { label: "3 meses", from: "2026-01-23" },
+              { label: "6 meses", from: "2025-10-23" },
+              { label: "1 ano", from: "2025-04-23" },
+              { label: "2 anos", from: "2024-04-23" },
+              { label: "Tudo", from: "2019-01-01" },
+            ].map(q => (
+              <button key={q.label}
+                onClick={() => { setDateFrom(q.from); setDateTo("2026-04-30"); }}
+                className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${dateFrom === q.from ? "bg-[#D93030] text-white border-[#D93030]" : "border-gray-200 dark:border-[#2E3447] text-gray-600 dark:text-[#94A3B8] hover:border-[#D93030]"}`}>
+                {q.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex-1 min-w-48 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input type="text" placeholder="Buscar lojista, unidade..." value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-900 dark:text-[#F1F5F9] placeholder-gray-400 focus:outline-none focus:border-[#D93030]" />
+        </div>
+        <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)}
+          className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer">
+          <option value="Todos">Todos os Tipos ({allEvents.length})</option>
+          <option value="Contrato">Contratos ({counts.Contrato})</option>
+          <option value="Proposta">Propostas ({counts.Proposta})</option>
+          <option value="Renovação">Renovações ({counts.Renovação})</option>
+          <option value="Readequação">Readequações ({counts.Readequação})</option>
+        </select>
+        <select value={filterPiso} onChange={e => setFilterPiso(e.target.value)}
+          className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer">
+          <option value="Todos">Todos os Pisos</option>
+          <option value="L1">Piso L1</option>
+          <option value="L2">Piso L2</option>
+          <option value="L3">Piso L3</option>
+        </select>
+        <button onClick={() => { setSearch(""); setFilterTipo("Todos"); setFilterPiso("Todos"); setDateFrom("2019-01-01"); setDateTo("2026-04-30"); }}
+          className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors">
+          <RefreshCw className="w-4 h-4" /> Limpar
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-400 dark:text-[#64748B]">
+        {filtered.length} evento{filtered.length !== 1 ? "s" : ""} encontrado{filtered.length !== 1 ? "s" : ""} no período
+      </p>
+
+      {/* Timeline */}
+      <div className="space-y-8">
+        {groupedByMonth.length === 0 && (
+          <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-12 text-center">
+            <Search className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-[#3E4557]" />
+            <p className="text-sm text-gray-500 dark:text-[#64748B]">Nenhum evento encontrado no período ou filtros selecionados</p>
+          </div>
+        )}
+        {groupedByMonth.map(([yearMonth, events]) => {
+          const [year, month] = yearMonth.split("-");
+          return (
+            <div key={yearMonth}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2 bg-[#8B1A1A]/10 dark:bg-[#8B1A1A]/30 px-3 py-1.5 rounded-lg">
+                  <Calendar className="w-3.5 h-3.5 text-[#D93030]" />
+                  <span className="text-sm font-semibold text-[#8B1A1A] dark:text-[#E04444]">
+                    {MONTH_NAMES[month] || month} {year}
+                  </span>
+                </div>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-[#2E3447]" />
+                <span className="text-xs text-gray-400 dark:text-[#64748B]">{events.length} evento{events.length !== 1 ? "s" : ""}</span>
+              </div>
+              <div className="relative ml-4">
+                <div className="absolute left-3.5 top-0 bottom-0 w-px bg-gray-200 dark:bg-[#2E3447]" />
+                <div className="space-y-3">
+                  {events.map(event => {
+                    const cfg = TIPO_CFG[event.tipo] || TIPO_CFG.Proposta;
+                    const Icon = TIPO_ICON[event.tipo] || FileText;
+                    const isExpanded = expandedId === event.id;
+                    return (
+                      <div key={event.id} className="relative pl-10">
+                        <div className={`absolute left-0 top-3 w-7 h-7 rounded-full ${cfg.bg} flex items-center justify-center border-2 border-white dark:border-[#1E2435]`}>
+                          <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
+                        </div>
+                        <div className="bg-white dark:bg-[#242938] border border-gray-100 dark:border-[#2E3447] rounded-xl overflow-hidden">
+                          <button
+                            className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors"
+                            onClick={() => setExpandedId(isExpanded ? null : event.id)}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] truncate">{event.titulo}</span>
+                                  {event.status && (
+                                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_COLORS[event.status] || "bg-gray-100 text-gray-600"}`}>
+                                      {event.status}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-gray-500 dark:text-[#64748B]">
+                                  <Building2 className="w-3 h-3" />
+                                  <span>{event.lojista}</span>
+                                  <span>·</span>
+                                  <span>{event.unidade}</span>
+                                  {event.valor !== undefined && (
+                                    <>
+                                      <span>·</span>
+                                      <span className="font-semibold text-gray-700 dark:text-[#F1F5F9]">{fmtCurrency(event.valor)}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-xs text-gray-400 dark:text-[#64748B]">{event.data}</span>
+                                {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                              </div>
+                            </div>
+                          </button>
+                          {isExpanded && (
+                            <div className="px-4 pb-4 border-t border-gray-100 dark:border-[#2E3447] pt-3">
+                              <p className="text-sm text-gray-600 dark:text-[#94A3B8] leading-relaxed mb-3">{event.descricao}</p>
+                              {event.lojistaObj && (
+                                <button
+                                  onClick={() => setSelectedLojista(event.lojistaObj!)}
+                                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#D93030] hover:text-[#b92828] transition-colors"
+                                >
+                                  <Eye className="w-3.5 h-3.5" /> Ver perfil completo do lojista
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {showCount < filtered.length && (
+        <div className="text-center pt-2">
+          <button onClick={() => setShowCount(c => c + 40)}
+            className="inline-flex items-center gap-2 bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] text-gray-700 dark:text-[#F1F5F9] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] rounded-xl px-6 py-2.5 text-sm font-medium transition-colors">
+            <ChevronDown className="w-4 h-4" /> Carregar mais ({filtered.length - showCount} restantes)
+          </button>
+        </div>
+      )}
+
+      {selectedLojista && <LojistProfileModal lojista={selectedLojista} onClose={() => setSelectedLojista(null)} />}
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/comercial/ComercialOverview.tsx
+````typescript
+// ComercialOverview was merged into ComercialDashboard.
+// This file is kept as a safety re-export for any legacy references.
+export { ComercialDashboard as ComercialOverview } from "./ComercialDashboard";
+````
+
+## File: Figma/src/app/pages/Dashboard.tsx
+````typescript
+export function Dashboard() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center max-w-md px-4">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2">
+          Esta seção está em desenvolvimento e será disponibilizada em breve.
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-[#94A3B8]">
+          Estamos trabalhando para trazer novidades em breve.
+        </p>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/EmptySection.tsx
+````typescript
+import { useLocation } from "react-router";
+import { Package } from "lucide-react";
+
+export function EmptySection() {
+  const location = useLocation();
+  
+  const getSectionName = () => {
+    const path = location.pathname.split("/")[1];
+    const names: Record<string, string> = {
+      treinamentos: "Treinamentos",
+      seguros: "Seguros",
+      manutencao: "Manutenção",
+      marketing: "Marketing",
+      comercial: "Comercial",
+      institucional: "Institucional"
+    };
+    return names[path] || "Seção";
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-[#1A1F2E] mb-4">
+          <Package className="w-8 h-8 text-gray-400 dark:text-[#64748B]" />
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2">
+          {getSectionName()}
+        </h2>
+        <p className="text-gray-500 dark:text-[#94A3B8] max-w-sm">
+          Esta seção está em desenvolvimento e será disponibilizada em breve.
+        </p>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/NewClaim.tsx
+````typescript
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { useForm, Controller } from "react-hook-form";
+import { 
+  Building2, 
+  Calendar, 
+  UploadCloud, 
+  AlertCircle, 
+  FileText,
+  Save,
+  X,
+  File as FileIcon,
+  Trash2
+} from "lucide-react";
+import { addClaim } from "../store";
+
+type FormValues = {
+  store: string;
+  type: string;
+  severity: "Baixa" | "Média" | "Alta";
+  riskClass: string;
+  date: string;
+  description: string;
+};
+
+export function NewClaim() {
+  const navigate = useNavigate();
+  const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
+    defaultValues: {
+      severity: "Média"
+    }
+  });
+
+  const stores = [
+    "Loja 101 - Acessórios",
+    "Loja 102 - Calçados",
+    "Loja 104 - Vestuário",
+    "Loja 210 - Eletrônicos",
+    "Praça de Alimentação",
+    "Estacionamento G1",
+    "Banheiros Ala Norte"
+  ];
+
+  const types = [
+    "Vazamento / Infiltração",
+    "Pico de Energia / Elétrico",
+    "Incêndio",
+    "Dano Físico / Vandalismo",
+    "Acidente Pessoal",
+    "Roubo / Furto",
+    "Desastre Natural"
+  ];
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const onSubmit = (data: FormValues) => {
+    // Generate mock ID
+    const newId = `SIN-00${Math.floor(Math.random() * 900) + 100}`;
+    
+    addClaim({
+      id: newId,
+      store: data.store,
+      type: data.type,
+      severity: data.severity,
+      status: "Aberto",
+      date: data.date,
+      description: data.description,
+      files: files.map(f => f.name),
+      fraudAlert: false
+    });
+    
+    navigate("/dashboard");
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center space-x-3 mb-8">
+        <div className="w-10 h-10 bg-[#8B1A1A] rounded-lg flex items-center justify-center text-white shadow-sm">
+          <FileText className="w-5 h-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Registro de Novo Sinistro</h1>
+          <p className="text-sm text-gray-500">Preencha os dados detalhados da ocorrência no complexo.</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          <div className="border-b border-gray-100 pb-4 mb-6">
+            <h2 className="text-lg font-semibold text-[#8B1A1A] flex items-center">
+              <Building2 className="w-5 h-5 mr-2" /> Dados da Ocorrência
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Loja / Local Afetado *
+              </label>
+              <select 
+                {...register("store", { required: "Selecione o local" })}
+                className={`w-full border ${errors.store ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm py-2.5 px-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm`}
+              >
+                <option value="">Selecione...</option>
+                {stores.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              {errors.store && <p className="mt-1 text-xs text-red-500">{errors.store.message}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data do Evento *
+              </label>
+              <div className="relative">
+                <input 
+                  type="date"
+                  {...register("date", { required: "Data é obrigatória" })}
+                  className={`w-full border ${errors.date ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm py-2.5 px-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm`}
+                />
+              </div>
+              {errors.date && <p className="mt-1 text-xs text-red-500">{errors.date.message}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Ocorrência *
+              </label>
+              <select 
+                {...register("type", { required: "Selecione o tipo" })}
+                className={`w-full border ${errors.type ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm py-2.5 px-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm`}
+              >
+                <option value="">Selecione...</option>
+                {types.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              {errors.type && <p className="mt-1 text-xs text-red-500">{errors.type.message}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Classificação de Risco
+              </label>
+              <select 
+                {...register("riskClass")}
+                className="w-full border border-gray-300 rounded-lg shadow-sm py-2.5 px-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm"
+              >
+                <option value="Estrutural">Estrutural</option>
+                <option value="Conteúdo">Conteúdo (Mercadorias/Equipamentos)</option>
+                <option value="Responsabilidade Civil">Responsabilidade Civil (Terceiros)</option>
+                <option value="Lucros Cessantes">Lucros Cessantes</option>
+              </select>
+            </div>
+            
+            <div className="md:col-span-2 mt-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Gravidade do Sinistro *
+              </label>
+              <Controller
+                name="severity"
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <div className="grid grid-cols-3 gap-4">
+                    <label className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center transition-all ${field.value === 'Baixa' ? 'border-green-500 bg-green-50 ring-1 ring-green-500' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <input type="radio" className="sr-only" {...field} value="Baixa" checked={field.value === 'Baixa'} />
+                      <div className="w-3 h-3 rounded-full bg-green-500 mb-2"></div>
+                      <span className={`text-sm font-medium ${field.value === 'Baixa' ? 'text-green-700' : 'text-gray-700'}`}>Baixa</span>
+                    </label>
+                    <label className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center transition-all ${field.value === 'Média' ? 'border-yellow-500 bg-yellow-50 ring-1 ring-yellow-500' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <input type="radio" className="sr-only" {...field} value="Média" checked={field.value === 'Média'} />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500 mb-2"></div>
+                      <span className={`text-sm font-medium ${field.value === 'Média' ? 'text-yellow-700' : 'text-gray-700'}`}>Média</span>
+                    </label>
+                    <label className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center transition-all ${field.value === 'Alta' ? 'border-[#D93030] bg-red-50 ring-1 ring-[#D93030]' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <input type="radio" className="sr-only" {...field} value="Alta" checked={field.value === 'Alta'} />
+                      <div className="w-3 h-3 rounded-full bg-[#D93030] mb-2"></div>
+                      <span className={`text-sm font-medium ${field.value === 'Alta' ? 'text-[#D93030]' : 'text-gray-700'}`}>Alta</span>
+                    </label>
+                  </div>
+                )}
+              />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descrição Detalhada do Evento *
+              </label>
+              <textarea 
+                {...register("description", { required: "Descrição é obrigatória", minLength: 10 })}
+                rows={5}
+                placeholder="Descreva o que ocorreu, horários estimados, pessoas envolvidas e primeiras providências tomadas..."
+                className={`w-full border ${errors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm p-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm`}
+              />
+              {errors.description && <p className="mt-1 text-xs text-red-500">Forneça uma descrição detalhada (min 10 caracteres)</p>}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          <div className="border-b border-gray-100 pb-4 mb-6">
+            <h2 className="text-lg font-semibold text-[#8B1A1A] flex items-center">
+              <UploadCloud className="w-5 h-5 mr-2" /> Evidências e Documentos
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Anexe fotos do local, vídeos de segurança, BO ou laudos preliminares.</p>
+          </div>
+
+          <div 
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isDragging ? 'border-[#8B1A1A] bg-red-50/50' : 'border-gray-300 hover:bg-gray-50'}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <UploadCloud className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              Arraste arquivos ou clique para selecionar
+            </p>
+            <p className="text-xs text-gray-500 mb-4">
+              JPG, PNG, PDF ou MP4 (Máx. 50MB)
+            </p>
+            <label className="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
+              Selecionar Arquivos
+              <input type="file" multiple className="hidden" onChange={handleFileChange} />
+            </label>
+          </div>
+
+          {files.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <h4 className="text-sm font-medium text-gray-700">Arquivos Anexados ({files.length})</h4>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {files.map((file, idx) => (
+                  <li key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+                    <div className="flex items-center space-x-3 overflow-hidden">
+                      <FileIcon className="w-5 h-5 text-[#8B1A1A] flex-shrink-0" />
+                      <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => removeFile(idx)}
+                      className="text-gray-400 hover:text-red-500 p-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end space-x-4 pt-4">
+          <button 
+            type="button"
+            onClick={() => navigate(-1)}
+            className="px-6 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit"
+            className="px-6 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-[#8B1A1A] hover:bg-[#a43030] shadow-sm flex items-center transition-colors"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Salvar Registro
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/Reports.tsx
+````typescript
+import { Package } from "lucide-react";
+
+export function Reports() {
+  return (
+    <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-[#1A1F2E] mb-4">
+          <Package className="w-8 h-8 text-gray-400 dark:text-[#64748B]" />
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2">
+          Relatórios Gerais
+        </h2>
+        <p className="text-gray-500 dark:text-[#94A3B8] max-w-sm">
+          Central de relatórios gerais em desenvolvimento. Acesse relatórios específicos através dos módulos correspondentes.
+        </p>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/sinistros/SinistrosDashboard.tsx
+````typescript
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import { 
+  AlertTriangle, 
+  Clock, 
+  FileWarning, 
+  TrendingUp,
+  Search,
+  ChevronRight
+} from "lucide-react";
+import { getClaims, Claim } from "../../store";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from "recharts";
+
+export function SinistrosDashboard() {
+  const navigate = useNavigate();
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setClaims(getClaims());
+  }, []);
+
+  const openClaims = claims.filter(c => c.status === "Aberto" || c.status === "Em Análise").length;
+  const waitingRegulator = claims.filter(c => c.status === "Aguardando Regulador").length;
+  const fraudAlerts = claims.filter(c => c.fraudAlert).length;
+
+  const filteredClaims = claims.filter(c => 
+    c.store.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Mock data for chart
+  const chartData = [
+    { name: 'Loja A', incidentes: 4 },
+    { name: 'Loja B', incidentes: 2 },
+    { name: 'Praça de Alim.', incidentes: 5 },
+    { name: 'Estacionamento', incidentes: 3 },
+    { name: 'Banheiros', incidentes: 1 },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Dashboard de Sinistros</h1>
+          <p className="text-gray-500 dark:text-[#94A3B8] mt-1">Resumo das ocorrências e sinistros do complexo.</p>
+        </div>
+        <button 
+          onClick={() => navigate("/sinistros/novo")}
+          className="bg-[#D93030] dark:bg-[#E04444] hover:bg-[#b92828] dark:hover:bg-[#F05555] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center"
+        >
+          <FileWarning className="w-4 h-4 mr-2" />
+          Registrar Ocorrência
+        </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-gray-100 dark:border-[#2E3447] p-6 flex items-start justify-between hover:shadow-md transition-all">
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-[#94A3B8] mb-1">Sinistros Abertos</p>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-[#F1F5F9]">{openClaims}</h3>
+            <p className="text-xs text-green-600 dark:text-[#34D399] mt-2 flex items-center font-medium">
+              <TrendingUp className="w-3 h-3 mr-1" /> -12% em relação ao mês anterior
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-[#60A5FA] rounded-lg flex items-center justify-center">
+            <FileWarning className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-gray-100 dark:border-[#2E3447] p-6 flex items-start justify-between hover:shadow-md transition-all">
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-[#94A3B8] mb-1">Aguardando Regulador</p>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-[#F1F5F9]">{waitingRegulator}</h3>
+            <p className="text-xs text-orange-600 dark:text-[#FBBF24] mt-2 flex items-center font-medium">
+              Requer atenção imediata
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-[#FBBF24] rounded-lg flex items-center justify-center">
+            <Clock className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-red-100 dark:border-red-700/30 p-6 flex items-start justify-between hover:shadow-md transition-all">
+          <div>
+            <p className="text-sm font-medium text-[#D93030] dark:text-[#E04444] mb-1">Alertas de Fraude</p>
+            <h3 className="text-3xl font-bold text-[#D93030] dark:text-[#E04444]">{fraudAlerts}</h3>
+            <p className="text-xs text-[#8B1A1A] dark:text-[#E04444] mt-2 flex items-center font-medium">
+              Análise rigorosa sugerida
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-red-50 dark:bg-red-900/30 text-[#D93030] dark:text-[#E04444] rounded-lg flex items-center justify-center">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chart Section */}
+        <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-gray-100 dark:border-[#2E3447] p-6 lg:col-span-2">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-[#F1F5F9] mb-6">Incidência por Área (Últimos 30 dias)</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-gray-200 dark:stroke-[#2E3447]" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} className="fill-gray-600 dark:fill-[#94A3B8]" dy={10} />
+                <YAxis axisLine={false} tickLine={false} className="fill-gray-600 dark:fill-[#94A3B8]" />
+                <Tooltip 
+                  cursor={{fill: '#f3f4f6'}}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Bar dataKey="incidentes" fill="#C8A882" className="dark:fill-[#D4A96A]" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Quick Search & Summary */}
+        <div className="bg-[#8B1A1A] dark:bg-[#1A1F2E] text-white rounded-lg shadow-sm p-6 flex flex-col relative overflow-hidden border border-[#a43030] dark:border-[#2E3447]">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-[#a43030] dark:bg-[#242938] rounded-full opacity-50"></div>
+          
+          <h3 className="text-lg font-semibold mb-2 relative z-10">Consulta Rápida</h3>
+          <p className="text-white/80 dark:text-[#94A3B8] text-sm mb-6 relative z-10">Localize informações de sinistros instantaneamente.</p>
+          
+          <div className="relative z-10 mt-auto">
+            <div className="bg-white/10 dark:bg-[#1E2435] rounded-lg p-1 border border-white/20 dark:border-[#2E3447] flex items-center">
+              <input 
+                type="text" 
+                placeholder="N° Sinistro ou Lojista" 
+                className="bg-transparent border-none text-white dark:text-[#F1F5F9] placeholder-white/60 dark:placeholder-[#64748B] focus:ring-0 w-full px-3 text-sm"
+              />
+              <button className="p-2 bg-white dark:bg-[#E04444] text-[#8B1A1A] dark:text-white rounded-md hover:bg-gray-100 dark:hover:bg-[#F05555] transition-colors">
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Table */}
+      <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-gray-100 dark:border-[#2E3447] overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-[#2E3447] flex justify-between items-center bg-gray-50/50 dark:bg-[#1A1F2E]">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-[#F1F5F9]">Últimas Ocorrências</h3>
+          <div className="relative w-64">
+            <input 
+              type="text" 
+              placeholder="Filtrar tabela..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] placeholder:text-gray-400 dark:placeholder:text-[#64748B] rounded-md focus:outline-none focus:ring-1 focus:ring-[#D93030] dark:focus:ring-[#E04444] focus:border-[#D93030] dark:focus:border-[#E04444]"
+            />
+            <Search className="w-4 h-4 text-gray-400 dark:text-[#64748B] absolute left-2.5 top-2" />
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-[#2E3447]">
+            <thead className="bg-gray-50 dark:bg-[#1A1F2E]">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
+                  Nº Sinistro
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
+                  Local / Lojista
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
+                  Data
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
+                  Gravidade
+                </th>
+                <th scope="col" className="relative px-6 py-3">
+                  <span className="sr-only">Ações</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-[#242938] divide-y divide-gray-200 dark:divide-[#2E3447]">
+              {filteredClaims.map((claim) => (
+                <tr key={claim.id} className="hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors cursor-pointer" onClick={() => navigate(`/sinistros/${claim.id}`)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-[#F1F5F9] flex items-center">
+                    {claim.id}
+                    {claim.fraudAlert && (
+                      <span title="Alerta de Fraude" className="ml-2 text-[#D93030] dark:text-[#E04444]">
+                        <AlertTriangle className="w-4 h-4" />
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-[#94A3B8]">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-800 dark:text-[#F1F5F9]">{claim.store}</span>
+                      <span className="text-xs">{claim.type}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-[#94A3B8]">
+                    {new Date(claim.date).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                      ${claim.status === 'Aberto' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' : ''}
+                      ${claim.status === 'Aguardando Regulador' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400' : ''}
+                      ${claim.status === 'Em Análise' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400' : ''}
+                      ${claim.status === 'Aprovado' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : ''}
+                      ${claim.status === 'Pago' ? 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400' : ''}
+                    `}>
+                      {claim.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center text-sm text-gray-900 dark:text-[#F1F5F9]">
+                      <span className={`w-2.5 h-2.5 rounded-full mr-2 
+                        ${claim.severity === 'Alta' ? 'bg-[#D93030] dark:bg-[#E04444]' : ''}
+                        ${claim.severity === 'Média' ? 'bg-yellow-500 dark:bg-[#FBBF24]' : ''}
+                        ${claim.severity === 'Baixa' ? 'bg-green-500 dark:bg-[#34D399]' : ''}
+                      `}></span>
+                      {claim.severity}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/sinistros/${claim.id}`);
+                      }}
+                      className="text-[#D93030] dark:text-[#E04444] hover:text-[#b92828] dark:hover:text-[#F05555] inline-flex items-center"
+                    >
+                      Detalhes <ChevronRight className="w-4 h-4 ml-1" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredClaims.length === 0 && (
+            <div className="py-8 text-center text-gray-500 dark:text-[#94A3B8]">
+              Nenhum sinistro encontrado com os filtros atuais.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/sinistros/SinistrosReports.tsx
+````typescript
+import { useState } from "react";
+import { Download, TrendingUp, TrendingDown, DollarSign, Activity, FileSpreadsheet, Calendar as CalendarIcon, Filter } from "lucide-react";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, Legend
+} from "recharts";
+
+// Mock Data
+const claimsByType = [
+  { name: 'Vazamento/Água', uv: 45 },
+  { name: 'Dano Elétrico', uv: 30 },
+  { name: 'Incêndio/Fumaça', uv: 15 },
+  { name: 'Furto/Roubo', uv: 25 },
+  { name: 'Dano Estrutural', uv: 18 },
+  { name: 'Responsabilidade Civil', uv: 12 },
+];
+
+const claimsBySeverity = [
+  { name: 'Alta Gravidade', value: 25 },
+  { name: 'Média Gravidade', value: 45 },
+  { name: 'Baixa Gravidade', value: 30 },
+];
+
+const COLORS = ['#D93030', '#E5A532', '#4CAF50'];
+
+export function SinistrosReports() {
+  const [period, setPeriod] = useState("30days");
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Relatórios de Sinistros</h1>
+          <p className="text-gray-600 dark:text-[#94A3B8] mt-1">Visão gerencial consolidada das ocorrências e impacto financeiro.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-white dark:bg-[#1E2435] border border-gray-200 dark:border-[#2E3447] rounded-lg p-1 shadow-sm flex items-center">
+            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-[#64748B] ml-2" />
+            <select 
+              className="bg-transparent text-sm text-gray-700 dark:text-[#F1F5F9] px-3 py-1.5 focus:outline-none cursor-pointer"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+            >
+              <option value="30days">Últimos 30 Dias</option>
+              <option value="q1">1º Trimestre</option>
+              <option value="q2">2º Trimestre</option>
+              <option value="ytd">Ano Atual</option>
+              <option value="custom">Personalizado...</option>
+            </select>
+          </div>
+          <button className="flex items-center gap-2 bg-[#D93030] dark:bg-[#E04444] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#b92828] dark:hover:bg-[#F05555] transition-colors shadow-sm">
+            <Download className="w-4 h-4" />
+            Exportar Dados
+          </button>
+        </div>
+      </div>
+
+      {/* Financial Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Total Indemnities Card */}
+        <div className="bg-gradient-to-br from-[#D93030] to-[#b92828] dark:from-[#E04444] dark:to-[#D93030] p-6 rounded-lg shadow-sm text-white relative overflow-hidden group">
+          <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-500" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-white/90">Total de Indenizações Pagas</h3>
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                <DollarSign className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold tracking-tight">R$ 1.245.890</span>
+            </div>
+            <div className="mt-4 flex items-center text-sm font-medium text-white/80 gap-1 bg-black/10 w-fit px-2.5 py-1 rounded-full">
+              <TrendingUp className="w-4 h-4" />
+              <span>+12.5% em relação ao período anterior</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Total Claims Card */}
+        <div className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] p-6 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-600 dark:text-[#94A3B8]">Total de Sinistros Registrados</h3>
+            <div className="w-10 h-10 bg-gray-50 dark:bg-[#1A1F2E] rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#2E3447]">
+              <Activity className="w-5 h-5 text-[#D93030] dark:text-[#E04444]" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-bold text-gray-900 dark:text-[#F1F5F9] tracking-tight">145</span>
+            <span className="text-sm text-gray-500 dark:text-[#94A3B8] font-medium">ocorrências</span>
+          </div>
+          <div className="mt-4 flex items-center text-sm font-medium text-emerald-600 dark:text-[#34D399] gap-1 bg-emerald-50 dark:bg-emerald-900/30 w-fit px-2.5 py-1 rounded-full">
+            <TrendingDown className="w-4 h-4" />
+            <span>-5.2% em relação ao período anterior</span>
+          </div>
+        </div>
+
+        {/* Average Ticket Card */}
+        <div className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] p-6 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-600 dark:text-[#94A3B8]">Ticket Médio por Sinistro</h3>
+            <div className="w-10 h-10 bg-gray-50 dark:bg-[#1A1F2E] rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#2E3447]">
+              <FileSpreadsheet className="w-5 h-5 text-[#D93030] dark:text-[#E04444]" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-bold text-gray-900 dark:text-[#F1F5F9] tracking-tight">R$ 8.592</span>
+          </div>
+          <div className="mt-4 flex items-center text-sm font-medium text-amber-600 dark:text-[#FBBF24] gap-1 bg-amber-50 dark:bg-amber-900/30 w-fit px-2.5 py-1 rounded-full">
+            <TrendingUp className="w-4 h-4" />
+            <span>+2.1% em relação ao período anterior</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Bar Chart - Claims by Type */}
+        <div className="lg:col-span-2 bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-[#F1F5F9]">Sinistros por Tipo de Ocorrência</h3>
+              <p className="text-sm text-gray-500 dark:text-[#94A3B8]">Comparativo quantitativo do período selecionado</p>
+            </div>
+            <button className="p-2 text-gray-400 dark:text-[#64748B] hover:text-[#D93030] dark:hover:text-[#E04444] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] rounded-lg transition-colors border border-transparent hover:border-gray-200 dark:hover:border-[#2E3447]">
+              <Filter className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={claimsByType}
+                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-gray-200 dark:stroke-[#2E3447]" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  className="fill-gray-600 dark:fill-[#94A3B8]" 
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  className="fill-gray-600 dark:fill-[#94A3B8]" 
+                />
+                <Tooltip 
+                  cursor={{ fill: '#f3f4f6' }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Bar 
+                  dataKey="uv" 
+                  fill="#D93030"
+                  className="dark:fill-[#E04444]" 
+                  radius={[6, 6, 0, 0]} 
+                  barSize={40}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Donut Chart - Severity Distribution */}
+        <div className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg p-6 shadow-sm flex flex-col">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-[#F1F5F9]">Distribuição de Gravidade</h3>
+            <p className="text-sm text-gray-500 dark:text-[#94A3B8]">Análise de risco das ocorrências</p>
+          </div>
+          <div className="flex-1 min-h-[250px] relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={claimsBySeverity}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={110}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {claimsBySeverity.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ color: '#1F2937', fontWeight: 600 }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36} 
+                  iconType="circle"
+                  formatter={(value) => <span className="text-sm text-gray-700 dark:text-[#F1F5F9] font-medium ml-1">{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Center Text */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+              <span className="text-3xl font-bold text-gray-900 dark:text-[#F1F5F9]">100</span>
+              <span className="text-xs text-gray-500 dark:text-[#94A3B8] font-medium uppercase tracking-wider">Total</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/pages/StoreDirectory.tsx
+````typescript
+import { useState } from "react";
+import { Search, Store, Phone, Mail, FileText, AlertCircle, CheckCircle2, XCircle, ChevronRight, X } from "lucide-react";
+
+// Mock Data
+const stores = [
+  { id: 1, name: "Zara", category: "Vestuário", piso: "L2", cnpj: "12.345.678/0001-90", policyActive: true, contact: "Carlos Mendes", phone: "(11) 98765-4321", email: "gerencia.zara@jpmall.com.br", claimsCount: 3 },
+  { id: 2, name: "Starbucks", category: "Alimentação", piso: "L1", cnpj: "98.765.432/0001-10", policyActive: true, contact: "Mariana Silva", phone: "(11) 91234-5678", email: "loja.starbucks@jpmall.com.br", claimsCount: 1 },
+  { id: 3, name: "Renner", category: "Vestuário", piso: "L2", cnpj: "45.678.123/0001-45", policyActive: false, contact: "Roberto Costa", phone: "(11) 97777-8888", email: "renner.jpmall@lojas.com.br", claimsCount: 0 },
+  { id: 4, name: "Centauro", category: "Esportes", piso: "L3", cnpj: "78.910.111/0001-22", policyActive: true, contact: "Ana Paula", phone: "(11) 96666-5555", email: "gerente@centauro.com.br", claimsCount: 2 },
+  { id: 5, name: "Fast Shop", category: "Eletrônicos", piso: "L1", cnpj: "33.444.555/0001-66", policyActive: true, contact: "Julio Nogueira", phone: "(11) 95555-4444", email: "julio.n@fastshop.com.br", claimsCount: 4 },
+  { id: 6, name: "Outback", category: "Alimentação", piso: "L3", cnpj: "22.333.444/0001-55", policyActive: false, contact: "Fernanda Lima", phone: "(11) 94444-3333", email: "gerencia.outback@jpmall.com.br", claimsCount: 5 },
+  { id: 7, name: "Vivara", category: "Acessórios", piso: "L1", cnpj: "11.222.333/0001-44", policyActive: true, contact: "Ricardo Alves", phone: "(11) 93333-2222", email: "loja.vivara@jpmall.com.br", claimsCount: 0 },
+  { id: 8, name: "Riachuelo", category: "Vestuário", piso: "L2", cnpj: "55.666.777/0001-88", policyActive: true, contact: "Camila Barros", phone: "(11) 92222-1111", email: "camila@riachuelo.com.br", claimsCount: 1 },
+];
+
+export function StoreDirectory() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStore, setSelectedStore] = useState<typeof stores[0] | null>(null);
+
+  const filteredStores = stores.filter(store => 
+    store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    store.cnpj.includes(searchTerm)
+  );
+
+  return (
+    <div className="relative h-full flex flex-col space-y-6">
+      {/* Header & Search */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Lojistas</h1>
+          <p className="text-gray-600 dark:text-[#94A3B8] mt-1">Diretório e consulta rápida de apólices e histórico.</p>
+        </div>
+        
+        <div className="w-full md:w-96 relative shadow-sm rounded-lg">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-[#64748B]" />
+          <input
+            type="text"
+            placeholder="Buscar por Nome da Loja ou CNPJ..."
+            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-[#1E2435] border border-gray-200 dark:border-[#2E3447] rounded-lg focus:ring-2 focus:ring-[#D93030] dark:focus:ring-[#E04444] focus:border-transparent outline-none transition-all text-gray-800 dark:text-[#F1F5F9] placeholder:text-gray-400 dark:placeholder:text-[#64748B]"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
+        {filteredStores.map((store) => (
+          <div 
+            key={store.id} 
+            className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg p-5 hover:shadow-md transition-all group flex flex-col"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-12 h-12 bg-gray-50 dark:bg-[#1A1F2E] rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#2E3447] text-[#D93030] dark:text-[#E04444]">
+                <Store className="w-6 h-6" />
+              </div>
+              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${store.policyActive ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700'}`}>
+                {store.policyActive ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                {store.policyActive ? 'Apólice Ativa' : 'Irregular'}
+              </div>
+            </div>
+            
+            <div className="mb-4 flex-1">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-[#F1F5F9] mb-1">{store.name}</h3>
+              <div className="flex items-center text-sm text-gray-500 dark:text-[#94A3B8] gap-2">
+                <span>{store.category}</span>
+                <span>•</span>
+                <span>Piso {store.piso}</span>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setSelectedStore(store)}
+              className="mt-auto flex items-center justify-between w-full py-2.5 px-4 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-[#D93030] dark:text-[#E04444] font-medium hover:bg-[#D93030] dark:hover:bg-[#E04444] hover:text-white transition-colors"
+            >
+              Ver Detalhes
+              <ChevronRight className="w-4 h-4 opacity-50" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Side Drawer Overlay */}
+      {selectedStore && (
+        <div className="fixed inset-0 bg-black/40 z-40 transition-opacity" onClick={() => setSelectedStore(null)} />
+      )}
+
+      {/* Side Drawer Panel */}
+      <div 
+        className={`fixed top-0 right-0 h-full w-full sm:w-[480px] bg-[#FAF7F2] shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-[#E8DCCB] flex flex-col ${selectedStore ? 'translate-x-0' : 'translate-x-full'}`}
+      >
+        {selectedStore && (
+          <>
+            {/* Drawer Header */}
+            <div className="px-6 py-5 border-b border-[#E8DCCB] bg-white flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#FAF7F2] rounded-xl flex items-center justify-center border border-[#E8DCCB] text-[#8B1A1A]">
+                  <Store className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedStore.name}</h2>
+                  <p className="text-sm text-gray-500">{selectedStore.category} • Piso {selectedStore.piso}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedStore(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              
+              {/* Status Banner */}
+              <div className={`p-4 rounded-xl flex items-start gap-3 border ${selectedStore.policyActive ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                {selectedStore.policyActive ? (
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-6 h-6 text-red-600 mt-0.5" />
+                )}
+                <div>
+                  <h3 className={`font-semibold ${selectedStore.policyActive ? 'text-emerald-800' : 'text-red-800'}`}>
+                    {selectedStore.policyActive ? 'Apólice de Seguro Regular' : 'Atenção: Apólice Vencida ou Inexistente'}
+                  </h3>
+                  <p className={`text-sm mt-1 ${selectedStore.policyActive ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {selectedStore.policyActive 
+                      ? 'O lojista está em conformidade com as exigências contratuais do JP Mall.' 
+                      : 'É necessário notificar o lojista para regularização imediata do seguro.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="bg-white rounded-xl border border-[#E8DCCB] p-5 shadow-sm">
+                <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider mb-4">Informações de Contato</h3>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-xs text-gray-500 block mb-1">CNPJ</span>
+                    <span className="text-gray-800 font-medium">{selectedStore.cnpj}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500 block">Telefone / WhatsApp</span>
+                      <span className="text-gray-800 font-medium">{selectedStore.phone}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500 block">E-mail do Responsável</span>
+                      <span className="text-gray-800 font-medium">{selectedStore.email}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500 block mb-1">Responsável Local</span>
+                    <span className="text-gray-800 font-medium">{selectedStore.contact}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Documents */}
+              <div className="bg-white rounded-xl border border-[#E8DCCB] p-5 shadow-sm">
+                <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider mb-4">Documentos Anexados</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#8B1A1A]" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Contrato de Locação.pdf</p>
+                        <p className="text-xs text-gray-500">Adicionado em 12/05/2022</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#8B1A1A]" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Apólice_Seguro_2023.pdf</p>
+                        <p className="text-xs text-gray-500">Adicionado em {selectedStore.policyActive ? '15/01/2023' : 'Vencido em 10/10/2023'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick History */}
+              <div className="bg-white rounded-xl border border-[#E8DCCB] p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider">Histórico de Sinistros</h3>
+                  <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-1 rounded-full">
+                    {selectedStore.claimsCount} Registro(s)
+                  </span>
+                </div>
+                
+                {selectedStore.claimsCount > 0 ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: Math.min(2, selectedStore.claimsCount) }).map((_, i) => (
+                      <div key={i} className="flex gap-4 p-3 rounded-lg border border-gray-100">
+                        <div className="w-1.5 h-auto bg-[#D93030] rounded-full" />
+                        <div>
+                          <p className="text-sm font-semibold text-[#8B1A1A]">SIN-2023-08{90 - i}</p>
+                          <p className="text-sm text-gray-600 mt-1">Vazamento interno afetando corredor L2.</p>
+                          <p className="text-xs text-gray-400 mt-2">Ocorrido há {i + 2} meses</p>
+                        </div>
+                      </div>
+                    ))}
+                    {selectedStore.claimsCount > 2 && (
+                      <button className="w-full py-2 text-sm text-[#8B1A1A] font-medium hover:underline text-center">
+                        Ver todo o histórico
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <AlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Nenhum sinistro registrado para esta loja.</p>
+                  </div>
+                )}
+              </div>
+
+            </div>
+            
+            {/* Drawer Footer */}
+            <div className="px-6 py-4 border-t border-[#E8DCCB] bg-white">
+              <button className="w-full bg-[#8B1A1A] text-white py-3 rounded-xl font-medium hover:bg-[#701515] transition-colors shadow-sm">
+                Notificar Lojista
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/store.ts
+````typescript
+export type ClaimStatus = "Aberto" | "Aguardando Regulador" | "Em Análise" | "Aprovado" | "Pago";
+export type ClaimSeverity = "Baixa" | "Média" | "Alta";
+
+export interface Claim {
+  id: string;
+  store: string;
+  type: string;
+  severity: ClaimSeverity;
+  status: ClaimStatus;
+  date: string;
+  description: string;
+  files: string[];
+  regulator?: string;
+  indemnityValue?: number;
+  deductibleValue?: number; // Franquia
+  fraudAlert?: boolean;
+}
+
+export const initialClaims: Claim[] = [
+  {
+    id: "SIN-001",
+    store: "Loja 104 - Vestuário",
+    type: "Vazamento / Infiltração",
+    severity: "Alta",
+    status: "Aberto",
+    date: "2026-04-06",
+    description: "Rompimento de cano na laje superior causando alagamento no estoque da loja.",
+    files: ["foto1.jpg", "laudo_bombeiros.pdf"],
+    fraudAlert: false,
+  },
+  {
+    id: "SIN-002",
+    store: "Loja 210 - Eletrônicos",
+    type: "Pico de Energia",
+    severity: "Média",
+    status: "Aguardando Regulador",
+    date: "2026-04-05",
+    description: "Curto circuito no quadro de distribuição, queima de 3 computadores e 1 monitor vitrine.",
+    files: [],
+    fraudAlert: true,
+  },
+  {
+    id: "SIN-003",
+    store: "Praça de Alimentação",
+    type: "Incêndio",
+    severity: "Alta",
+    status: "Em Análise",
+    date: "2026-04-01",
+    description: "Princípio de incêndio na coifa do restaurante 05.",
+    files: ["vistoria_tecnica.pdf"],
+    regulator: "Carlos Mendes (Susep 1234)",
+    fraudAlert: false,
+  },
+  {
+    id: "SIN-004",
+    store: "Quiosque 12 - Joias",
+    type: "Dano Físico / Vandalismo",
+    severity: "Baixa",
+    status: "Pago",
+    date: "2026-03-25",
+    description: "Vidro do expositor trincado durante a madrugada.",
+    files: ["camera_seguranca.mp4"],
+    regulator: "Ana Souza (Susep 9876)",
+    indemnityValue: 4500,
+    deductibleValue: 500,
+    fraudAlert: false,
+  }
+];
+
+// Simple in-memory store for prototype
+let claims = [...initialClaims];
+
+export const getClaims = () => claims;
+export const getClaimById = (id: string) => claims.find(c => c.id === id);
+export const addClaim = (claim: Claim) => {
+  claims.unshift(claim);
+};
+export const updateClaim = (id: string, updates: Partial<Claim>) => {
+  claims = claims.map(c => c.id === id ? { ...c, ...updates } : c);
+};
+````
+
+## File: Figma/src/imports/DESIGN_SYSTEM__JP_Mall_Corporativo.txt
+````
+DESIGN_SYSTEM: JP Mall Corporativo
+PROJETO: Flamboyant Shopping | UFG 2026/1
+
+
+---
+
+
+1. OVERVIEW
+- objetivo: interface corporativa limpa, moderna e funcional
+- foco: produtividade, acessibilidade, baixo ruído visual
+- modos:
+  - light: padrão (uso em escritório)
+  - dark: uso prolongado / baixa luz
+- toggle: header
+- persistencia: localStorage
+
+
+---
+
+
+2. COLORS
+
+
+2.1 BRAND_LIGHT
+- primary_dark: #8B1A1A
+- primary: #D93030
+- background: #F7F4EF
+- accent: #C8A882
+
+
+2.2 NEUTRAL_LIGHT
+- white: #FFFFFF
+- text_primary: #1F2937
+- text_secondary: #4B5563
+- border: #E5E7EB
+- bg_input: #F9FAFB
+- bg_table_alt: #F3F4F6
+
+
+2.3 SEMANTIC_LIGHT
+- success: #10B981
+- warning: #F59E0B
+- error: #D93030
+- info: #3B82F6
+
+
+---
+
+
+3. COLORS_DARK
+
+
+3.1 BACKGROUND
+- base: #0F1117
+- surface: #1A1F2E
+- card: #242938
+- border: #2E3447
+- input: #1E2435
+
+
+3.2 BRAND
+- primary_dark: #8B1A1A
+- primary: #E04444
+- accent: #D4A96A
+
+
+3.3 TEXT
+- primary: #F1F5F9
+- secondary: #94A3B8
+- muted: #64748B
+
+
+3.4 SEMANTIC
+- success: #34D399
+- warning: #FBBF24
+- error: #E04444
+- info: #60A5FA
+
+
+---
+
+
+4. TYPOGRAPHY
+- font_primary: Inter
+- fallback: Roboto, system-ui, sans-serif
+- base_size: 16px
+
+
+SCALE:
+- h1: { size: 24px, weight: 700 }
+- h2: { size: 18-20px, weight: 700 }
+- h3: { size: 14px, weight: 700 }
+- body: { size: 14-16px, weight: 400 }
+- small: { size: 12px, weight: 400 }
+
+
+---
+
+
+5. SPACING
+- base_unit: 8px
+- scale:
+  - xs: 4px
+  - sm: 8px
+  - md: 16px
+  - lg: 24px
+  - xl: 32px
+- border_radius: 8px
+
+
+---
+
+
+6. COMPONENTS
+
+
+6.1 BUTTON
+- min_height: 44px
+
+
+light:
+- primary_bg: #D93030
+- primary_hover: #b92828
+
+
+dark:
+- primary_bg: #E04444
+- primary_hover: #F05555
+
+
+---
+
+
+6.2 INPUT
+
+
+light:
+- bg: #F9FAFB
+- border: #E5E7EB
+
+
+dark:
+- bg: #1E2435
+- border: #2E3447
+
+
+focus:
+- light: ring #D93030
+- dark: ring #E04444
+
+
+error:
+- light: #D93030
+- dark: #E04444
+
+
+label:
+- light: #4B5563
+- dark: #94A3B8
+
+
+---
+
+
+6.3 CARD
+
+
+light:
+- bg: #FFFFFF
+- border: #E5E7EB
+
+
+dark:
+- bg: #242938
+- border: #2E3447
+
+
+- radius: 8px
+
+
+---
+
+
+6.4 BADGES
+
+
+success:
+- light: bg-green-50 text-green-700 border-green-200
+- dark: bg-green-900/30 text-green-400 border-green-700
+
+
+warning:
+- light: bg-orange-50 text-orange-700 border-orange-200
+- dark: bg-orange-900/30 text-orange-400 border-orange-700
+
+
+error:
+- light: bg-red-50 text-#D93030 border-red-200
+- dark: bg-red-900/30 text-#E04444 border-red-700
+
+
+info:
+- light: bg-blue-50 text-blue-700 border-blue-200
+- dark: bg-blue-900/30 text-blue-400 border-blue-700
+
+
+---
+
+
+7. ACCESSIBILITY
+
+
+- contrast:
+  - light: WCAG AA/AAA
+  - dark: WCAG AA
+
+
+- buttons:
+  - light: OK (#D93030)
+  - dark: revisar (#E04444)
+
+
+- touch_target: 44px mínimo
+
+
+- focus:
+  - light: #D93030
+  - dark: #E04444
+
+
+---
+
+
+8. DARK_TOKENS (CSS VARIABLES)
+
+
+- --color-bg: #0F1117
+- --color-surface: #1A1F2E
+- --color-card: #242938
+- --color-border: #2E3447
+- --color-input-bg: #1E2435
+
+
+- --color-primary: #8B1A1A
+- --color-action: #E04444
+- --color-action-hover: #F05555
+- --color-accent: #D4A96A
+
+
+- --color-text-primary: #F1F5F9
+- --color-text-secondary: #94A3B8
+- --color-text-muted: #64748B
+
+
+- --color-success: #34D399
+- --color-warning: #FBBF24
+- --color-error: #E04444
+- --color-info: #60A5FA
+
+
+---
+
+
+9. IMPLEMENTATION
+
+
+toggle_dark_mode:
+document.documentElement.classList.toggle('dark')
+
+
+tailwind_example:
+bg-white dark:bg-[#242938]
+text-gray-800 dark:text-[#F1F5F9]
+border-gray-200 dark:border-[#2E3447]
+````
+
+## File: Figma/src/imports/pasted_text/layout-sidebar-update.tsx
+````typescript
+Realize as seguintes alterações no projeto. Siga cada instrução com precisão, sem remover funcionalidades não mencionadas e sem alterar o estilo visual existente.
+
+---
+
+## 1. MENU LATERAL — `src/app/components/Layout.tsx`
+
+**1.1 Remover todos os itens do menu exceto "Comercial".**
+
+No array `navigationItems`, apague completamente os seguintes objetos e todos os seus `subTabs`:
+- `Dashboard` (path `/dashboard`)
+- `Lojistas` (path `/lojistas/diretorio`)
+- `Treinamentos` (path `/treinamentos`)
+- `Seguros` (path `/seguros`)
+- `Manutenção` (path `/manutencao`)
+- `Sinistros` (path `/sinistros/novo`)
+- `Marketing` (path `/marketing`)
+- `Institucional` (path `/institucional`)
+- `Relatórios` (path `/relatorios`)
+
+Mantenha apenas o item `Comercial` com seus `subTabs` atuais (Dashboard, Propostas, Contratos, Histórico, Disponibilidade, Relatórios).
+
+**1.2 Remover também em `src/app/routes.tsx`** todas as rotas relacionadas aos menus removidos acima. Mantenha apenas a rota de login, a rota raiz com `Layout`, e as sub-rotas do comercial.
+
+**1.3 Persistência de sub-aba ao navegar.**
+
+Nas sub-abas internas do Comercial (Dashboard, Propostas, Contratos, Histórico, Disponibilidade, Relatórios), preserve o estado da última aba visitada ao retornar para ela durante a mesma sessão. Use `sessionStorage` para guardar a chave da aba ativa de cada página. Ao montar o componente, leia o valor salvo e restaure a aba correspondente.
+
+**1.4 Redesenho visual e comportamento da sidebar.**
+
+Atualize o menu lateral em `Layout.tsx` para seguir exatamente este comportamento:
+
+**Estado aberto:**
+- Sidebar fixa à esquerda com fundo vermelho escuro (use a cor já existente no design system do projeto, ex: `#8B1A1A` ou a variável CSS equivalente)
+- No topo: logo do Flamboyant existente no projeto (`src/imports/logo_2024.png`) acompanhada do texto `"Gestão Premium"` em fonte menor, leve e em cor clara
+- Itens de menu com ícone + texto lado a lado; ícones levemente menores, mais finos e polidos (tamanho `w-4 h-4`, `strokeWidth={1.5}`)
+- Item ativo (rota atual) com fundo levemente mais claro e bordas arredondadas (`rounded-md`), sem quebrar o alinhamento dos demais itens
+- No rodapé: área fixa com avatar colorido (iniciais do usuário em círculo), nome completo e e-mail do usuário logado (leia da `sessionStorage` se disponível)
+- No canto superior direito da sidebar: botão com ícone de seta apontando para a esquerda (`ChevronLeft` do lucide-react) para fechar a sidebar
+
+**Estado fechado:**
+- A sidebar colapsa completamente (largura `0` ou `translate-x-[-100%]`), desaparecendo da tela
+- Aparece um botão flutuante fixo no canto superior esquerdo da tela (`fixed top-4 left-4 z-50`) com ícone de 3 barras (`Menu` do lucide-react) para reabrir a sidebar
+- O conteúdo principal ocupa toda a largura disponível
+
+**Animações:**
+- Use `transition-all duration-300 ease-in-out` tanto na sidebar quanto no botão flutuante
+- Ao clicar na seta `<`: sidebar fecha com transição suave (300ms), o ícone de seta desaparece e o botão de 3 barras aparece com `opacity-100`
+- Ao clicar nas 3 barras: sidebar abre com transição suave (300ms), o botão de 3 barras desaparece e a seta reaparece
+- Use um estado React `const [sidebarOpen, setSidebarOpen] = useState(true)` para controlar a visibilidade
+- Persista o estado da sidebar no `localStorage` com a chave `"sidebar_open"` para manter a preferência do usuário entre sessões
+
+**1.5 Substituir "Piso 1 / 2 / 3" por "P / S / T" em todo o sistema.**
+
+Em todos os arquivos `.tsx` e `.ts` do projeto, substitua:
+- `'L1'` → `'P'` e `"Piso 1"` → `"P"` (exibição)
+- `'L2'` → `'S'` e `"Piso 2"` → `"S"` (exibição)
+- `'L3'` → `'T'` e `"Piso 3"` → `"T"` (exibição)
+
+Isso inclui o tipo `piso: 'L1' | 'L2' | 'L3'` em `comercialData.ts` (altere para `'P' | 'S' | 'T'`), todos os dados dos lojistas no array `keyStores`, os filtros de piso nos componentes, os labels dos gráficos e qualquer texto de exibição que mencione "Piso 1", "Piso 2" ou "Piso 3". Mantenha os prefixos dos IDs de unidade intactos (ex: `L1-001` permanece `L1-001` — apenas a exibição do piso muda).
+
+---
+
+## 2. DASHBOARD COMERCIAL — `src/app/pages/comercial/ComercialDashboard.tsx`
+
+Remova completamente os seguintes elementos visuais e seu código relacionado:
+
+- O card **"Receita Total / Mês"** e suas subdivisões (Receita Aluguel e Receita Vendas)
+- O gráfico **"Evolução da Receita Mensal"** (`revenueEvolution`) e todo o bloco JSX que o envolve
+- O gráfico **"Receita por Categoria"** (`receitaBySegmento`)
+- O gráfico **"Receita por Piso"** (`receitaByPiso`)
+- As funções `totalRevenue`, `baseAluguel`, `receitaMensal`, `receitaAluguel`, `receitaVendas` e os `useMemo` relacionados
+
+Mantenha todos os outros cards de KPI (total de lojas, ocupação, disponíveis, vencendo, propostas ativas) e os demais elementos do dashboard.
+
+**Após a remoção, replique nesta página os gráficos que existem em `ComercialReports.tsx`:**
+- Gráfico de barras de ocupação por segmento (`segmentosChart`)
+- Gráfico de pizza de distribuição por tipo de contrato (`multasChart`)
+- Os demais gráficos presentes na aba de relatórios que não sejam de receita ou desempenho
+
+Importe os dados e funções necessárias de `comercialData.ts` e `comercialStore.ts` para renderizá-los no dashboard com o mesmo visual já utilizado em `ComercialReports.tsx`.
+
+---
+
+## 3. PROPOSTAS — `src/app/pages/comercial/ComercialProposals.tsx` e `src/app/data/comercialData.ts`
+
+**3.1 Alterar os status possíveis de propostas.**
+
+Em `comercialData.ts`, altere o tipo `StatusProposta` para:
+
+```ts
+export type StatusProposta =
+  | "Aguardando análise financeira"
+  | "Aguardando análise do comitê"
+  | "Aprovado"
+  | "Reprovado"
+  | "Cancelado";
+```
+
+Em `ComercialProposals.tsx`, atualize o objeto `STATUS_COLORS` e o componente `StatusIcon` para mapear os novos status com cores e ícones coerentes:
+- `"Aguardando análise financeira"` → amarelo, ícone `Clock`
+- `"Aguardando análise do comitê"` → roxo, ícone `Eye`
+- `"Aprovado"` → verde, ícone `CheckCircle`
+- `"Reprovado"` → vermelho, ícone `XCircle`
+- `"Cancelado"` → cinza, ícone `XCircle`
+
+Atualize também os dados do array `propostasAtivas` em `comercialData.ts` para que os status existentes sejam migrados para os novos valores mais próximos (ex: "Aceita" → "Aprovado", "Em Análise" → "Aguardando análise financeira", "Em Negociação" → "Aguardando análise do comitê", "Recusada" → "Reprovado", "Expirada" → "Cancelado", "Pendente" → "Aguardando análise financeira").
+
+**3.2 Adicionar filtro por período na aba de Propostas.**
+
+Copie o filtro de data (`dateFrom` e `dateTo` com inputs `<input type="date">`) que existe em `ComercialHistory.tsx` e adicione-o na barra de filtros de `ComercialProposals.tsx`, mantendo os filtros já existentes (status, tipo, segmento, piso, busca por nome).
+
+**Não adicione períodos pré-definidos** (botões como "Último mês", "Último trimestre" etc.). O filtro deve ter apenas os dois campos de data: "De" e "Até".
+
+Aplique o filtro de data sobre o campo `dataCriacao` das propostas.
+
+---
+
+## 4. CONTRATOS — `src/app/pages/comercial/ComercialContracts.tsx`
+
+Remova completamente o arquivo `ComercialContracts.tsx`.
+
+Em `src/app/routes.tsx`, remova a rota `/comercial/contratos`.
+
+Em `src/app/components/Layout.tsx`, remova o subTab `{ label: "Contratos", path: "/comercial/contratos" }` do item Comercial.
+
+Em `src/app/data/comercialStore.ts`, remova as funções `getGeneratedContracts` e `addGeneratedContract` e seus dados relacionados, caso existam e não sejam utilizadas por outros componentes.
+
+---
+
+## 5. HISTÓRICO — `src/app/pages/comercial/ComercialHistory.tsx`
+
+Remova completamente o arquivo `ComercialHistory.tsx`.
+
+Em `src/app/routes.tsx`, remova a rota `/comercial/historico`.
+
+Em `src/app/components/Layout.tsx`, remova o subTab `{ label: "Histórico", path: "/comercial/historico" }` do item Comercial.
+
+---
+
+## 6. RELATÓRIOS — `src/app/pages/comercial/ComercialReports.tsx`
+
+**6.1 Remover os 4 cards de KPI do topo da página.**
+
+Remova o bloco JSX que contém os cards com os seguintes dados:
+- Receita Mensal Total
+- Receita % Vendas/Mês
+- E quaisquer outros cards de KPI no topo da página de relatórios
+
+**6.2 Remover a aba "Desempenho" e seu conteúdo.**
+
+No array de abas de tipo de relatório (`reportType`), remova o item `{ id: "desempenho", label: "Desempenho", icon: Activity }`.
+
+Remova o bloco JSX `{reportType === "desempenho" && (...)}` e todo o código relacionado ao gráfico de desempenho dos contratos.
+
+Remova do array de campos disponíveis (`FIELDS`) os campos:
+- `{ id: "desempenho", label: "Desempenho (%)", ... }`
+- `{ id: "receitaPercentual", label: "Receita % Vendas/Mês", ... }`
+
+**6.3 Os gráficos restantes (ocupação por segmento, distribuição por tipo de contrato, e demais que não sejam de receita ou desempenho) já devem ter sido replicados no Dashboard conforme o item 2. Mantenha-os também aqui em Relatórios.**
+````
+
+## File: Figma/src/main.tsx
+````typescript
+import { createRoot } from "react-dom/client";
+  import App from "./app/App.tsx";
+  import "./styles/index.css";
+
+  createRoot(document.getElementById("root")!).render(<App />);
+````
+
+## File: Figma/src/styles/fonts.css
+````css
+
+````
+
+## File: Figma/src/styles/globals.css
+````css
+
+````
+
+## File: Figma/src/styles/index.css
+````css
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+````
+
+## File: Figma/src/styles/tailwind.css
+````css
+@import 'tailwindcss' source(none);
+@source '../**/*.{js,ts,jsx,tsx}';
+
+@import 'tw-animate-css';
+````
+
+## File: Figma/src/styles/theme.css
+````css
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* JP Mall Brand Colors - Light Mode */
+  --jp-primary-dark: #8B1A1A;
+  --jp-primary: #D93030;
+  --jp-background: #F7F4EF;
+  --jp-accent: #C8A882;
+  
+  /* Neutral Colors - Light */
+  --jp-white: #FFFFFF;
+  --jp-text-primary: #1F2937;
+  --jp-text-secondary: #4B5563;
+  --jp-border: #E5E7EB;
+  --jp-bg-input: #F9FAFB;
+  --jp-bg-table-alt: #F3F4F6;
+  
+  /* Semantic Colors - Light */
+  --jp-success: #10B981;
+  --jp-warning: #F59E0B;
+  --jp-error: #D93030;
+  --jp-info: #3B82F6;
+  
+  /* Original theme variables */
+  --font-size: 16px;
+  --background: #F7F4EF;
+  --foreground: #1F2937;
+  --card: #FFFFFF;
+  --card-foreground: #1F2937;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2937;
+  --primary: #D93030;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #1F2937;
+  --muted: #F3F4F6;
+  --muted-foreground: #4B5563;
+  --accent: #C8A882;
+  --accent-foreground: #1F2937;
+  --destructive: #D93030;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: transparent;
+  --input-background: #F9FAFB;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #D93030;
+  --chart-1: #D93030;
+  --chart-2: #3B82F6;
+  --chart-3: #10B981;
+  --chart-4: #F59E0B;
+  --chart-5: #C8A882;
+  --radius: 0.5rem;
+  --sidebar: #8B1A1A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #D93030;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #a43030;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #a43030;
+  --sidebar-ring: #D93030;
+}
+
+.dark {
+  /* JP Mall Dark Mode Colors */
+  --jp-bg-base: #0F1117;
+  --jp-bg-surface: #1A1F2E;
+  --jp-bg-card: #242938;
+  --jp-border: #2E3447;
+  --jp-bg-input: #1E2435;
+  
+  --jp-primary-dark: #8B1A1A;
+  --jp-primary: #E04444;
+  --jp-accent: #D4A96A;
+  
+  --jp-text-primary: #F1F5F9;
+  --jp-text-secondary: #94A3B8;
+  --jp-text-muted: #64748B;
+  
+  --jp-success: #34D399;
+  --jp-warning: #FBBF24;
+  --jp-error: #E04444;
+  --jp-info: #60A5FA;
+  
+  /* Theme variables for dark mode */
+  --background: #0F1117;
+  --foreground: #F1F5F9;
+  --card: #242938;
+  --card-foreground: #F1F5F9;
+  --popover: #242938;
+  --popover-foreground: #F1F5F9;
+  --primary: #E04444;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1A1F2E;
+  --secondary-foreground: #F1F5F9;
+  --muted: #1A1F2E;
+  --muted-foreground: #94A3B8;
+  --accent: #D4A96A;
+  --accent-foreground: #1F2937;
+  --destructive: #E04444;
+  --destructive-foreground: #FFFFFF;
+  --border: #2E3447;
+  --input: #2E3447;
+  --input-background: #1E2435;
+  --ring: #E04444;
+  --chart-1: #E04444;
+  --chart-2: #60A5FA;
+  --chart-3: #34D399;
+  --chart-4: #FBBF24;
+  --chart-5: #D4A96A;
+  --sidebar: #0F1117;
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-primary: #E04444;
+  --sidebar-primary-foreground: #F1F5F9;
+  --sidebar-accent: #1A1F2E;
+  --sidebar-accent-foreground: #F1F5F9;
+  --sidebar-border: #2E3447;
+  --sidebar-ring: #E04444;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /**
+  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  */
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+}
+````
+
+## File: Figma/vite.config.ts
+````typescript
+import { defineConfig } from 'vite'
+import path from 'path'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+
+
+function figmaAssetResolver() {
+  return {
+    name: 'figma-asset-resolver',
+    resolveId(id) {
+      if (id.startsWith('figma:asset/')) {
+        const filename = id.replace('figma:asset/', '')
+        return path.resolve(__dirname, 'src/assets', filename)
+      }
+    },
+  }
+}
+
+export default defineConfig({
+  plugins: [
+    figmaAssetResolver(),
+    // The React and Tailwind plugins are both required for Make, even if
+    // Tailwind is not being actively used – do not remove them
+    react(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      // Alias @ to the src directory
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+
+  // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
+  assetsInclude: ['**/*.svg', '**/*.csv'],
+})
+````
+
+## File: postman/collections/JP-MALL-Testes/.resources/definition.yaml
+````yaml
+$kind: collection
+name: JP-MALL-Testes
+````
+
+## File: postman/collections/JP-MALL-Testes/ping.request.yaml
+````yaml
+$kind: http-request
+name: ping
+url: localhost:8080/ping
+method: GET
+order: 3439669128790969
+````
+
+## File: .gitignore
+````
+# ================================================================
+# Projeto-Flamboyant — .gitignore
+# Cobre: Figma (Node/Vite), API (Go/Gin/MongoDB), Postman
+# ================================================================
+
+
+# ───────────────────────────────────────────
+# Go — API/
+# ───────────────────────────────────────────
+
+# Binários compilados
+API/bin/
+API/*.exe
+API/*.out
+
+# Cache de build e testes
+API/vendor/
+API/tmp/
+API/coverage.out
+API/coverage.html
+API/*.test
+
+# Variáveis de ambiente
+API/.env
+API/.env.*
+API/config.local.yaml
+API/config.local.toml
+
+
+# ───────────────────────────────────────────
+# Node / Vite — Figma/
+# ───────────────────────────────────────────
+
+# Dependências
+Figma/node_modules/
+Figma/.pnp
+Figma/.pnp.js
+
+# Build
+Figma/dist/
+Figma/dist-ssr/
+Figma/build/
+
+# Cache Vite e TypeScript
+Figma/.vite/
+Figma/*.local
+Figma/*.tsbuildinfo
+
+# Cache pnpm
+Figma/.pnpm-store/
+Figma/.pnpm-debug.log*
+
+# Variáveis de ambiente
+Figma/.env
+Figma/.env.*
+
+
+# ───────────────────────────────────────────
+# Postman
+# ───────────────────────────────────────────
+
+# Environments e globals contêm tokens, API keys e URLs sensíveis
+# As demais pastas (collections, specs, flows, mocks) são versionadas
+postman/environments/
+postman/globals/
+.postman/
+
+
+# ───────────────────────────────────────────
+# Logs (qualquer subprojeto)
+# ───────────────────────────────────────────
+
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# ───────────────────────────────────────────
+# Sistema operacional
+# ───────────────────────────────────────────
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# ───────────────────────────────────────────
+# Editores
+# ───────────────────────────────────────────
+
+# VS Code — mantém extensions.json (recomendações de equipe)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/*.code-snippets
+
+# JetBrains / GoLand
+.idea/
+*.iml
+*.iws
+
+# Vim / Emacs
+*.sw?
+*~
+\#*\#
+````
+
+## File: API/cmd/main.go
+````go
+package main
+
+import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+
+	models "go-api/GO"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"gorm.io/driver/postgres" // <-- Driver alterado aqui
+	"gorm.io/gorm"
+)
+
+var DB *gorm.DB
+
+func initDB() {
+	var err error
+	// Substitua os valores abaixo pelas credenciais do seu pgAdmin/PostgreSQL
+	dsn := "host=localhost user=postgres password=postgre dbname=jpmall port=5432 sslmode=disable TimeZone=America/Sao_Paulo"
+	
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Erro ao conectar ao banco de dados PostgreSQL:", err)
+	}
+	fmt.Println("Conexão com PostgreSQL estabelecida com sucesso!")
+}
+
+func main() {
+	initDB()
+
+	fmt.Println("Sincronizando tabelas...")
+	err := DB.AutoMigrate(
+		&models.Lojista{},
+		&models.Contrato{},
+		&models.Multa{},
+		&models.PropostaHistorico{},
+		&models.Proposta{},
+		&models.Sinistro{},
+	)
+
+	if err != nil {
+		log.Fatal("Erro ao rodar AutoMigrate:", err)
+	}
+	fmt.Println("Tabelas (Lojistas, Contratos, Multas, Propostas, Sinistros) criadas com sucesso!")
+
+	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://localhost:5174"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		AllowCredentials: true,
+	}))
+
+	// Rotas do CRUD de Lojistas
+	r.GET("/lojistas", getLojistas)
+	// --- ADICIONE ESTAS DUAS LINHAS ---
+	r.GET("/propostas", getPropostas)
+	r.POST("/propostas", createProposta)
+	r.GET("/lojistas/:id", getLojistaByID)
+	r.POST("/lojistas", createLojista)
+	r.PUT("/lojistas/:id", updateLojista)
+	r.DELETE("/lojistas/:id", deleteLojista)
+
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Servidor JP Mall rodando e banco conectado!"})
+	})
+
+	fmt.Println("Servidor iniciado em http://localhost:8082")
+	r.Run(":8082")
+}
+
+func getLojistas(c *gin.Context) {
+	var lojistas []models.LojistaComRelacoes
+	
+	// Usamos Table("lojista") para indicar a tabela base, e Preload para trazer as relações
+	if err := DB.Table("lojista").
+		Preload("ContratoAtivo").
+		Preload("Multas").
+		Preload("Propostas").
+		Find(&lojistas).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, lojistas)
+}
+
+func getLojistaByID(c *gin.Context) {
+	id := c.Param("id")
+	var lojista models.Lojista
+	if err := DB.First(&lojista, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Lojista não encontrado"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, lojista)
+}
+
+func createLojista(c *gin.Context) {
+	var input models.CriarLojistaRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	lojista := models.Lojista{
+		ID:                   uuid.NewString(),
+		Nome:                 sql.NullString{String: input.Nome, Valid: true},
+		CNPJ:                 sql.NullString{String: input.CNPJ, Valid: true},
+		Segmento:             input.Segmento,
+		Responsavel:          sql.NullString{String: input.Responsavel, Valid: true},
+		Email:                sql.NullString{String: input.Email, Valid: true},
+		Telefone:             sql.NullString{String: input.Telefone, Valid: true},
+		Unidade:              input.Unidade,
+		Piso:                 input.Piso,
+		Corredor:             input.Corredor,
+		AreaM2:               input.AreaM2,
+		Status:               models.StatusLojaOcupado,
+		StatusRelacionamento: sql.NullString{Valid: false},
+		FaturamentoMedio:     0,
+	}
+
+	if err := DB.Create(&lojista).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, lojista)
+}
+
+func updateLojista(c *gin.Context) {
+	id := c.Param("id")
+	var input models.AtualizarLojistaRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var lojista models.Lojista
+	if err := DB.First(&lojista, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Lojista não encontrado"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if input.Nome != "" {
+		lojista.Nome = sql.NullString{String: input.Nome, Valid: true}
+	}
+	if input.Segmento != "" {
+		lojista.Segmento = input.Segmento
+	}
+	if input.Responsavel != "" {
+		lojista.Responsavel = sql.NullString{String: input.Responsavel, Valid: true}
+	}
+	if input.Email != "" {
+		lojista.Email = sql.NullString{String: input.Email, Valid: true}
+	}
+	if input.Telefone != "" {
+		lojista.Telefone = sql.NullString{String: input.Telefone, Valid: true}
+	}
+	if input.Status != "" {
+		lojista.Status = input.Status
+	}
+
+	if err := DB.Save(&lojista).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, lojista)
+}
+
+func deleteLojista(c *gin.Context) {
+	id := c.Param("id")
+	result := DB.Delete(&models.Lojista{}, "id = ?", id)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Lojista não encontrado"})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+func getPropostas(c *gin.Context) {
+	var propostas []models.Proposta
+	if err := DB.Find(&propostas).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, propostas)
+}
+
+func createProposta(c *gin.Context) {
+	var input models.CriarPropostaRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	proposta := models.Proposta{
+		ID:             uuid.NewString(),
+		LojistaNome:    input.LojistaNome,
+		Unidade:        input.Unidade,
+		Segmento:       input.Segmento,
+		Tipo:           input.Tipo,
+		ValorProposto:  input.ValorProposto,
+		AreaM2:         input.AreaM2,
+		Status:         models.StatusPropostaPendente,
+		Responsavel:    input.Responsavel,
+		DataCriacao:    time.Now().Format("02/01/2006"), // Pega a data de hoje formatada
+		DataVencimento: input.DataVencimento,
+	}
+
+	if input.Observacoes != nil {
+		proposta.Observacoes = sql.NullString{String: *input.Observacoes, Valid: true}
+	}
+
+	if err := DB.Create(&proposta).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, proposta)
+}
+````
+
+## File: API/go.mod
+````
+module go-api
+
+go 1.26.3
+
+require (
+	github.com/gin-contrib/cors v1.7.7
+	github.com/gin-gonic/gin v1.12.0
+	github.com/google/uuid v1.6.0
+	gorm.io/driver/postgres v1.6.0
+	gorm.io/gorm v1.31.1
+)
+
+require (
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/sonic v1.15.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.0 // indirect
+	github.com/cloudwego/base64x v0.1.6 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
+	github.com/gin-contrib/sse v1.1.0 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.30.1 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.6.0 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
+	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	github.com/ugorji/go/codec v1.3.1 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
+	golang.org/x/arch v0.23.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
+)
+````
+
+## File: Banco de dados/jp-mall.sql
+````sql
+CREATE DATABASE IF NOT EXISTS `jp-mall`
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;
+
+USE `jp-mall`;
+
+-- ------------------------------------------------------------
+-- Tabela: lojistas
+-- Fonte: comercialData.ts → keyStores + unidades disponíveis
+-- ------------------------------------------------------------
+CREATE TABLE lojistas (
+  id               VARCHAR(10)  NOT NULL,
+  nome             VARCHAR(100),
+  cnpj             VARCHAR(20),
+  segmento         ENUM('Moda','Alimentação','Serviços','Eletrônicos','Esportes','Entretenimento','Outros') NOT NULL,
+  responsavel      VARCHAR(100),
+  email            VARCHAR(150),
+  telefone         VARCHAR(20),
+  unidade          VARCHAR(10)  NOT NULL,
+  piso             ENUM('L1','L2','L3') NOT NULL,
+  corredor         ENUM('A','B','C') NOT NULL,
+  area_m2          INT          NOT NULL,
+  status           ENUM('Ocupado','Disponível') NOT NULL DEFAULT 'Disponível',
+  status_relacionamento ENUM('Excelente','Bom','Regular','Crítico'),
+  faturamento_medio BIGINT      NOT NULL DEFAULT 0,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+INSERT INTO lojistas VALUES
+  ('L1-001', 'Renner', '92.754.738/0001-62', 'Moda', 'Marcela Fontana', 'marcela.fontana@renner.com.br', '(62) 3344-5566', 'L1-001', 'L1', 'A', 800, 'Ocupado', 'Excelente', 1850000),
+  ('L1-002', 'C&A', '45.242.914/0001-05', 'Moda', 'Roberto Siqueira', 'roberto.siqueira@cea.com.br', '(62) 3210-9988', 'L1-002', 'L1', 'A', 700, 'Ocupado', 'Bom', 1420000),
+  ('L1-003', 'Riachuelo', '33.200.056/0001-28', 'Moda', 'Fernanda Leite', 'f.leite@riachuelo.com.br', '(62) 3344-7788', 'L1-003', 'L1', 'A', 650, 'Ocupado', 'Bom', 1280000),
+  ('L1-004', 'Zara', '72.700.786/0001-99', 'Moda', 'Ana Paula Rocha', 'ana.rocha@zara.com.br', '(62) 3512-3344', 'L1-004', 'L1', 'A', 450, 'Ocupado', 'Excelente', 2100000),
+  ('L1-005', 'H&M', '23.613.404/0001-58', 'Moda', 'Carlos Matos', 'c.matos@hm.com', '(62) 3212-1100', 'L1-005', 'L1', 'A', 500, 'Ocupado', 'Excelente', 1950000),
+  ('L1-006', 'Arezzo', '16.590.234/0001-76', 'Moda', 'Beatriz Cardoso', 'beatriz.c@arezzo.com.br', '(62) 3321-5544', 'L1-006', 'L1', 'A', 180, 'Ocupado', 'Excelente', 780000),
+  ('L1-007', 'Chilli Beans', '04.392.000/0001-22', 'Moda', 'Thiago Assunção', 'thiago.a@chillibeans.com.br', '(62) 3301-2200', 'L1-007', 'L1', 'A', 80, 'Ocupado', 'Bom', 390000),
+  ('L1-008', 'Farm', '03.799.255/0001-81', 'Moda', 'Juliana Prado', 'j.prado@farm.com.br', '(62) 3456-7890', 'L1-008', 'L1', 'A', 190, 'Ocupado', 'Excelente', 920000),
+  ('L1-031', 'Decathlon', '03.471.761/0001-68', 'Esportes', 'Pierre Dubois', 'pierre.dubois@decathlon.com.br', '(62) 3600-1200', 'L1-031', 'L1', 'B', 1200, 'Ocupado', 'Excelente', 3200000),
+  ('L1-032', 'Centauro', '42.830.506/0001-65', 'Esportes', 'Márcio Silveira', 'm.silveira@centauro.com.br', '(62) 3412-3344', 'L1-032', 'L1', 'B', 400, 'Ocupado', 'Excelente', 1350000),
+  ('L1-033', 'Nike Store', '56.998.476/0001-10', 'Esportes', 'Lucas Andrade', 'lucas.a@nike.com', '(62) 3400-1122', 'L1-033', 'L1', 'B', 250, 'Ocupado', 'Excelente', 1100000),
+  ('L1-034', 'Adidas', '61.088.094/0001-57', 'Esportes', 'Claudia Becker', 'claudia.b@adidas.com', '(62) 3501-4455', 'L1-034', 'L1', 'B', 230, 'Ocupado', 'Bom', 890000),
+  ('L1-061', 'Bradesco', '60.746.948/0001-12', 'Serviços', 'Rafael Monteiro', 'rafael.monteiro@bradesco.com.br', '(62) 3100-5000', 'L1-061', 'L1', 'C', 120, 'Ocupado', 'Excelente', 0),
+  ('L1-062', 'Itaú Uniclass', '60.872.504/0001-23', 'Serviços', 'Vanessa Torres', 'vanessa.torres@itau.com.br', '(62) 3300-7788', 'L1-062', 'L1', 'C', 100, 'Ocupado', 'Excelente', 0),
+  ('L1-063', 'Claro', '40.432.544/0001-47', 'Serviços', 'Diego Nascimento', 'd.nascimento@claro.com.br', '(62) 3400-2020', 'L1-063', 'L1', 'C', 70, 'Ocupado', 'Regular', 420000),
+  ('L2-001', 'Fast Shop', '61.797.924/0001-67', 'Eletrônicos', 'Marcus Ribeiro', 'marcus.ribeiro@fastshop.com.br', '(62) 3600-3344', 'L2-001', 'L2', 'A', 350, 'Ocupado', 'Excelente', 2800000),
+  ('L2-002', 'Apple Store', '00.015.477/0001-00', 'Eletrônicos', 'Jennifer Kim', 'jennifer.kim@apple.com', '(62) 3700-7777', 'L2-002', 'L2', 'A', 280, 'Ocupado', 'Excelente', 5500000),
+  ('L2-003', 'Samsung Experience', '17.901.255/0001-49', 'Eletrônicos', 'Min Jun Park', 'minjun.park@samsung.com', '(62) 3500-5500', 'L2-003', 'L2', 'A', 200, 'Ocupado', 'Excelente', 2200000),
+  ('L2-004', 'Magazine Luiza', '47.960.950/0001-21', 'Eletrônicos', 'Priscila Madureira', 'p.madureira@magazineluiza.com.br', '(62) 3800-1234', 'L2-004', 'L2', 'A', 500, 'Ocupado', 'Bom', 3100000),
+  ('L2-031', 'O Boticário', '75.659.658/0001-83', 'Outros', 'Ana Lima', 'ana.lima@boticario.com.br', '(62) 3233-4455', 'L2-031', 'L2', 'B', 150, 'Ocupado', 'Excelente', 680000),
+  ('L2-032', 'Natura', '71.673.990/0001-77', 'Outros', 'Carla Soares', 'carla.soares@natura.net', '(62) 3301-4488', 'L2-032', 'L2', 'B', 140, 'Ocupado', 'Excelente', 620000),
+  ('L2-033', 'Starbucks Reserve', '08.164.083/0001-48', 'Alimentação', 'Rodrigo Campos', 'r.campos@starbucks.com.br', '(62) 3441-2200', 'L2-033', 'L2', 'B', 200, 'Ocupado', 'Excelente', 1100000),
+  ('L2-034', 'Uniqlo', '32.521.444/0001-39', 'Moda', 'Yuki Tanaka', 'y.tanaka@uniqlo.com', '(62) 3600-4400', 'L2-034', 'L2', 'B', 600, 'Ocupado', 'Excelente', 2800000),
+  ('L2-061', 'Smart Fit', '21.386.077/0001-27', 'Serviços', 'Felipe Gomes', 'felipe.gomes@smartfit.com.br', '(62) 3800-9900', 'L2-061', 'L2', 'C', 800, 'Ocupado', 'Excelente', 580000),
+  ('L2-063', 'Cinemark', '62.578.458/0001-60', 'Entretenimento', 'Sandra Almeida', 's.almeida@cinemark.com.br', '(62) 3900-1100', 'L2-063', 'L2', 'C', 2500, 'Ocupado', 'Excelente', 4200000),
+  ('L3-001', 'McDonald''s', '47.079.633/0001-01', 'Alimentação', 'Renata Freitas', 'renata.freitas@mcdonalds.com.br', '(62) 3312-5500', 'L3-001', 'L3', 'A', 320, 'Ocupado', 'Excelente', 2900000),
+  ('L3-002', 'Outback Steakhouse', '15.110.258/0001-45', 'Alimentação', 'George Mitchell', 'george.mitchell@outback.com.br', '(62) 3500-2200', 'L3-002', 'L3', 'A', 400, 'Ocupado', 'Excelente', 3500000),
+  ('L3-003', 'Subway', '11.080.473/0001-35', 'Alimentação', 'Carlos Junior', 'carlosjr@subway.com.br', '(62) 3212-8899', 'L3-003', 'L3', 'A', 120, 'Ocupado', 'Bom', 480000),
+  ('L3-004', 'Burger King', '13.574.594/0001-96', 'Alimentação', 'Marcos Tavares', 'marcos.tavares@burgerking.com.br', '(62) 3444-5566', 'L3-004', 'L3', 'A', 280, 'Ocupado', 'Excelente', 1800000),
+  ('L3-005', 'Fogo de Chão', '09.386.049/0001-27', 'Alimentação', 'Alessandro Moura', 'a.moura@fogodechao.com.br', '(62) 3600-8800', 'L3-005', 'L3', 'A', 500, 'Ocupado', 'Excelente', 4800000),
+  ('L3-006', 'Bob''s', '14.982.647/0001-52', 'Alimentação', 'Samir Couto', 'samir.couto@bobs.com.br', '(62) 3200-9900', 'L3-006', 'L3', 'A', 140, 'Ocupado', 'Bom', 560000),
+  ('L3-007', 'Giraffas', '52.148.007/0001-73', 'Alimentação', 'Vanessa Rezende', 'v.rezende@giraffas.com.br', '(62) 3400-7711', 'L3-007', 'L3', 'A', 160, 'Ocupado', 'Regular', 490000),
+  ('L3-028', 'Pizza Hut', '10.490.715/0001-01', 'Alimentação', 'Paulo Mendes', 'paulo.mendes@pizzahut.com.br', '(62) 3512-9900', 'L3-028', 'L3', 'B', 200, 'Ocupado', 'Bom', 820000),
+  ('L3-029', 'KFC', '17.311.723/0001-92', 'Alimentação', 'Anderson Rocha', 'anderson.rocha@kfc.com.br', '(62) 3312-4455', 'L3-029', 'L3', 'B', 180, 'Ocupado', 'Bom', 750000),
+  ('L3-030', 'Spoleto', '05.351.939/0001-18', 'Alimentação', 'Rita Cardoso', 'rita.cardoso@spoleto.com.br', '(62) 3400-5544', 'L3-030', 'L3', 'B', 130, 'Ocupado', 'Bom', 540000),
+  ('L3-055', 'Tok&Stok', '07.620.072/0001-61', 'Outros', 'Isabella Ferreira', 'isabella.ferreira@tokstok.com.br', '(62) 3600-7766', 'L3-055', 'L3', 'C', 400, 'Ocupado', 'Bom', 980000),
+  ('L3-056', 'Livraria Cultura', '60.665.981/0001-93', 'Outros', 'Eduardo Braga', 'e.braga@livrariacultura.com.br', '(62) 3301-9988', 'L3-056', 'L3', 'C', 350, 'Ocupado', 'Regular', 620000),
+  ('L3-057', 'CVC Viagens', '10.760.260/0001-19', 'Serviços', 'Tatiane Moreira', 'tatiane.moreira@cvc.com.br', '(62) 3312-3344', 'L3-057', 'L3', 'C', 80, 'Ocupado', 'Bom', 350000),
+  ('L1-023', NULL, NULL, 'Moda', NULL, NULL, NULL, 'L1-023', 'L1', 'A', 85, 'Disponível', NULL, 0),
+  ('L1-047', NULL, NULL, 'Esportes', NULL, NULL, NULL, 'L1-047', 'L1', 'B', 120, 'Disponível', NULL, 0),
+  ('L1-068', NULL, NULL, 'Serviços', NULL, NULL, NULL, 'L1-068', 'L1', 'C', 70, 'Disponível', NULL, 0),
+  ('L2-015', NULL, NULL, 'Eletrônicos', NULL, NULL, NULL, 'L2-015', 'L2', 'A', 100, 'Disponível', NULL, 0),
+  ('L2-039', NULL, NULL, 'Outros', NULL, NULL, NULL, 'L2-039', 'L2', 'B', 90, 'Disponível', NULL, 0),
+  ('L2-062', NULL, NULL, 'Serviços', NULL, NULL, NULL, 'L2-062', 'L2', 'C', 95, 'Disponível', NULL, 0),
+  ('L3-008', NULL, NULL, 'Alimentação', NULL, NULL, NULL, 'L3-008', 'L3', 'A', 100, 'Disponível', NULL, 0),
+  ('L3-031', NULL, NULL, 'Alimentação', NULL, NULL, NULL, 'L3-031', 'L3', 'B', 90, 'Disponível', NULL, 0),
+  ('L3-054', NULL, NULL, 'Alimentação', NULL, NULL, NULL, 'L3-054', 'L3', 'B', 80, 'Disponível', NULL, 0),
+  ('L3-072', NULL, NULL, 'Outros', NULL, NULL, NULL, 'L3-072', 'L3', 'C', 85, 'Disponível', NULL, 0);
+
+-- ------------------------------------------------------------
+-- Tabela: contratos
+-- Fonte: comercialData.ts → keyStores[].contratoAtivo
+-- ------------------------------------------------------------
+CREATE TABLE contratos (
+  id                      VARCHAR(20)  NOT NULL,
+  lojista_id              VARCHAR(10)  NOT NULL,
+  inicio                  VARCHAR(12)  NOT NULL,
+  fim                     VARCHAR(12)  NOT NULL,
+  valor_aluguel           DECIMAL(12,2) NOT NULL,
+  luvas                   DECIMAL(12,2) NOT NULL,
+  percentual_faturamento  DECIMAL(5,2) NOT NULL DEFAULT 0,
+  indice_reajuste         ENUM('IGPM','IPCA') NOT NULL,
+  tipo                    ENUM('Aluguel Fixo','Aluguel + Percentual','Só Percentual') NOT NULL,
+  desempenho              INT          NOT NULL,
+  dias_restantes          INT          NOT NULL,
+  status                  ENUM('Ativo','Em Renovação','Vencendo','Vencido') NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY (lojista_id) REFERENCES lojistas(id)
+) ENGINE=InnoDB;
+
+INSERT INTO contratos VALUES
+  ('CTR-2024-001', 'L1-001', '01/03/2024', '28/02/2027', 72000, 450000, 3.5, 'IGPM', 'Aluguel + Percentual', 95, 683, 'Ativo'),
+  ('CTR-2023-002', 'L1-002', '01/06/2023', '31/05/2026', 61000, 380000, 3.0, 'IPCA', 'Aluguel + Percentual', 82, 44, 'Vencendo'),
+  ('CTR-2024-003', 'L1-003', '01/01/2024', '31/12/2026', 55000, 310000, 3.2, 'IGPM', 'Aluguel + Percentual', 79, 258, 'Ativo'),
+  ('CTR-2025-004', 'L1-004', '01/04/2025', '31/03/2028', 98000, 620000, 4.0, 'IPCA', 'Aluguel + Percentual', 97, 1079, 'Ativo'),
+  ('CTR-2024-005', 'L1-005', '01/07/2024', '30/06/2027', 88000, 550000, 3.8, 'IPCA', 'Aluguel + Percentual', 93, 804, 'Ativo'),
+  ('CTR-2023-006', 'L1-006', '01/09/2023', '31/08/2026', 32000, 180000, 4.5, 'IGPM', 'Aluguel + Percentual', 91, 136, 'Ativo'),
+  ('CTR-2024-007', 'L1-007', '01/01/2024', '31/12/2025', 18000, 95000, 5.0, 'IPCA', 'Aluguel + Percentual', 76, 258, 'Vencendo'),
+  ('CTR-2025-008', 'L1-008', '01/02/2025', '31/01/2028', 41000, 220000, 4.2, 'IGPM', 'Aluguel + Percentual', 89, 1020, 'Ativo'),
+  ('CTR-2022-031', 'L1-031', '01/08/2022', '31/07/2027', 95000, 700000, 2.8, 'IGPM', 'Aluguel + Percentual', 98, 1200, 'Ativo'),
+  ('CTR-2024-032', 'L1-032', '01/04/2024', '31/03/2027', 52000, 290000, 3.5, 'IPCA', 'Aluguel + Percentual', 90, 714, 'Ativo'),
+  ('CTR-2023-033', 'L1-033', '01/10/2023', '30/09/2026', 68000, 420000, 4.0, 'IPCA', 'Aluguel + Percentual', 96, 166, 'Ativo'),
+  ('CTR-2024-034', 'L1-034', '01/05/2024', '30/04/2027', 58000, 340000, 3.8, 'IGPM', 'Aluguel + Percentual', 84, 744, 'Ativo'),
+  ('CTR-2021-061', 'L1-061', '01/01/2021', '31/12/2025', 28000, 150000, 0, 'IPCA', 'Aluguel Fixo', 99, 258, 'Vencendo'),
+  ('CTR-2024-062', 'L1-062', '01/08/2024', '31/07/2027', 26000, 130000, 0, 'IPCA', 'Aluguel Fixo', 100, 835, 'Ativo'),
+  ('CTR-2023-063', 'L1-063', '01/03/2023', '28/02/2026', 19000, 80000, 2.0, 'IGPM', 'Aluguel + Percentual', 61, 47, 'Vencendo'),
+  ('CTR-2024-101', 'L2-001', '01/06/2024', '31/05/2027', 75000, 480000, 2.5, 'IGPM', 'Aluguel + Percentual', 92, 774, 'Ativo'),
+  ('CTR-2023-102', 'L2-002', '01/09/2023', '31/08/2028', 150000, 1200000, 2.0, 'IPCA', 'Aluguel + Percentual', 100, 1231, 'Ativo'),
+  ('CTR-2025-103', 'L2-003', '01/01/2025', '31/12/2027', 82000, 500000, 2.8, 'IPCA', 'Aluguel + Percentual', 94, 988, 'Ativo'),
+  ('CTR-2022-104', 'L2-004', '01/01/2022', '31/12/2026', 68000, 380000, 2.2, 'IGPM', 'Aluguel + Percentual', 80, 258, 'Ativo'),
+  ('CTR-2024-131', 'L2-031', '01/03/2024', '28/02/2027', 34000, 180000, 4.5, 'IGPM', 'Aluguel + Percentual', 92, 683, 'Ativo'),
+  ('CTR-2025-132', 'L2-032', '01/06/2025', '31/05/2028', 31000, 160000, 4.2, 'IPCA', 'Aluguel + Percentual', 90, 1140, 'Ativo'),
+  ('CTR-2024-133', 'L2-033', '01/09/2024', '31/08/2027', 45000, 280000, 5.0, 'IGPM', 'Aluguel + Percentual', 95, 866, 'Ativo'),
+  ('CTR-2025-134', 'L2-034', '01/03/2025', '28/02/2030', 110000, 800000, 3.5, 'IPCA', 'Aluguel + Percentual', 97, 1777, 'Ativo'),
+  ('CTR-2023-161', 'L2-061', '01/06/2023', '31/05/2028', 48000, 300000, 0, 'IGPM', 'Aluguel Fixo', 88, 1140, 'Ativo'),
+  ('CTR-2019-163', 'L2-063', '01/01/2019', '31/12/2028', 180000, 2000000, 2.0, 'IGPM', 'Aluguel + Percentual', 96, 1719, 'Ativo'),
+  ('CTR-2022-201', 'L3-001', '01/04/2022', '31/03/2027', 90000, 600000, 3.0, 'IGPM', 'Aluguel + Percentual', 99, 349, 'Ativo'),
+  ('CTR-2024-202', 'L3-002', '01/08/2024', '31/07/2027', 105000, 700000, 3.5, 'IGPM', 'Aluguel + Percentual', 97, 835, 'Ativo'),
+  ('CTR-2024-203', 'L3-003', '01/01/2024', '31/12/2026', 22000, 110000, 5.0, 'IPCA', 'Aluguel + Percentual', 74, 258, 'Ativo'),
+  ('CTR-2023-204', 'L3-004', '01/07/2023', '30/06/2026', 75000, 450000, 3.2, 'IGPM', 'Aluguel + Percentual', 91, 74, 'Vencendo'),
+  ('CTR-2023-205', 'L3-005', '01/11/2023', '31/10/2028', 135000, 950000, 3.0, 'IGPM', 'Aluguel + Percentual', 98, 1657, 'Ativo'),
+  ('CTR-2025-206', 'L3-006', '01/02/2025', '31/01/2028', 26000, 130000, 4.5, 'IPCA', 'Aluguel + Percentual', 78, 1020, 'Ativo'),
+  ('CTR-2023-207', 'L3-007', '01/04/2023', '31/03/2026', 20000, 90000, 4.0, 'IGPM', 'Aluguel + Percentual', 65, 349, 'Ativo'),
+  ('CTR-2024-228', 'L3-028', '01/05/2024', '30/04/2027', 38000, 200000, 4.0, 'IPCA', 'Aluguel + Percentual', 77, 743, 'Ativo'),
+  ('CTR-2025-229', 'L3-029', '01/01/2025', '31/12/2027', 35000, 180000, 4.2, 'IGPM', 'Aluguel + Percentual', 82, 988, 'Ativo'),
+  ('CTR-2024-230', 'L3-030', '01/07/2024', '30/06/2027', 24000, 120000, 4.5, 'IPCA', 'Aluguel + Percentual', 80, 804, 'Ativo'),
+  ('CTR-2024-255', 'L3-055', '01/04/2024', '31/03/2027', 42000, 230000, 3.0, 'IGPM', 'Aluguel + Percentual', 81, 714, 'Ativo'),
+  ('CTR-2022-256', 'L3-056', '01/06/2022', '31/05/2026', 28000, 150000, 3.5, 'IPCA', 'Aluguel + Percentual', 62, 44, 'Vencendo'),
+  ('CTR-2025-257', 'L3-057', '01/03/2025', '28/02/2028', 16000, 75000, 4.0, 'IPCA', 'Aluguel + Percentual', 75, 1047, 'Ativo');
+
+-- ------------------------------------------------------------
+-- Tabela: multas
+-- Fonte: comercialData.ts → keyStores[].multas
+-- ------------------------------------------------------------
+CREATE TABLE multas (
+  id          VARCHAR(15)  NOT NULL,
+  lojista_id  VARCHAR(10)  NOT NULL,
+  data        VARCHAR(12)  NOT NULL,
+  tipo        VARCHAR(80)  NOT NULL,
+  valor       DECIMAL(10,2) NOT NULL,
+  descricao   TEXT         NOT NULL,
+  status      ENUM('Paga','Pendente','Contestada') NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY (lojista_id) REFERENCES lojistas(id)
+) ENGINE=InnoDB;
+
+INSERT INTO multas VALUES
+  ('MUL-001', 'L1-001', '15/08/2024', 'Atraso no Pagamento', 3600, 'Atraso de 5 dias no pagamento de aluguel ago/2024', 'Paga'),
+  ('MUL-002', 'L1-002', '10/11/2023', 'Uso indevido de área comum', 5000, 'Uso de corredor externo para exposição sem autorização', 'Paga'),
+  ('MUL-003', 'L1-002', '18/03/2024', 'Atraso no Pagamento', 3050, 'Atraso de 4 dias no pagamento de março/2024', 'Paga'),
+  ('MUL-007', 'L1-007', '20/06/2024', 'Fachada fora do padrão', 2500, 'Outdoor não aprovado pelo mall instalado na fachada', 'Paga'),
+  ('MUL-034', 'L1-034', '12/09/2024', 'Obras sem aprovação', 8000, 'Remodelação da fachada sem autorização prévia do mall', 'Contestada'),
+  ('MUL-063a', 'L1-063', '10/05/2024', 'Atraso no Pagamento', 950, 'Atraso de 3 dias no pagamento de maio/2024', 'Paga'),
+  ('MUL-063b', 'L1-063', '12/09/2024', 'Atraso no Pagamento', 950, 'Atraso de 3 dias no pagamento de setembro/2024', 'Paga'),
+  ('MUL-063c', 'L1-063', '08/01/2025', 'Atraso no Pagamento', 950, 'Atraso de 2 dias no pagamento de janeiro/2025', 'Pendente'),
+  ('MUL-104', 'L2-004', '25/07/2023', 'Atraso no Pagamento', 3400, 'Atraso de 5 dias no pagamento de julho/2023', 'Paga'),
+  ('MUL-203', 'L3-003', '02/02/2025', 'Descumprimento de horário', 2000, 'Funcionamento fora do horário estabelecido sem autorização prévia', 'Paga'),
+  ('MUL-207a', 'L3-007', '15/07/2024', 'Atraso no Pagamento', 1000, 'Atraso de 5 dias no pagamento de julho/2024', 'Paga'),
+  ('MUL-207b', 'L3-007', '14/10/2024', 'Irregularidade sanitária', 5000, 'Notificação da Vigilância Sanitária repercutida no mall', 'Contestada'),
+  ('MUL-228', 'L3-028', '20/11/2024', 'Atraso no Pagamento', 1900, 'Atraso de 5 dias novembro/2024', 'Paga'),
+  ('MUL-256', 'L3-056', '05/04/2025', 'Atraso no Pagamento', 1400, 'Atraso de 5 dias em abril/2025', 'Paga');
+
+-- ------------------------------------------------------------
+-- Tabela: propostas_historico
+-- Fonte: comercialData.ts → keyStores[].propostas
+-- ------------------------------------------------------------
+CREATE TABLE propostas_historico (
+  id          VARCHAR(15)  NOT NULL,
+  lojista_id  VARCHAR(10)  NOT NULL,
+  data        VARCHAR(12)  NOT NULL,
+  tipo        ENUM('Nova Proposta','Renovação','Readequação') NOT NULL,
+  valor       DECIMAL(12,2) NOT NULL,
+  status      ENUM('Pendente','Em Análise','Em Negociação','Aceita','Recusada','Expirada') NOT NULL,
+  observacao  TEXT,
+  PRIMARY KEY (id),
+  FOREIGN KEY (lojista_id) REFERENCES lojistas(id)
+) ENGINE=InnoDB;
+
+INSERT INTO propostas_historico VALUES
+  ('PROP-H-001', 'L1-001', '10/01/2024', 'Renovação', 72000, 'Aceita', 'Renovação com reajuste de 8% pelo IGPM'),
+  ('PROP-H-002', 'L1-001', '05/02/2021', 'Nova Proposta', 62000, 'Aceita', 'Expansão com área adicional de 200m²'),
+  ('PROP-H-003', 'L1-002', '10/04/2026', 'Renovação', 66000, 'Em Negociação', 'Proposta de renovação com reajuste de 8%'),
+  ('PROP-H-004', 'L1-002', '15/04/2023', 'Renovação', 61000, 'Aceita', 'Renovação com readequação de área'),
+  ('PROP-H-005', 'L1-003', '15/11/2023', 'Renovação', 55000, 'Aceita', 'Negociação rápida, sem pendências'),
+  ('PROP-H-006', 'L1-004', '20/01/2025', 'Nova Proposta', 98000, 'Aceita', 'Nova instalação, ponto premium'),
+  ('PROP-H-007', 'L1-005', '01/05/2024', 'Nova Proposta', 88000, 'Aceita', NULL),
+  ('PROP-H-008', 'L1-006', '01/07/2023', 'Renovação', 32000, 'Aceita', 'Reajuste de 7% acordado'),
+  ('PROP-H-009', 'L1-007', '05/04/2026', 'Renovação', 20000, 'Em Negociação', 'Reajuste proposto de 11%'),
+  ('PROP-H-010', 'L1-007', '28/11/2023', 'Renovação', 18000, 'Aceita', NULL),
+  ('PROP-H-011', 'L1-008', '10/12/2024', 'Nova Proposta', 41000, 'Aceita', 'Transferência de outra unidade'),
+  ('PROP-H-012', 'L1-031', '01/06/2022', 'Nova Proposta', 95000, 'Aceita', 'Âncora esportiva exclusiva para o piso 1'),
+  ('PROP-H-013', 'L1-032', '10/02/2024', 'Renovação', 52000, 'Aceita', NULL),
+  ('PROP-H-014', 'L1-033', '01/08/2023', 'Renovação', 68000, 'Aceita', 'Reajuste de 9% negociado'),
+  ('PROP-H-015', 'L1-034', '15/03/2024', 'Nova Proposta', 58000, 'Aceita', NULL),
+  ('PROP-H-016', 'L1-061', '02/04/2026', 'Renovação', 31000, 'Em Análise', 'Banco solicita prazo de análise interna de 30 dias'),
+  ('PROP-H-017', 'L1-061', '20/11/2020', 'Nova Proposta', 28000, 'Aceita', NULL),
+  ('PROP-H-018', 'L1-062', '01/06/2024', 'Renovação', 26000, 'Aceita', 'Renovação antecipada com ajuste'),
+  ('PROP-H-019', 'L1-063', '05/04/2026', 'Renovação', 20500, 'Pendente', 'Aguardando aprovação interna da operadora'),
+  ('PROP-H-020', 'L1-063', '01/01/2023', 'Nova Proposta', 19000, 'Aceita', NULL),
+  ('PROP-H-021', 'L2-001', '01/04/2024', 'Renovação', 75000, 'Aceita', 'Fidelização de lojista âncora'),
+  ('PROP-H-022', 'L2-002', '20/06/2023', 'Nova Proposta', 150000, 'Aceita', 'Negociação estratégica com selo de loja certificada Apple'),
+  ('PROP-H-023', 'L2-003', '01/11/2024', 'Nova Proposta', 82000, 'Aceita', NULL),
+  ('PROP-H-024', 'L2-004', '01/11/2021', 'Nova Proposta', 68000, 'Aceita', NULL),
+  ('PROP-H-025', 'L2-031', '10/01/2024', 'Renovação', 34000, 'Aceita', NULL),
+  ('PROP-H-026', 'L2-032', '01/04/2025', 'Renovação', 31000, 'Aceita', NULL),
+  ('PROP-H-027', 'L2-033', '10/04/2026', 'Readequação', 48000, 'Em Negociação', 'Proposta de aumento de área com novo contrato'),
+  ('PROP-H-028', 'L2-033', '01/07/2024', 'Nova Proposta', 45000, 'Aceita', 'Primeiro Starbucks Reserve de Goiânia'),
+  ('PROP-H-029', 'L2-034', '01/12/2024', 'Nova Proposta', 110000, 'Aceita', 'Primeira loja em Goiânia — exclusividade por 5 anos'),
+  ('PROP-H-030', 'L2-061', '01/04/2023', 'Nova Proposta', 48000, 'Aceita', 'Contrato longo prazo 5 anos com reajuste anual IGPM'),
+  ('PROP-H-031', 'L2-063', '01/10/2018', 'Nova Proposta', 180000, 'Aceita', 'Contrato âncora de entretenimento 10 anos'),
+  ('PROP-H-032', 'L3-001', '01/02/2022', 'Renovação', 90000, 'Aceita', NULL),
+  ('PROP-H-033', 'L3-002', '01/06/2024', 'Renovação', 105000, 'Aceita', 'Expansão de área de 350 para 400m²'),
+  ('PROP-H-034', 'L3-002', '15/04/2026', 'Readequação', 115000, 'Em Negociação', 'Proposta de nova expansão + reforma da cozinha'),
+  ('PROP-H-035', 'L3-003', '20/11/2023', 'Nova Proposta', 22000, 'Aceita', NULL),
+  ('PROP-H-036', 'L3-004', '08/04/2026', 'Renovação', 82000, 'Em Negociação', 'Negociação com pedido de desconto pela inflação do setor'),
+  ('PROP-H-037', 'L3-004', '01/05/2023', 'Nova Proposta', 75000, 'Aceita', NULL),
+  ('PROP-H-038', 'L3-005', '01/09/2023', 'Nova Proposta', 135000, 'Aceita', 'Âncora premium da praça de alimentação'),
+  ('PROP-H-039', 'L3-006', '01/12/2024', 'Renovação', 26000, 'Aceita', NULL),
+  ('PROP-H-040', 'L3-007', '01/02/2023', 'Nova Proposta', 20000, 'Aceita', NULL),
+  ('PROP-H-041', 'L3-028', '01/03/2024', 'Nova Proposta', 38000, 'Aceita', NULL),
+  ('PROP-H-042', 'L3-029', '01/11/2024', 'Nova Proposta', 35000, 'Aceita', NULL),
+  ('PROP-H-043', 'L3-030', '01/05/2024', 'Renovação', 24000, 'Aceita', NULL),
+  ('PROP-H-044', 'L3-055', '01/02/2024', 'Nova Proposta', 42000, 'Aceita', NULL),
+  ('PROP-H-045', 'L3-056', '05/04/2026', 'Renovação', 29000, 'Pendente', 'Aguardando definição interna sobre fechamento de filiais'),
+  ('PROP-H-046', 'L3-056', '01/04/2022', 'Nova Proposta', 28000, 'Aceita', NULL),
+  ('PROP-H-047', 'L3-057', '01/01/2025', 'Renovação', 16000, 'Aceita', NULL);
+
+-- ------------------------------------------------------------
+-- Tabela: propostas
+-- Fonte: comercialData.ts → propostasAtivas
+-- ------------------------------------------------------------
+CREATE TABLE propostas (
+  id               VARCHAR(20)  NOT NULL,
+  lojista_id       VARCHAR(10),
+  lojista_nome     VARCHAR(100) NOT NULL,
+  unidade          VARCHAR(10)  NOT NULL,
+  segmento         ENUM('Moda','Alimentação','Serviços','Eletrônicos','Esportes','Entretenimento','Outros') NOT NULL,
+  tipo             ENUM('Nova Instalação','Renovação','Readequação') NOT NULL,
+  valor_proposto   DECIMAL(12,2) NOT NULL,
+  area_m2          INT          NOT NULL,
+  status           ENUM('Pendente','Em Análise','Em Negociação','Aceita','Recusada','Expirada') NOT NULL,
+  responsavel      VARCHAR(100) NOT NULL,
+  data_criacao     VARCHAR(12)  NOT NULL,
+  data_vencimento  VARCHAR(12)  NOT NULL,
+  observacoes      TEXT,
+  PRIMARY KEY (id),
+  FOREIGN KEY (lojista_id) REFERENCES lojistas(id)
+) ENGINE=InnoDB;
+
+INSERT INTO propostas VALUES
+  ('PROP-2026-001', 'L1-002', 'C&A', 'L1-002', 'Moda', 'Renovação', 66000, 700, 'Em Negociação', 'Gerência Comercial', '10/04/2026', '30/05/2026', 'Proposta de renovação com reajuste de 8% sobre IPCA. Lojista solicita menor percentual de faturamento.'),
+  ('PROP-2026-002', NULL, 'Zara Home (Novo)', 'L2-039', 'Outros', 'Nova Instalação', 38000, 90, 'Em Análise', 'Gerência Comercial', '08/04/2026', '15/05/2026', 'Grupo Inditex propõe inaugurar Zara Home na unidade disponível L2-039.'),
+  ('PROP-2026-003', 'L3-004', 'Burger King', 'L3-004', 'Alimentação', 'Renovação', 82000, 280, 'Em Negociação', 'Gerência Comercial', '08/04/2026', '05/06/2026', 'BK solicita desconto de 5% alegando retração do setor de fast food.'),
+  ('PROP-2026-004', NULL, 'Espaço Gourmet Premium', 'L3-008', 'Alimentação', 'Nova Instalação', 45000, 100, 'Pendente', 'Gerência Comercial', '07/04/2026', '22/05/2026', 'Novo conceito de restaurante premium. Aguardando documentação do licitante.'),
+  ('PROP-2026-005', 'L2-033', 'Starbucks Reserve', 'L2-033', 'Alimentação', 'Readequação', 48000, 220, 'Em Negociação', 'Gerência Comercial', '05/04/2026', '25/05/2026', 'Proposta de expansão de 200 para 220m² com novo layout de balcão.'),
+  ('PROP-2026-006', NULL, 'Tech World', 'L2-015', 'Eletrônicos', 'Nova Instalação', 52000, 100, 'Em Análise', 'Gerência Comercial', '04/04/2026', '20/05/2026', 'Franquia nacional de acessórios e dispositivos tech.'),
+  ('PROP-2026-007', 'L1-007', 'Chilli Beans', 'L1-007', 'Moda', 'Renovação', 20000, 80, 'Em Negociação', 'Gerência Comercial', '01/04/2026', '15/05/2026', 'Reajuste de 11% proposto. Lojista contrapropôs 7%.'),
+  ('PROP-2026-008', NULL, 'Academia Forma Perfeita', 'L2-062', 'Serviços', 'Nova Instalação', 35000, 95, 'Pendente', 'Gerência Comercial', '01/04/2026', '10/05/2026', 'Proposta de academia boutique para complementar Smart Fit.'),
+  ('PROP-2026-009', 'L1-061', 'Bradesco', 'L1-061', 'Serviços', 'Renovação', 31000, 120, 'Em Análise', 'Gerência Comercial', '02/04/2026', '20/05/2026', 'Banco pede 30 dias para análise interna.'),
+  ('PROP-2026-010', 'L3-056', 'Livraria Cultura', 'L3-056', 'Outros', 'Renovação', 29000, 350, 'Pendente', 'Gerência Comercial', '30/03/2026', '10/05/2026', 'Lojista avalia fechamento de unidades. Decisão pendente.'),
+  ('PROP-2026-011', NULL, 'Studio Z', 'L1-023', 'Moda', 'Nova Instalação', 24000, 85, 'Em Análise', 'Gerência Comercial', '28/03/2026', '12/05/2026', 'Rede jovem de moda street wear.'),
+  ('PROP-2026-012', NULL, 'Healthy Bowl', 'L3-031', 'Alimentação', 'Nova Instalação', 28000, 90, 'Aceita', 'Gerência Comercial', '20/03/2026', '20/04/2026', 'Aceite confirmado. Obras autorizadas para início em 25/04.'),
+  ('PROP-2026-013', 'L1-063', 'Claro', 'L1-063', 'Serviços', 'Renovação', 20500, 70, 'Pendente', 'Gerência Comercial', '15/03/2026', '01/05/2026', 'Aguardando retorno da operadora após envio de proposta.'),
+  ('PROP-2026-014', NULL, 'Grão Expresso', 'L3-054', 'Alimentação', 'Nova Instalação', 22000, 80, 'Aceita', 'Gerência Comercial', '10/03/2026', '10/04/2026', 'Cafeteria artesanal. Contrato assinado em 15/03.'),
+  ('PROP-2026-015', 'L3-002', 'Outback Steakhouse', 'L3-002', 'Alimentação', 'Readequação', 115000, 420, 'Em Negociação', 'Gerência Comercial', '15/04/2026', '15/05/2026', 'Proposta de expansão para 420m² incluindo nova cozinha industrial.'),
+  ('PROP-2026-016', NULL, 'Havaianas Flagship', 'L1-047', 'Moda', 'Nova Instalação', 32000, 120, 'Em Análise', 'Gerência Comercial', '12/04/2026', '25/05/2026', 'Proposta de loja flagship premium. Havaianas avaliando layout.'),
+  ('PROP-2026-017', NULL, 'Mundo Digital', 'L3-072', 'Outros', 'Nova Instalação', 18000, 85, 'Recusada', 'Gerência Comercial', '01/03/2026', '01/04/2026', 'Perfil comercial inadequado para o posicionamento do mall.'),
+  ('PROP-2026-018', 'L1-002', 'C&A (Readequação)', 'L1-002', 'Moda', 'Readequação', 58000, 600, 'Expirada', 'Gerência Comercial', '01/01/2026', '01/03/2026', 'Proposta de redução de área não aceita dentro do prazo.');
+
+-- ------------------------------------------------------------
+-- Tabela: sinistros
+-- Fonte: store.ts → initialClaims
+-- ------------------------------------------------------------
+CREATE TABLE sinistros (
+  id               VARCHAR(10)  NOT NULL,
+  loja             VARCHAR(100) NOT NULL,
+  tipo             VARCHAR(80)  NOT NULL,
+  severidade       ENUM('Baixa','Média','Alta') NOT NULL,
+  status           ENUM('Aberto','Aguardando Regulador','Em Análise','Aprovado','Pago') NOT NULL,
+  data             DATE         NOT NULL,
+  descricao        TEXT         NOT NULL,
+  regulador        VARCHAR(100),
+  valor_indenizacao DECIMAL(12,2),
+  valor_franquia   DECIMAL(12,2),
+  alerta_fraude    TINYINT(1)   NOT NULL DEFAULT 0,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+INSERT INTO sinistros VALUES
+  ('SIN-001', 'Loja 104 - Vestuário', 'Vazamento / Infiltração', 'Alta', 'Aberto', '2026-04-06', 'Rompimento de cano na laje superior causando alagamento no estoque da loja.', NULL, NULL, NULL, 0),
+  ('SIN-002', 'Loja 210 - Eletrônicos', 'Pico de Energia', 'Média', 'Aguardando Regulador', '2026-04-05', 'Curto circuito no quadro de distribuição, queima de 3 computadores e 1 monitor vitrine.', NULL, NULL, NULL, 1),
+  ('SIN-003', 'Praça de Alimentação', 'Incêndio', 'Alta', 'Em Análise', '2026-04-01', 'Princípio de incêndio na coifa do restaurante 05.', 'Carlos Mendes (Susep 1234)', NULL, NULL, 0),
+  ('SIN-004', 'Quiosque 12 - Joias', 'Dano Físico / Vandalismo', 'Baixa', 'Pago', '2026-03-25', 'Vidro do expositor trincado durante a madrugada.', 'Ana Souza (Susep 9876)', 4500, 500, 0);
+````
+
+## File: Figma/src/app/components/LojistProfileModal.tsx
+````typescript
+import { X, Building2, User, Phone, Mail, FileText, Calendar, ChevronRight, ClipboardList } from "lucide-react";
+import type { Lojista } from "../data/comercialData";
+
+interface LojistProfileModalProps {
+  lojista: Lojista;
+  onClose: () => void;
+}
+
+const statusContratoColors: Record<string, string> = {
+  Ativo: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
+  "Em Renovação": "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400",
+  Vencendo: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400",
+  Vencido: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+};
+
+const statusPropostaColors: Record<string, string> = {
+  "Aprovado": "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
+  "Aguardando análise do comitê": "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400",
+  "Aguardando análise financeira": "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400",
+  "Reprovado": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+  "Cancelado": "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400",
+};
+
+const PISO_LABEL: Record<string, string> = {
+  P: "Primeiro Piso",
+  S: "Segundo Piso",
+  T: "Terceiro Piso",
+};
+
+function fmt(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
+}
+
+export function LojistProfileModal({ lojista, onClose }: LojistProfileModalProps) {
+  const c = lojista.contratoAtivo;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="relative bg-white dark:bg-[#1E2435] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-100 dark:border-[#2E3447]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-[#8B1A1A] to-[#D93030] px-6 py-5 rounded-t-2xl">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">{lojista.nome || "Unidade Disponível"}</h2>
+                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                  <span className="text-white/80 text-sm">{lojista.unidade}</span>
+                  <span className="text-white/50 text-sm">·</span>
+                  <span className="text-white/80 text-sm">{lojista.segmento}</span>
+                  <span className="text-white/50 text-sm">·</span>
+                  <span className="text-white/80 text-sm">{PISO_LABEL[lojista.piso] ?? lojista.piso} / Corredor {lojista.corredor}</span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Info Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 dark:bg-[#242938] rounded-xl p-4 space-y-3">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider flex items-center gap-2">
+                <User className="w-3.5 h-3.5" /> Dados do Responsável
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-900 dark:text-[#F1F5F9]">{lojista.responsavel || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-600 dark:text-[#94A3B8] break-all">{lojista.email || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-600 dark:text-[#94A3B8]">{lojista.telefone || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <FileText className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-600 dark:text-[#94A3B8]">CNPJ: {lojista.cnpj || "—"}</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 dark:bg-[#242938] rounded-xl p-4 space-y-3">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5" /> Localização & Métricas
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-[#64748B]">Piso</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{PISO_LABEL[lojista.piso] ?? lojista.piso}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-[#64748B]">Corredor</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{lojista.corredor}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-[#64748B]">Área</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{lojista.area} m²</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-[#64748B]">Fat. Médio/Mês</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{fmt(lojista.faturamentoMedio)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contrato Ativo */}
+          {c && (
+            <div className="border border-gray-200 dark:border-[#2E3447] rounded-xl overflow-hidden">
+              <div className="px-5 py-3 bg-gray-50 dark:bg-[#1A1F2E] flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#D93030]" /> Contrato Ativo — {c.id}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {c.diasRestantes < 60 && (
+                    <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                      ⚠ {c.diasRestantes} dias restantes
+                    </span>
+                  )}
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${statusContratoColors[c.status]}`}>
+                    {c.status}
+                  </span>
+                </div>
+              </div>
+              <div className="p-5">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3">
+                    <p className="text-xs text-gray-400 dark:text-[#64748B] mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Vigência</p>
+                    <p className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9]">{c.inicio}</p>
+                    <p className="text-xs text-gray-400 dark:text-[#64748B]">até {c.fim}</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3">
+                    <p className="text-xs text-gray-400 dark:text-[#64748B] mb-1">Aluguel Mensal</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{fmt(c.valorAluguel)}</p>
+                    <p className="text-xs text-gray-400 dark:text-[#64748B]">{c.indiceReajuste}</p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3">
+                    <p className="text-xs text-gray-400 dark:text-[#64748B] mb-1">Luvas</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{fmt(c.luvas)}</p>
+                    <p className="text-xs text-gray-400 dark:text-[#64748B]">{c.tipo}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Histórico de Propostas */}
+          <div className="border border-gray-200 dark:border-[#2E3447] rounded-xl overflow-hidden">
+            <div className="px-5 py-3 bg-gray-50 dark:bg-[#1A1F2E] flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-[#D93030]" /> Histórico de Propostas
+              </h3>
+              <span className="text-xs text-gray-400 dark:text-[#64748B]">{lojista.propostas.length} propostas</span>
+            </div>
+            <div className="p-4">
+              {lojista.propostas.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-[#64748B] text-center py-4">Nenhuma proposta registrada</p>
+              ) : (
+                <div className="space-y-2">
+                  {lojista.propostas.map((p) => (
+                    <div key={p.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-[#242938] rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-gray-700 dark:text-[#F1F5F9]">{p.tipo}</span>
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusPropostaColors[p.status] || "bg-gray-100 text-gray-600"}`}>{p.status}</span>
+                          <span className="text-xs text-gray-400 dark:text-[#475569] ml-auto flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> {p.data}
+                          </span>
+                        </div>
+                        {p.observacao && (
+                          <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5 truncate">{p.observacao}</p>
+                        )}
+                      </div>
+                      <span className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9] whitespace-nowrap">{fmt(p.valor)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex gap-3 pt-1">
+            <button className="flex-1 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
+              <FileText className="w-4 h-4" /> Nova Proposta
+            </button>
+            <button className="flex-1 border border-gray-200 dark:border-[#2E3447] text-gray-700 dark:text-[#F1F5F9] hover:bg-gray-50 dark:hover:bg-[#242938] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
+              <ChevronRight className="w-4 h-4" /> Ver Contrato Completo
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
 ## File: Figma/src/app/data/comercialData.ts
 ````typescript
 // ============================================================
@@ -8741,546 +11542,6 @@ export function addMultaToLojista(
   });
   notify();
   return newMulta;
-}
-````
-
-## File: Figma/src/app/pages/ClaimDetails.tsx
-````typescript
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router";
-import { 
-  getClaimById, 
-  updateClaim, 
-  Claim, 
-  ClaimStatus 
-} from "../store";
-import { 
-  Building2, 
-  Calendar, 
-  AlertTriangle, 
-  CheckCircle2,
-  Clock,
-  UserCheck,
-  DollarSign,
-  FileText,
-  UploadCloud,
-  ArrowLeft,
-  Briefcase
-} from "lucide-react";
-
-export function ClaimDetails() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [claim, setClaim] = useState<Claim | null>(null);
-  const [regulator, setRegulator] = useState("");
-  const [indemnity, setIndemnity] = useState<number | "">("");
-  const [deductible, setDeductible] = useState<number | "">("");
-  
-  // Simulation of user role/permission
-  const isFinance = true; 
-
-  useEffect(() => {
-    if (id) {
-      const data = getClaimById(id);
-      if (data) {
-        setClaim(data);
-        if (data.regulator) setRegulator(data.regulator);
-        if (data.indemnityValue !== undefined) setIndemnity(data.indemnityValue);
-        if (data.deductibleValue !== undefined) setDeductible(data.deductibleValue);
-      }
-    }
-  }, [id]);
-
-  if (!claim) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-[#8B1A1A] border-t-transparent rounded-full mb-4"></div>
-        <p className="text-gray-500">Carregando detalhes do sinistro...</p>
-      </div>
-    );
-  }
-
-  const handleAssignRegulator = () => {
-    if (!regulator.trim()) return;
-    updateClaim(claim.id, { 
-      regulator, 
-      status: "Em Análise" 
-    });
-    setClaim(prev => prev ? { ...prev, regulator, status: "Em Análise" } : null);
-  };
-
-  const handleApproveTechnical = () => {
-    updateClaim(claim.id, { status: "Aprovado" });
-    setClaim(prev => prev ? { ...prev, status: "Aprovado" } : null);
-  };
-
-  const handleSaveFinancials = () => {
-    const indVal = Number(indemnity);
-    const dedVal = Number(deductible);
-    
-    updateClaim(claim.id, { 
-      indemnityValue: indVal, 
-      deductibleValue: dedVal 
-    });
-    
-    setClaim(prev => prev ? { 
-      ...prev, 
-      indemnityValue: indVal, 
-      deductibleValue: dedVal 
-    } : null);
-  };
-
-  const handleApprovePayment = () => {
-    updateClaim(claim.id, { status: "Pago" });
-    setClaim(prev => prev ? { ...prev, status: "Pago" } : null);
-  };
-
-  const getStatusColor = (status: ClaimStatus) => {
-    switch (status) {
-      case "Aberto": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "Aguardando Regulador": return "bg-orange-100 text-orange-800 border-orange-200";
-      case "Em Análise": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "Aprovado": return "bg-green-100 text-green-800 border-green-200";
-      case "Pago": return "bg-gray-100 text-gray-800 border-gray-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const netValue = (Number(indemnity) || 0) - (Number(deductible) || 0);
-  const canApprovePayment = claim.status === "Aprovado" && netValue >= 0 && claim.indemnityValue !== undefined;
-
-  return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      {/* Header Back Button & Status */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-        <button 
-          onClick={() => navigate(-1)}
-          className="text-gray-500 hover:text-[#8B1A1A] inline-flex items-center text-sm font-medium transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1" />
-          Voltar para Lista
-        </button>
-        
-        <div className={`px-4 py-1.5 rounded-full border text-sm font-bold flex items-center shadow-sm ${getStatusColor(claim.status)}`}>
-          {claim.status === "Aprovado" && <CheckCircle2 className="w-4 h-4 mr-2" />}
-          {claim.status === "Aguardando Regulador" && <Clock className="w-4 h-4 mr-2" />}
-          Status Atual: {claim.status.toUpperCase()}
-        </div>
-      </div>
-
-      {/* Main Info Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="h-2 bg-[#8B1A1A] w-full"></div>
-        <div className="p-8">
-          <div className="flex justify-between items-start border-b border-gray-100 pb-6 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{claim.id}</h1>
-              <div className="flex items-center text-sm text-gray-500 space-x-4">
-                <span className="flex items-center"><Building2 className="w-4 h-4 mr-1.5 text-[#C8A882]" /> {claim.store}</span>
-                <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5 text-[#C8A882]" /> {new Date(claim.date).toLocaleDateString('pt-BR')}</span>
-              </div>
-            </div>
-            
-            <div className="text-right">
-              <span className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium border
-                ${claim.severity === 'Alta' ? 'bg-red-50 text-[#D93030] border-red-100' : ''}
-                ${claim.severity === 'Média' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : ''}
-                ${claim.severity === 'Baixa' ? 'bg-green-50 text-green-700 border-green-100' : ''}
-              `}>
-                <span className={`w-2 h-2 rounded-full mr-2 
-                  ${claim.severity === 'Alta' ? 'bg-[#D93030]' : ''}
-                  ${claim.severity === 'Média' ? 'bg-yellow-500' : ''}
-                  ${claim.severity === 'Baixa' ? 'bg-green-500' : ''}
-                `}></span>
-                Gravidade {claim.severity}
-              </span>
-              
-              {claim.fraudAlert && (
-                <div className="mt-3 flex items-center text-sm font-bold text-[#D93030] bg-red-50 px-3 py-1 rounded border border-red-200">
-                  <AlertTriangle className="w-4 h-4 mr-1.5" />
-                  Alerta de Fraude Sistêmica
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Tipo de Ocorrência</h3>
-                <p className="text-base font-medium text-gray-900">{claim.type}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">Descrição Detalhada</h3>
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-gray-700 leading-relaxed text-sm min-h-[120px]">
-                  {claim.description}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Evidências Anexadas ({claim.files?.length || 0})</h3>
-              {claim.files && claim.files.length > 0 ? (
-                <ul className="space-y-2">
-                  {claim.files.map((file, idx) => (
-                    <li key={idx} className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-[#8B1A1A] transition-colors cursor-pointer group">
-                      <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#8B1A1A] mr-3" />
-                      <span className="text-sm text-gray-700 font-medium truncate">{file}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
-                  Nenhum arquivo anexado.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Regulation Session */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col h-full">
-          <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
-            <div className="w-8 h-8 rounded bg-[#C8A882]/20 text-[#8B1A1A] flex items-center justify-center mr-3">
-              <UserCheck className="w-5 h-5" />
-            </div>
-            <h2 className="text-lg font-bold text-gray-900">Sessão de Regulamentação</h2>
-          </div>
-          
-          <div className="space-y-4 flex-1">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Atribuir Regulador Responsável
-              </label>
-              <div className="flex space-x-2">
-                <input 
-                  type="text" 
-                  value={regulator}
-                  onChange={(e) => setRegulator(e.target.value)}
-                  placeholder="Nome ou código do regulador"
-                  className="flex-1 border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-[#8B1A1A] focus:border-[#8B1A1A]"
-                  disabled={claim.status !== 'Aberto' && claim.status !== 'Aguardando Regulador' && claim.status !== 'Em Análise'}
-                />
-                {(claim.status === 'Aberto' || claim.status === 'Aguardando Regulador' || claim.status === 'Em Análise') && (
-                  <button 
-                    onClick={handleAssignRegulator}
-                    className="bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-900 transition-colors"
-                  >
-                    Atribuir
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            {claim.regulator && (
-              <div className="bg-blue-50 border border-blue-100 rounded-md p-4 flex items-start">
-                <Briefcase className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-blue-900">Regulador Designado</p>
-                  <p className="text-sm text-blue-800">{claim.regulator}</p>
-                  <p className="text-xs text-blue-600 mt-1">Status de análise em andamento no sistema do regulador.</p>
-                </div>
-              </div>
-            )}
-            
-            {claim.status === 'Em Análise' && (
-              <div className="pt-6 mt-auto">
-                <p className="text-xs text-gray-500 mb-2">Ação do Regulador (Simulação)</p>
-                <button 
-                  onClick={handleApproveTechnical}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-md font-medium text-sm transition-colors shadow-sm flex items-center justify-center"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Aprovação Técnica (Parecer Favorável)
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Financial Session */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col h-full relative overflow-hidden">
-          {/* Disabled Overlay if not ready */}
-          {claim.status !== 'Aprovado' && claim.status !== 'Pago' && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center border-l border-gray-100">
-              <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 text-center max-w-[80%]">
-                <Clock className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                <h3 className="font-bold text-gray-900 text-sm mb-1">Aprovação Pendente</h3>
-                <p className="text-xs text-gray-500">
-                  Os trâmites financeiros serão liberados apenas após a aprovação técnica do regulador.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
-            <div className="w-8 h-8 rounded bg-green-100 text-green-700 flex items-center justify-center mr-3">
-              <DollarSign className="w-5 h-5" />
-            </div>
-            <h2 className="text-lg font-bold text-gray-900">Sessão Financeira</h2>
-          </div>
-
-          <div className="space-y-5 flex-1">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valor Indenização (R$)
-                </label>
-                <input 
-                  type="number" 
-                  value={indemnity}
-                  onChange={(e) => setIndemnity(Number(e.target.value) || "")}
-                  placeholder="0,00"
-                  className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-green-500 focus:border-green-500"
-                  disabled={claim.status === 'Pago'}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Franquia / Desconto (R$)
-                </label>
-                <input 
-                  type="number" 
-                  value={deductible}
-                  onChange={(e) => setDeductible(Number(e.target.value) || "")}
-                  placeholder="0,00"
-                  className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-red-500 focus:border-red-500 text-red-600"
-                  disabled={claim.status === 'Pago'}
-                />
-                <span className="text-[10px] text-gray-500 block mt-1">Pode ser zero.</span>
-              </div>
-            </div>
-
-            {(indemnity !== "" || deductible !== "") && claim.status !== 'Pago' && (
-              <button 
-                onClick={handleSaveFinancials}
-                className="w-full bg-gray-100 text-gray-700 py-2 rounded border border-gray-200 text-sm font-medium hover:bg-gray-200 transition-colors"
-              >
-                Salvar Valores
-              </button>
-            )}
-
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Total Indenização</span>
-                <span className="text-sm font-medium">R$ {(Number(indemnity) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center mb-2 border-b border-gray-200 pb-2">
-                <span className="text-sm text-gray-600">(-) Franquia Aplicada</span>
-                <span className="text-sm font-medium text-red-600">- R$ {(Number(deductible) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center pt-1">
-                <span className="text-base font-bold text-gray-900">Total a Pagar</span>
-                <span className={`text-xl font-bold ${netValue > 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                  R$ {Math.max(0, netValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-4 mt-auto">
-              {claim.status === 'Pago' ? (
-                <div className="bg-green-50 border border-green-200 rounded-md p-3 text-center text-green-800 font-medium flex items-center justify-center text-sm">
-                  <CheckCircle2 className="w-5 h-5 mr-2" />
-                  Pagamento Aprovado e Processado
-                </div>
-              ) : (
-                <button 
-                  onClick={handleApprovePayment}
-                  disabled={!canApprovePayment}
-                  className={`w-full py-3 rounded-md font-bold text-sm transition-all shadow-sm flex items-center justify-center
-                    ${canApprovePayment 
-                      ? 'bg-[#8B1A1A] hover:bg-[#a43030] text-white shadow-md transform hover:-translate-y-0.5' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
-                    }
-                  `}
-                >
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Aprovar Restituição e Encerrar
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/pages/ClaimsHistory.tsx
-````typescript
-import { useState } from "react";
-import { Search, Filter, ChevronLeft, ChevronRight, Eye, Download } from "lucide-react";
-import { Link } from "react-router";
-
-// Mock Data
-const claims = [
-  { id: "SIN-2023-0891", store: "Zara - Piso L2", date: "15/10/2023", type: "Vazamento / Inundação", status: "Em Análise", severity: "Alta" },
-  { id: "SIN-2023-0890", store: "Starbucks - Piso L1", date: "12/10/2023", type: "Incêndio Fiação", status: "Aberto", severity: "Média" },
-  { id: "SIN-2023-0885", store: "Renner - Piso L2", date: "05/10/2023", type: "Dano Elétrico", status: "Pago", severity: "Baixa" },
-  { id: "SIN-2023-0880", store: "Centauro - Piso L3", date: "28/09/2023", type: "Vazamento / Inundação", status: "Recusado", severity: "Alta" },
-  { id: "SIN-2023-0878", store: "Fast Shop - Piso L1", date: "25/09/2023", type: "Dano Elétrico", status: "Pago", severity: "Média" },
-  { id: "SIN-2023-0875", store: "Outback - Piso L3", date: "20/09/2023", type: "Incêndio Fiação", status: "Em Análise", severity: "Alta" },
-  { id: "SIN-2023-0870", store: "Vivara - Piso L1", date: "15/09/2023", type: "Furto / Roubo", status: "Pago", severity: "Baixa" },
-  { id: "SIN-2023-0865", store: "Riachuelo - Piso L2", date: "10/09/2023", type: "Dano Estrutural", status: "Aberto", severity: "Média" },
-];
-
-const getStatusStyles = (status: string) => {
-  switch (status) {
-    case "Aberto":
-      return "bg-blue-100 text-blue-800 border-blue-200";
-    case "Em Análise":
-      return "bg-amber-100 text-amber-800 border-amber-200";
-    case "Pago":
-      return "bg-emerald-100 text-emerald-800 border-emerald-200";
-    case "Recusado":
-      return "bg-red-100 text-red-800 border-red-200";
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
-  }
-};
-
-const getSeverityStyles = (severity: string) => {
-  switch (severity) {
-    case "Alta":
-      return "text-[#D93030]";
-    case "Média":
-      return "text-amber-600";
-    case "Baixa":
-      return "text-emerald-600";
-    default:
-      return "text-gray-500";
-  }
-};
-
-export function ClaimsHistory() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#8B1A1A]">Histórico de Sinistros</h1>
-          <p className="text-gray-600 mt-1">Consulte e rastreie todas as ocorrências passadas.</p>
-        </div>
-        <button className="flex items-center gap-2 bg-[#D93030] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b92828] transition-colors shadow-sm">
-          <Download className="w-4 h-4" />
-          Exportar Relatório
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-[#FAF7F2] p-4 rounded-xl shadow-sm border border-[#E8DCCB]">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar por Nº do Sinistro ou Loja..."
-              className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#E8DCCB] rounded-lg focus:ring-2 focus:ring-[#8B1A1A] focus:border-transparent outline-none transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <div className="flex gap-4">
-            <select 
-              className="bg-white border border-[#E8DCCB] text-gray-700 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-[#8B1A1A] outline-none"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="Todos">Status: Todos</option>
-              <option value="Aberto">Aberto</option>
-              <option value="Em Análise">Em Análise</option>
-              <option value="Pago">Pago</option>
-              <option value="Recusado">Recusado</option>
-            </select>
-            
-            <select className="bg-white border border-[#E8DCCB] text-gray-700 px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-[#8B1A1A] outline-none hidden sm:block">
-              <option value="Todos">Gravidade: Todas</option>
-              <option value="Alta">Alta</option>
-              <option value="Média">Média</option>
-              <option value="Baixa">Baixa</option>
-            </select>
-            
-            <button className="flex items-center justify-center bg-white border border-[#E8DCCB] p-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-[#8B1A1A] transition-colors" title="Filtros Avançados">
-              <Filter className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-[#FAF7F2] rounded-xl shadow-sm border border-[#E8DCCB] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#E8DCCB]/50 border-b border-[#E8DCCB]">
-                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Nº Sinistro</th>
-                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Loja</th>
-                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Data do Evento</th>
-                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Tipo / Ocorrência</th>
-                <th className="px-6 py-4 text-sm font-semibold text-[#8B1A1A]">Status</th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-[#8B1A1A]">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E8DCCB]">
-              {claims.map((claim) => (
-                <tr key={claim.id} className="hover:bg-white transition-colors group">
-                  <td className="px-6 py-4">
-                    <span className="font-medium text-[#8B1A1A]">{claim.id}</span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-700 font-medium">{claim.store}</td>
-                  <td className="px-6 py-4 text-gray-600">{claim.date}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-700">{claim.type}</span>
-                      <span className={`text-xs font-medium ${getSeverityStyles(claim.severity)}`} title={`Gravidade: ${claim.severity}`}>
-                        • {claim.severity}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusStyles(claim.status)}`}>
-                      {claim.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <Link to={`/sinistro/${claim.id}`} className="inline-flex p-2 text-gray-400 hover:text-[#D93030] hover:bg-red-50 rounded-lg transition-colors">
-                      <Eye className="w-4 h-4" />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination */}
-        <div className="px-6 py-4 border-t border-[#E8DCCB] flex items-center justify-between bg-[#FAF7F2]">
-          <span className="text-sm text-gray-500">Mostrando 1 a 8 de 45 registros</span>
-          <div className="flex items-center gap-1">
-            <button className="p-2 border border-[#E8DCCB] rounded-lg text-gray-500 hover:bg-white hover:text-[#8B1A1A] disabled:opacity-50 transition-colors" disabled>
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button className="px-3 py-1 bg-[#8B1A1A] text-white rounded-lg text-sm font-medium">1</button>
-            <button className="px-3 py-1 border border-[#E8DCCB] text-gray-600 hover:bg-white rounded-lg text-sm font-medium transition-colors">2</button>
-            <button className="px-3 py-1 border border-[#E8DCCB] text-gray-600 hover:bg-white rounded-lg text-sm font-medium transition-colors">3</button>
-            <span className="px-2 text-gray-400">...</span>
-            <button className="px-3 py-1 border border-[#E8DCCB] text-gray-600 hover:bg-white rounded-lg text-sm font-medium transition-colors">6</button>
-            <button className="p-2 border border-[#E8DCCB] rounded-lg text-gray-500 hover:bg-white hover:text-[#8B1A1A] transition-colors">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 ````
 
@@ -10679,384 +12940,6 @@ export function ComercialDashboard() {
 }
 ````
 
-## File: Figma/src/app/pages/comercial/ComercialHistory.tsx
-````typescript
-import { useState, useMemo, useEffect } from "react";
-import {
-  Search, Clock, CheckCircle, FileText,
-  RefreshCw, Calendar, ChevronDown, ChevronUp, Eye, Building2
-} from "lucide-react";
-import { allLojistas, propostasAtivas } from "../../data/comercialData";
-import { LojistProfileModal } from "../../components/LojistProfileModal";
-import { subscribe } from "../../data/comercialStore";
-import type { Lojista } from "../../data/comercialData";
-
-interface HistoricoEvent {
-  id: string;
-  data: string;
-  sortKey: string;
-  tipo: "Proposta" | "Contrato" | "Renovação" | "Readequação";
-  titulo: string;
-  descricao: string;
-  lojista: string;
-  unidade: string;
-  valor?: number;
-  status: string;
-  lojistaObj?: Lojista;
-}
-
-const TIPO_CFG: Record<string, { color: string; bg: string }> = {
-  Proposta:    { color: "text-blue-600 dark:text-blue-400",   bg: "bg-blue-100 dark:bg-blue-900/30" },
-  Contrato:    { color: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/30" },
-  Renovação:   { color: "text-teal-600 dark:text-teal-400",   bg: "bg-teal-100 dark:bg-teal-900/30" },
-  Readequação: { color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30" },
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  Aceita:         "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
-  Ativo:          "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400",
-  Pendente:       "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400",
-  "Em Negociação":"bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400",
-  "Em Análise":   "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400",
-  Recusada:       "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
-  Expirada:       "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400",
-  Vencendo:       "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400",
-  Vencido:        "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
-};
-
-function fmtCurrency(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-}
-
-function toSortKey(dateStr: string): string {
-  const [d, m, y] = dateStr.split("/");
-  if (!d || !m || !y) return "0000-00-00";
-  return `${y}-${m}-${d}`;
-}
-
-const TIPO_ICON: Record<string, any> = {
-  Contrato: CheckCircle,
-  Proposta: FileText,
-  Renovação: RefreshCw,
-  Readequação: Clock,
-};
-
-export function ComercialHistory() {
-  const [tick, setTick] = useState(0);
-  useEffect(() => { const u = subscribe(() => setTick(t => t + 1)); return u; }, []);
-
-  const [search, setSearch] = useState("");
-  const [filterTipo, setFilterTipo] = useState("Todos");
-  const [filterPiso, setFilterPiso] = useState("Todos");
-  const [dateFrom, setDateFrom] = useState("2019-01-01");
-  const [dateTo, setDateTo] = useState("2026-04-30");
-  const [showCount, setShowCount] = useState(40);
-  const [selectedLojista, setSelectedLojista] = useState<Lojista | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const allEvents = useMemo<HistoricoEvent[]>(() => {
-    const events: HistoricoEvent[] = [];
-
-    allLojistas.forEach(lojista => {
-      if (lojista.status !== "Ocupado") return;
-
-      if (lojista.contratoAtivo) {
-        const c = lojista.contratoAtivo;
-        events.push({
-          id: `ctr-${c.id}`,
-          data: c.inicio,
-          sortKey: toSortKey(c.inicio),
-          tipo: "Contrato",
-          titulo: `Contrato iniciado — ${lojista.nome}`,
-          descricao: `${c.id} · ${c.tipo} · Aluguel: ${fmtCurrency(c.valorAluguel)}/mês · ${c.indiceReajuste} · Vigência: ${c.inicio} a ${c.fim}`,
-          lojista: lojista.nome,
-          unidade: lojista.unidade,
-          valor: c.valorAluguel,
-          status: c.status,
-          lojistaObj: lojista,
-        });
-      }
-
-      lojista.propostas.forEach(p => {
-        const tipo: HistoricoEvent["tipo"] =
-          p.tipo === "Renovação" ? "Renovação" :
-          p.tipo === "Readequação" ? "Readequação" : "Proposta";
-        events.push({
-          id: `proph-${p.id}`,
-          data: p.data,
-          sortKey: toSortKey(p.data),
-          tipo,
-          titulo: `${p.tipo} — ${lojista.nome}`,
-          descricao: p.observacao || `Proposta de ${p.tipo.toLowerCase()} para ${lojista.unidade}.`,
-          lojista: lojista.nome,
-          unidade: lojista.unidade,
-          valor: p.valor,
-          status: p.status,
-          lojistaObj: lojista,
-        });
-      });
-    });
-
-    propostasAtivas
-      .filter(p => !p.lojistaId)
-      .forEach(p => {
-        const tipo: HistoricoEvent["tipo"] =
-          p.tipo === "Renovação" ? "Renovação" :
-          p.tipo === "Readequação" ? "Readequação" : "Proposta";
-        events.push({
-          id: `prop-${p.id}`,
-          data: p.dataCriacao,
-          sortKey: toSortKey(p.dataCriacao),
-          tipo,
-          titulo: `${p.tipo} — ${p.lojista}`,
-          descricao: p.observacoes || `Nova proposta para unidade ${p.unidade}.`,
-          lojista: p.lojista,
-          unidade: p.unidade,
-          valor: p.valorProposto,
-          status: p.status,
-        });
-      });
-
-    return events.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
-  }, [tick]);
-
-  const filtered = useMemo(() => {
-    const from = new Date(dateFrom + "T00:00:00");
-    const to = new Date(dateTo + "T23:59:59");
-    return allEvents.filter(e => {
-      const parts = e.data.split("/");
-      let inPeriod = true;
-      if (parts.length === 3) {
-        const eDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`);
-        if (!isNaN(eDate.getTime())) inPeriod = eDate >= from && eDate <= to;
-      }
-      const matchSearch =
-        e.lojista.toLowerCase().includes(search.toLowerCase()) ||
-        e.titulo.toLowerCase().includes(search.toLowerCase()) ||
-        e.unidade.toLowerCase().includes(search.toLowerCase());
-      const matchTipo = filterTipo === "Todos" || e.tipo === filterTipo;
-      const matchPiso = filterPiso === "Todos" || e.unidade.startsWith(filterPiso);
-      return inPeriod && matchSearch && matchTipo && matchPiso;
-    });
-  }, [allEvents, search, filterTipo, filterPiso, dateFrom, dateTo]);
-
-  const counts = useMemo(() => ({
-    Contrato: allEvents.filter(e => e.tipo === "Contrato").length,
-    Proposta: allEvents.filter(e => e.tipo === "Proposta").length,
-    Renovação: allEvents.filter(e => e.tipo === "Renovação").length,
-    Readequação: allEvents.filter(e => e.tipo === "Readequação").length,
-  }), [allEvents]);
-
-  const MONTH_NAMES: Record<string, string> = {
-    "01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril",
-    "05": "Maio", "06": "Junho", "07": "Julho", "08": "Agosto",
-    "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
-  };
-
-  const groupedByMonth = useMemo(() => {
-    const map: Record<string, HistoricoEvent[]> = {};
-    filtered.slice(0, showCount).forEach(e => {
-      const [, m, y] = e.data.split("/");
-      if (!y || !m) return;
-      const key = `${y}-${m}`;
-      if (!map[key]) map[key] = [];
-      map[key].push(e);
-    });
-    return Object.entries(map).sort(([a], [b]) => b.localeCompare(a));
-  }, [filtered, showCount]);
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Histórico Comercial</h1>
-        <p className="text-gray-500 dark:text-[#94A3B8] mt-1">
-          Linha do tempo completa — contratos, propostas e renovações.
-        </p>
-      </div>
-
-      {/* Period Selector */}
-      <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Calendar className="w-4 h-4 text-[#D93030]" />
-          <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">Filtro por Período</span>
-        </div>
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-500 dark:text-[#64748B]">De</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-1.5 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030]" />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-500 dark:text-[#64748B]">Até</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-1.5 bg-gray-50 dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030]" />
-          </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {[
-              { label: "1 mês", from: "2026-03-23" },
-              { label: "3 meses", from: "2026-01-23" },
-              { label: "6 meses", from: "2025-10-23" },
-              { label: "1 ano", from: "2025-04-23" },
-              { label: "2 anos", from: "2024-04-23" },
-              { label: "Tudo", from: "2019-01-01" },
-            ].map(q => (
-              <button key={q.label}
-                onClick={() => { setDateFrom(q.from); setDateTo("2026-04-30"); }}
-                className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${dateFrom === q.from ? "bg-[#D93030] text-white border-[#D93030]" : "border-gray-200 dark:border-[#2E3447] text-gray-600 dark:text-[#94A3B8] hover:border-[#D93030]"}`}>
-                {q.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex-1 min-w-48 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" placeholder="Buscar lojista, unidade..." value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-900 dark:text-[#F1F5F9] placeholder-gray-400 focus:outline-none focus:border-[#D93030]" />
-        </div>
-        <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)}
-          className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer">
-          <option value="Todos">Todos os Tipos ({allEvents.length})</option>
-          <option value="Contrato">Contratos ({counts.Contrato})</option>
-          <option value="Proposta">Propostas ({counts.Proposta})</option>
-          <option value="Renovação">Renovações ({counts.Renovação})</option>
-          <option value="Readequação">Readequações ({counts.Readequação})</option>
-        </select>
-        <select value={filterPiso} onChange={e => setFilterPiso(e.target.value)}
-          className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 py-2.5 text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] cursor-pointer">
-          <option value="Todos">Todos os Pisos</option>
-          <option value="L1">Piso L1</option>
-          <option value="L2">Piso L2</option>
-          <option value="L3">Piso L3</option>
-        </select>
-        <button onClick={() => { setSearch(""); setFilterTipo("Todos"); setFilterPiso("Todos"); setDateFrom("2019-01-01"); setDateTo("2026-04-30"); }}
-          className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors">
-          <RefreshCw className="w-4 h-4" /> Limpar
-        </button>
-      </div>
-
-      <p className="text-xs text-gray-400 dark:text-[#64748B]">
-        {filtered.length} evento{filtered.length !== 1 ? "s" : ""} encontrado{filtered.length !== 1 ? "s" : ""} no período
-      </p>
-
-      {/* Timeline */}
-      <div className="space-y-8">
-        {groupedByMonth.length === 0 && (
-          <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-12 text-center">
-            <Search className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-[#3E4557]" />
-            <p className="text-sm text-gray-500 dark:text-[#64748B]">Nenhum evento encontrado no período ou filtros selecionados</p>
-          </div>
-        )}
-        {groupedByMonth.map(([yearMonth, events]) => {
-          const [year, month] = yearMonth.split("-");
-          return (
-            <div key={yearMonth}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex items-center gap-2 bg-[#8B1A1A]/10 dark:bg-[#8B1A1A]/30 px-3 py-1.5 rounded-lg">
-                  <Calendar className="w-3.5 h-3.5 text-[#D93030]" />
-                  <span className="text-sm font-semibold text-[#8B1A1A] dark:text-[#E04444]">
-                    {MONTH_NAMES[month] || month} {year}
-                  </span>
-                </div>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-[#2E3447]" />
-                <span className="text-xs text-gray-400 dark:text-[#64748B]">{events.length} evento{events.length !== 1 ? "s" : ""}</span>
-              </div>
-              <div className="relative ml-4">
-                <div className="absolute left-3.5 top-0 bottom-0 w-px bg-gray-200 dark:bg-[#2E3447]" />
-                <div className="space-y-3">
-                  {events.map(event => {
-                    const cfg = TIPO_CFG[event.tipo] || TIPO_CFG.Proposta;
-                    const Icon = TIPO_ICON[event.tipo] || FileText;
-                    const isExpanded = expandedId === event.id;
-                    return (
-                      <div key={event.id} className="relative pl-10">
-                        <div className={`absolute left-0 top-3 w-7 h-7 rounded-full ${cfg.bg} flex items-center justify-center border-2 border-white dark:border-[#1E2435]`}>
-                          <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
-                        </div>
-                        <div className="bg-white dark:bg-[#242938] border border-gray-100 dark:border-[#2E3447] rounded-xl overflow-hidden">
-                          <button
-                            className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors"
-                            onClick={() => setExpandedId(isExpanded ? null : event.id)}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] truncate">{event.titulo}</span>
-                                  {event.status && (
-                                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_COLORS[event.status] || "bg-gray-100 text-gray-600"}`}>
-                                      {event.status}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-gray-500 dark:text-[#64748B]">
-                                  <Building2 className="w-3 h-3" />
-                                  <span>{event.lojista}</span>
-                                  <span>·</span>
-                                  <span>{event.unidade}</span>
-                                  {event.valor !== undefined && (
-                                    <>
-                                      <span>·</span>
-                                      <span className="font-semibold text-gray-700 dark:text-[#F1F5F9]">{fmtCurrency(event.valor)}</span>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-xs text-gray-400 dark:text-[#64748B]">{event.data}</span>
-                                {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                              </div>
-                            </div>
-                          </button>
-                          {isExpanded && (
-                            <div className="px-4 pb-4 border-t border-gray-100 dark:border-[#2E3447] pt-3">
-                              <p className="text-sm text-gray-600 dark:text-[#94A3B8] leading-relaxed mb-3">{event.descricao}</p>
-                              {event.lojistaObj && (
-                                <button
-                                  onClick={() => setSelectedLojista(event.lojistaObj!)}
-                                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#D93030] hover:text-[#b92828] transition-colors"
-                                >
-                                  <Eye className="w-3.5 h-3.5" /> Ver perfil completo do lojista
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {showCount < filtered.length && (
-        <div className="text-center pt-2">
-          <button onClick={() => setShowCount(c => c + 40)}
-            className="inline-flex items-center gap-2 bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] text-gray-700 dark:text-[#F1F5F9] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] rounded-xl px-6 py-2.5 text-sm font-medium transition-colors">
-            <ChevronDown className="w-4 h-4" /> Carregar mais ({filtered.length - showCount} restantes)
-          </button>
-        </div>
-      )}
-
-      {selectedLojista && <LojistProfileModal lojista={selectedLojista} onClose={() => setSelectedLojista(null)} />}
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/pages/comercial/ComercialOverview.tsx
-````typescript
-// ComercialOverview was merged into ComercialDashboard.
-// This file is kept as a safety re-export for any legacy references.
-export { ComercialDashboard as ComercialOverview } from "./ComercialDashboard";
-````
-
 ## File: Figma/src/app/pages/comercial/ComercialProposals.tsx
 ````typescript
 import { useState, useMemo, useEffect } from "react";
@@ -12163,63 +14046,6 @@ export function ComercialReports() {
 }
 ````
 
-## File: Figma/src/app/pages/Dashboard.tsx
-````typescript
-export function Dashboard() {
-  return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center max-w-md px-4">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2">
-          Esta seção está em desenvolvimento e será disponibilizada em breve.
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-[#94A3B8]">
-          Estamos trabalhando para trazer novidades em breve.
-        </p>
-      </div>
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/pages/EmptySection.tsx
-````typescript
-import { useLocation } from "react-router";
-import { Package } from "lucide-react";
-
-export function EmptySection() {
-  const location = useLocation();
-  
-  const getSectionName = () => {
-    const path = location.pathname.split("/")[1];
-    const names: Record<string, string> = {
-      treinamentos: "Treinamentos",
-      seguros: "Seguros",
-      manutencao: "Manutenção",
-      marketing: "Marketing",
-      comercial: "Comercial",
-      institucional: "Institucional"
-    };
-    return names[path] || "Seção";
-  };
-
-  return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-[#1A1F2E] mb-4">
-          <Package className="w-8 h-8 text-gray-400 dark:text-[#64748B]" />
-        </div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2">
-          {getSectionName()}
-        </h2>
-        <p className="text-gray-500 dark:text-[#94A3B8] max-w-sm">
-          Esta seção está em desenvolvimento e será disponibilizada em breve.
-        </p>
-      </div>
-    </div>
-  );
-}
-````
-
 ## File: Figma/src/app/pages/Login.tsx
 ````typescript
 import { useState } from "react";
@@ -12367,1049 +14193,6 @@ export function Login() {
 }
 ````
 
-## File: Figma/src/app/pages/NewClaim.tsx
-````typescript
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { useForm, Controller } from "react-hook-form";
-import { 
-  Building2, 
-  Calendar, 
-  UploadCloud, 
-  AlertCircle, 
-  FileText,
-  Save,
-  X,
-  File as FileIcon,
-  Trash2
-} from "lucide-react";
-import { addClaim } from "../store";
-
-type FormValues = {
-  store: string;
-  type: string;
-  severity: "Baixa" | "Média" | "Alta";
-  riskClass: string;
-  date: string;
-  description: string;
-};
-
-export function NewClaim() {
-  const navigate = useNavigate();
-  const [files, setFiles] = useState<File[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  
-  const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
-    defaultValues: {
-      severity: "Média"
-    }
-  });
-
-  const stores = [
-    "Loja 101 - Acessórios",
-    "Loja 102 - Calçados",
-    "Loja 104 - Vestuário",
-    "Loja 210 - Eletrônicos",
-    "Praça de Alimentação",
-    "Estacionamento G1",
-    "Banheiros Ala Norte"
-  ];
-
-  const types = [
-    "Vazamento / Infiltração",
-    "Pico de Energia / Elétrico",
-    "Incêndio",
-    "Dano Físico / Vandalismo",
-    "Acidente Pessoal",
-    "Roubo / Furto",
-    "Desastre Natural"
-  ];
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const onSubmit = (data: FormValues) => {
-    // Generate mock ID
-    const newId = `SIN-00${Math.floor(Math.random() * 900) + 100}`;
-    
-    addClaim({
-      id: newId,
-      store: data.store,
-      type: data.type,
-      severity: data.severity,
-      status: "Aberto",
-      date: data.date,
-      description: data.description,
-      files: files.map(f => f.name),
-      fraudAlert: false
-    });
-    
-    navigate("/dashboard");
-  };
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center space-x-3 mb-8">
-        <div className="w-10 h-10 bg-[#8B1A1A] rounded-lg flex items-center justify-center text-white shadow-sm">
-          <FileText className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Registro de Novo Sinistro</h1>
-          <p className="text-sm text-gray-500">Preencha os dados detalhados da ocorrência no complexo.</p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <div className="border-b border-gray-100 pb-4 mb-6">
-            <h2 className="text-lg font-semibold text-[#8B1A1A] flex items-center">
-              <Building2 className="w-5 h-5 mr-2" /> Dados da Ocorrência
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Loja / Local Afetado *
-              </label>
-              <select 
-                {...register("store", { required: "Selecione o local" })}
-                className={`w-full border ${errors.store ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm py-2.5 px-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm`}
-              >
-                <option value="">Selecione...</option>
-                {stores.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              {errors.store && <p className="mt-1 text-xs text-red-500">{errors.store.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data do Evento *
-              </label>
-              <div className="relative">
-                <input 
-                  type="date"
-                  {...register("date", { required: "Data é obrigatória" })}
-                  className={`w-full border ${errors.date ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm py-2.5 px-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm`}
-                />
-              </div>
-              {errors.date && <p className="mt-1 text-xs text-red-500">{errors.date.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tipo de Ocorrência *
-              </label>
-              <select 
-                {...register("type", { required: "Selecione o tipo" })}
-                className={`w-full border ${errors.type ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm py-2.5 px-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm`}
-              >
-                <option value="">Selecione...</option>
-                {types.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              {errors.type && <p className="mt-1 text-xs text-red-500">{errors.type.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Classificação de Risco
-              </label>
-              <select 
-                {...register("riskClass")}
-                className="w-full border border-gray-300 rounded-lg shadow-sm py-2.5 px-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm"
-              >
-                <option value="Estrutural">Estrutural</option>
-                <option value="Conteúdo">Conteúdo (Mercadorias/Equipamentos)</option>
-                <option value="Responsabilidade Civil">Responsabilidade Civil (Terceiros)</option>
-                <option value="Lucros Cessantes">Lucros Cessantes</option>
-              </select>
-            </div>
-            
-            <div className="md:col-span-2 mt-2">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Gravidade do Sinistro *
-              </label>
-              <Controller
-                name="severity"
-                control={control}
-                rules={{ required: true }}
-                render={({ field }) => (
-                  <div className="grid grid-cols-3 gap-4">
-                    <label className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center transition-all ${field.value === 'Baixa' ? 'border-green-500 bg-green-50 ring-1 ring-green-500' : 'border-gray-200 hover:bg-gray-50'}`}>
-                      <input type="radio" className="sr-only" {...field} value="Baixa" checked={field.value === 'Baixa'} />
-                      <div className="w-3 h-3 rounded-full bg-green-500 mb-2"></div>
-                      <span className={`text-sm font-medium ${field.value === 'Baixa' ? 'text-green-700' : 'text-gray-700'}`}>Baixa</span>
-                    </label>
-                    <label className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center transition-all ${field.value === 'Média' ? 'border-yellow-500 bg-yellow-50 ring-1 ring-yellow-500' : 'border-gray-200 hover:bg-gray-50'}`}>
-                      <input type="radio" className="sr-only" {...field} value="Média" checked={field.value === 'Média'} />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500 mb-2"></div>
-                      <span className={`text-sm font-medium ${field.value === 'Média' ? 'text-yellow-700' : 'text-gray-700'}`}>Média</span>
-                    </label>
-                    <label className={`cursor-pointer border rounded-lg p-4 flex flex-col items-center justify-center transition-all ${field.value === 'Alta' ? 'border-[#D93030] bg-red-50 ring-1 ring-[#D93030]' : 'border-gray-200 hover:bg-gray-50'}`}>
-                      <input type="radio" className="sr-only" {...field} value="Alta" checked={field.value === 'Alta'} />
-                      <div className="w-3 h-3 rounded-full bg-[#D93030] mb-2"></div>
-                      <span className={`text-sm font-medium ${field.value === 'Alta' ? 'text-[#D93030]' : 'text-gray-700'}`}>Alta</span>
-                    </label>
-                  </div>
-                )}
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descrição Detalhada do Evento *
-              </label>
-              <textarea 
-                {...register("description", { required: "Descrição é obrigatória", minLength: 10 })}
-                rows={5}
-                placeholder="Descreva o que ocorreu, horários estimados, pessoas envolvidas e primeiras providências tomadas..."
-                className={`w-full border ${errors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm p-3 focus:ring-[#8B1A1A] focus:border-[#8B1A1A] bg-white text-gray-900 text-sm`}
-              />
-              {errors.description && <p className="mt-1 text-xs text-red-500">Forneça uma descrição detalhada (min 10 caracteres)</p>}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <div className="border-b border-gray-100 pb-4 mb-6">
-            <h2 className="text-lg font-semibold text-[#8B1A1A] flex items-center">
-              <UploadCloud className="w-5 h-5 mr-2" /> Evidências e Documentos
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">Anexe fotos do local, vídeos de segurança, BO ou laudos preliminares.</p>
-          </div>
-
-          <div 
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${isDragging ? 'border-[#8B1A1A] bg-red-50/50' : 'border-gray-300 hover:bg-gray-50'}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <UploadCloud className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-700 mb-1">
-              Arraste arquivos ou clique para selecionar
-            </p>
-            <p className="text-xs text-gray-500 mb-4">
-              JPG, PNG, PDF ou MP4 (Máx. 50MB)
-            </p>
-            <label className="cursor-pointer bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
-              Selecionar Arquivos
-              <input type="file" multiple className="hidden" onChange={handleFileChange} />
-            </label>
-          </div>
-
-          {files.length > 0 && (
-            <div className="mt-6 space-y-3">
-              <h4 className="text-sm font-medium text-gray-700">Arquivos Anexados ({files.length})</h4>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {files.map((file, idx) => (
-                  <li key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
-                    <div className="flex items-center space-x-3 overflow-hidden">
-                      <FileIcon className="w-5 h-5 text-[#8B1A1A] flex-shrink-0" />
-                      <span className="text-sm text-gray-700 truncate">{file.name}</span>
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={() => removeFile(idx)}
-                      className="text-gray-400 hover:text-red-500 p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end space-x-4 pt-4">
-          <button 
-            type="button"
-            onClick={() => navigate(-1)}
-            className="px-6 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors"
-          >
-            Cancelar
-          </button>
-          <button 
-            type="submit"
-            className="px-6 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-[#8B1A1A] hover:bg-[#a43030] shadow-sm flex items-center transition-colors"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Salvar Registro
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/pages/Reports.tsx
-````typescript
-import { Package } from "lucide-react";
-
-export function Reports() {
-  return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-[#1A1F2E] mb-4">
-          <Package className="w-8 h-8 text-gray-400 dark:text-[#64748B]" />
-        </div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2">
-          Relatórios Gerais
-        </h2>
-        <p className="text-gray-500 dark:text-[#94A3B8] max-w-sm">
-          Central de relatórios gerais em desenvolvimento. Acesse relatórios específicos através dos módulos correspondentes.
-        </p>
-      </div>
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/pages/sinistros/SinistrosDashboard.tsx
-````typescript
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { 
-  AlertTriangle, 
-  Clock, 
-  FileWarning, 
-  TrendingUp,
-  Search,
-  ChevronRight
-} from "lucide-react";
-import { getClaims, Claim } from "../../store";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from "recharts";
-
-export function SinistrosDashboard() {
-  const navigate = useNavigate();
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    setClaims(getClaims());
-  }, []);
-
-  const openClaims = claims.filter(c => c.status === "Aberto" || c.status === "Em Análise").length;
-  const waitingRegulator = claims.filter(c => c.status === "Aguardando Regulador").length;
-  const fraudAlerts = claims.filter(c => c.fraudAlert).length;
-
-  const filteredClaims = claims.filter(c => 
-    c.store.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Mock data for chart
-  const chartData = [
-    { name: 'Loja A', incidentes: 4 },
-    { name: 'Loja B', incidentes: 2 },
-    { name: 'Praça de Alim.', incidentes: 5 },
-    { name: 'Estacionamento', incidentes: 3 },
-    { name: 'Banheiros', incidentes: 1 },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Dashboard de Sinistros</h1>
-          <p className="text-gray-500 dark:text-[#94A3B8] mt-1">Resumo das ocorrências e sinistros do complexo.</p>
-        </div>
-        <button 
-          onClick={() => navigate("/sinistros/novo")}
-          className="bg-[#D93030] dark:bg-[#E04444] hover:bg-[#b92828] dark:hover:bg-[#F05555] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center"
-        >
-          <FileWarning className="w-4 h-4 mr-2" />
-          Registrar Ocorrência
-        </button>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-gray-100 dark:border-[#2E3447] p-6 flex items-start justify-between hover:shadow-md transition-all">
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-[#94A3B8] mb-1">Sinistros Abertos</p>
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-[#F1F5F9]">{openClaims}</h3>
-            <p className="text-xs text-green-600 dark:text-[#34D399] mt-2 flex items-center font-medium">
-              <TrendingUp className="w-3 h-3 mr-1" /> -12% em relação ao mês anterior
-            </p>
-          </div>
-          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-[#60A5FA] rounded-lg flex items-center justify-center">
-            <FileWarning className="w-6 h-6" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-gray-100 dark:border-[#2E3447] p-6 flex items-start justify-between hover:shadow-md transition-all">
-          <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-[#94A3B8] mb-1">Aguardando Regulador</p>
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-[#F1F5F9]">{waitingRegulator}</h3>
-            <p className="text-xs text-orange-600 dark:text-[#FBBF24] mt-2 flex items-center font-medium">
-              Requer atenção imediata
-            </p>
-          </div>
-          <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-[#FBBF24] rounded-lg flex items-center justify-center">
-            <Clock className="w-6 h-6" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-red-100 dark:border-red-700/30 p-6 flex items-start justify-between hover:shadow-md transition-all">
-          <div>
-            <p className="text-sm font-medium text-[#D93030] dark:text-[#E04444] mb-1">Alertas de Fraude</p>
-            <h3 className="text-3xl font-bold text-[#D93030] dark:text-[#E04444]">{fraudAlerts}</h3>
-            <p className="text-xs text-[#8B1A1A] dark:text-[#E04444] mt-2 flex items-center font-medium">
-              Análise rigorosa sugerida
-            </p>
-          </div>
-          <div className="w-12 h-12 bg-red-50 dark:bg-red-900/30 text-[#D93030] dark:text-[#E04444] rounded-lg flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chart Section */}
-        <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-gray-100 dark:border-[#2E3447] p-6 lg:col-span-2">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-[#F1F5F9] mb-6">Incidência por Área (Últimos 30 dias)</h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-gray-200 dark:stroke-[#2E3447]" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} className="fill-gray-600 dark:fill-[#94A3B8]" dy={10} />
-                <YAxis axisLine={false} tickLine={false} className="fill-gray-600 dark:fill-[#94A3B8]" />
-                <Tooltip 
-                  cursor={{fill: '#f3f4f6'}}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="incidentes" fill="#C8A882" className="dark:fill-[#D4A96A]" radius={[4, 4, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Quick Search & Summary */}
-        <div className="bg-[#8B1A1A] dark:bg-[#1A1F2E] text-white rounded-lg shadow-sm p-6 flex flex-col relative overflow-hidden border border-[#a43030] dark:border-[#2E3447]">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-[#a43030] dark:bg-[#242938] rounded-full opacity-50"></div>
-          
-          <h3 className="text-lg font-semibold mb-2 relative z-10">Consulta Rápida</h3>
-          <p className="text-white/80 dark:text-[#94A3B8] text-sm mb-6 relative z-10">Localize informações de sinistros instantaneamente.</p>
-          
-          <div className="relative z-10 mt-auto">
-            <div className="bg-white/10 dark:bg-[#1E2435] rounded-lg p-1 border border-white/20 dark:border-[#2E3447] flex items-center">
-              <input 
-                type="text" 
-                placeholder="N° Sinistro ou Lojista" 
-                className="bg-transparent border-none text-white dark:text-[#F1F5F9] placeholder-white/60 dark:placeholder-[#64748B] focus:ring-0 w-full px-3 text-sm"
-              />
-              <button className="p-2 bg-white dark:bg-[#E04444] text-[#8B1A1A] dark:text-white rounded-md hover:bg-gray-100 dark:hover:bg-[#F05555] transition-colors">
-                <Search className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Table */}
-      <div className="bg-white dark:bg-[#242938] rounded-lg shadow-sm border border-gray-100 dark:border-[#2E3447] overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-[#2E3447] flex justify-between items-center bg-gray-50/50 dark:bg-[#1A1F2E]">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-[#F1F5F9]">Últimas Ocorrências</h3>
-          <div className="relative w-64">
-            <input 
-              type="text" 
-              placeholder="Filtrar tabela..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] placeholder:text-gray-400 dark:placeholder:text-[#64748B] rounded-md focus:outline-none focus:ring-1 focus:ring-[#D93030] dark:focus:ring-[#E04444] focus:border-[#D93030] dark:focus:border-[#E04444]"
-            />
-            <Search className="w-4 h-4 text-gray-400 dark:text-[#64748B] absolute left-2.5 top-2" />
-          </div>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-[#2E3447]">
-            <thead className="bg-gray-50 dark:bg-[#1A1F2E]">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
-                  Nº Sinistro
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
-                  Local / Lojista
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
-                  Data
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
-                  Status
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider">
-                  Gravidade
-                </th>
-                <th scope="col" className="relative px-6 py-3">
-                  <span className="sr-only">Ações</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-[#242938] divide-y divide-gray-200 dark:divide-[#2E3447]">
-              {filteredClaims.map((claim) => (
-                <tr key={claim.id} className="hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors cursor-pointer" onClick={() => navigate(`/sinistros/${claim.id}`)}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-[#F1F5F9] flex items-center">
-                    {claim.id}
-                    {claim.fraudAlert && (
-                      <span title="Alerta de Fraude" className="ml-2 text-[#D93030] dark:text-[#E04444]">
-                        <AlertTriangle className="w-4 h-4" />
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-[#94A3B8]">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-800 dark:text-[#F1F5F9]">{claim.store}</span>
-                      <span className="text-xs">{claim.type}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-[#94A3B8]">
-                    {new Date(claim.date).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${claim.status === 'Aberto' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' : ''}
-                      ${claim.status === 'Aguardando Regulador' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400' : ''}
-                      ${claim.status === 'Em Análise' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400' : ''}
-                      ${claim.status === 'Aprovado' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : ''}
-                      ${claim.status === 'Pago' ? 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400' : ''}
-                    `}>
-                      {claim.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900 dark:text-[#F1F5F9]">
-                      <span className={`w-2.5 h-2.5 rounded-full mr-2 
-                        ${claim.severity === 'Alta' ? 'bg-[#D93030] dark:bg-[#E04444]' : ''}
-                        ${claim.severity === 'Média' ? 'bg-yellow-500 dark:bg-[#FBBF24]' : ''}
-                        ${claim.severity === 'Baixa' ? 'bg-green-500 dark:bg-[#34D399]' : ''}
-                      `}></span>
-                      {claim.severity}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/sinistros/${claim.id}`);
-                      }}
-                      className="text-[#D93030] dark:text-[#E04444] hover:text-[#b92828] dark:hover:text-[#F05555] inline-flex items-center"
-                    >
-                      Detalhes <ChevronRight className="w-4 h-4 ml-1" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredClaims.length === 0 && (
-            <div className="py-8 text-center text-gray-500 dark:text-[#94A3B8]">
-              Nenhum sinistro encontrado com os filtros atuais.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/pages/sinistros/SinistrosReports.tsx
-````typescript
-import { useState } from "react";
-import { Download, TrendingUp, TrendingDown, DollarSign, Activity, FileSpreadsheet, Calendar as CalendarIcon, Filter } from "lucide-react";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend
-} from "recharts";
-
-// Mock Data
-const claimsByType = [
-  { name: 'Vazamento/Água', uv: 45 },
-  { name: 'Dano Elétrico', uv: 30 },
-  { name: 'Incêndio/Fumaça', uv: 15 },
-  { name: 'Furto/Roubo', uv: 25 },
-  { name: 'Dano Estrutural', uv: 18 },
-  { name: 'Responsabilidade Civil', uv: 12 },
-];
-
-const claimsBySeverity = [
-  { name: 'Alta Gravidade', value: 25 },
-  { name: 'Média Gravidade', value: 45 },
-  { name: 'Baixa Gravidade', value: 30 },
-];
-
-const COLORS = ['#D93030', '#E5A532', '#4CAF50'];
-
-export function SinistrosReports() {
-  const [period, setPeriod] = useState("30days");
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Relatórios de Sinistros</h1>
-          <p className="text-gray-600 dark:text-[#94A3B8] mt-1">Visão gerencial consolidada das ocorrências e impacto financeiro.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-white dark:bg-[#1E2435] border border-gray-200 dark:border-[#2E3447] rounded-lg p-1 shadow-sm flex items-center">
-            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-[#64748B] ml-2" />
-            <select 
-              className="bg-transparent text-sm text-gray-700 dark:text-[#F1F5F9] px-3 py-1.5 focus:outline-none cursor-pointer"
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-            >
-              <option value="30days">Últimos 30 Dias</option>
-              <option value="q1">1º Trimestre</option>
-              <option value="q2">2º Trimestre</option>
-              <option value="ytd">Ano Atual</option>
-              <option value="custom">Personalizado...</option>
-            </select>
-          </div>
-          <button className="flex items-center gap-2 bg-[#D93030] dark:bg-[#E04444] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#b92828] dark:hover:bg-[#F05555] transition-colors shadow-sm">
-            <Download className="w-4 h-4" />
-            Exportar Dados
-          </button>
-        </div>
-      </div>
-
-      {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Total Indemnities Card */}
-        <div className="bg-gradient-to-br from-[#D93030] to-[#b92828] dark:from-[#E04444] dark:to-[#D93030] p-6 rounded-lg shadow-sm text-white relative overflow-hidden group">
-          <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-500" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white/90">Total de Indenizações Pagas</h3>
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                <DollarSign className="w-5 h-5" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold tracking-tight">R$ 1.245.890</span>
-            </div>
-            <div className="mt-4 flex items-center text-sm font-medium text-white/80 gap-1 bg-black/10 w-fit px-2.5 py-1 rounded-full">
-              <TrendingUp className="w-4 h-4" />
-              <span>+12.5% em relação ao período anterior</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Claims Card */}
-        <div className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] p-6 rounded-lg shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-600 dark:text-[#94A3B8]">Total de Sinistros Registrados</h3>
-            <div className="w-10 h-10 bg-gray-50 dark:bg-[#1A1F2E] rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#2E3447]">
-              <Activity className="w-5 h-5 text-[#D93030] dark:text-[#E04444]" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold text-gray-900 dark:text-[#F1F5F9] tracking-tight">145</span>
-            <span className="text-sm text-gray-500 dark:text-[#94A3B8] font-medium">ocorrências</span>
-          </div>
-          <div className="mt-4 flex items-center text-sm font-medium text-emerald-600 dark:text-[#34D399] gap-1 bg-emerald-50 dark:bg-emerald-900/30 w-fit px-2.5 py-1 rounded-full">
-            <TrendingDown className="w-4 h-4" />
-            <span>-5.2% em relação ao período anterior</span>
-          </div>
-        </div>
-
-        {/* Average Ticket Card */}
-        <div className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] p-6 rounded-lg shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-600 dark:text-[#94A3B8]">Ticket Médio por Sinistro</h3>
-            <div className="w-10 h-10 bg-gray-50 dark:bg-[#1A1F2E] rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#2E3447]">
-              <FileSpreadsheet className="w-5 h-5 text-[#D93030] dark:text-[#E04444]" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold text-gray-900 dark:text-[#F1F5F9] tracking-tight">R$ 8.592</span>
-          </div>
-          <div className="mt-4 flex items-center text-sm font-medium text-amber-600 dark:text-[#FBBF24] gap-1 bg-amber-50 dark:bg-amber-900/30 w-fit px-2.5 py-1 rounded-full">
-            <TrendingUp className="w-4 h-4" />
-            <span>+2.1% em relação ao período anterior</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Bar Chart - Claims by Type */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-[#F1F5F9]">Sinistros por Tipo de Ocorrência</h3>
-              <p className="text-sm text-gray-500 dark:text-[#94A3B8]">Comparativo quantitativo do período selecionado</p>
-            </div>
-            <button className="p-2 text-gray-400 dark:text-[#64748B] hover:text-[#D93030] dark:hover:text-[#E04444] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] rounded-lg transition-colors border border-transparent hover:border-gray-200 dark:hover:border-[#2E3447]">
-              <Filter className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={claimsByType}
-                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-gray-200 dark:stroke-[#2E3447]" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  className="fill-gray-600 dark:fill-[#94A3B8]" 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  className="fill-gray-600 dark:fill-[#94A3B8]" 
-                />
-                <Tooltip 
-                  cursor={{ fill: '#f3f4f6' }}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar 
-                  dataKey="uv" 
-                  fill="#D93030"
-                  className="dark:fill-[#E04444]" 
-                  radius={[6, 6, 0, 0]} 
-                  barSize={40}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Donut Chart - Severity Distribution */}
-        <div className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg p-6 shadow-sm flex flex-col">
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-[#F1F5F9]">Distribuição de Gravidade</h3>
-            <p className="text-sm text-gray-500 dark:text-[#94A3B8]">Análise de risco das ocorrências</p>
-          </div>
-          <div className="flex-1 min-h-[250px] relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={claimsBySeverity}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={110}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {claimsBySeverity.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ color: '#1F2937', fontWeight: 600 }}
-                />
-                <Legend 
-                  verticalAlign="bottom" 
-                  height={36} 
-                  iconType="circle"
-                  formatter={(value) => <span className="text-sm text-gray-700 dark:text-[#F1F5F9] font-medium ml-1">{value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            {/* Center Text */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-              <span className="text-3xl font-bold text-gray-900 dark:text-[#F1F5F9]">100</span>
-              <span className="text-xs text-gray-500 dark:text-[#94A3B8] font-medium uppercase tracking-wider">Total</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/pages/StoreDirectory.tsx
-````typescript
-import { useState } from "react";
-import { Search, Store, Phone, Mail, FileText, AlertCircle, CheckCircle2, XCircle, ChevronRight, X } from "lucide-react";
-
-// Mock Data
-const stores = [
-  { id: 1, name: "Zara", category: "Vestuário", piso: "L2", cnpj: "12.345.678/0001-90", policyActive: true, contact: "Carlos Mendes", phone: "(11) 98765-4321", email: "gerencia.zara@jpmall.com.br", claimsCount: 3 },
-  { id: 2, name: "Starbucks", category: "Alimentação", piso: "L1", cnpj: "98.765.432/0001-10", policyActive: true, contact: "Mariana Silva", phone: "(11) 91234-5678", email: "loja.starbucks@jpmall.com.br", claimsCount: 1 },
-  { id: 3, name: "Renner", category: "Vestuário", piso: "L2", cnpj: "45.678.123/0001-45", policyActive: false, contact: "Roberto Costa", phone: "(11) 97777-8888", email: "renner.jpmall@lojas.com.br", claimsCount: 0 },
-  { id: 4, name: "Centauro", category: "Esportes", piso: "L3", cnpj: "78.910.111/0001-22", policyActive: true, contact: "Ana Paula", phone: "(11) 96666-5555", email: "gerente@centauro.com.br", claimsCount: 2 },
-  { id: 5, name: "Fast Shop", category: "Eletrônicos", piso: "L1", cnpj: "33.444.555/0001-66", policyActive: true, contact: "Julio Nogueira", phone: "(11) 95555-4444", email: "julio.n@fastshop.com.br", claimsCount: 4 },
-  { id: 6, name: "Outback", category: "Alimentação", piso: "L3", cnpj: "22.333.444/0001-55", policyActive: false, contact: "Fernanda Lima", phone: "(11) 94444-3333", email: "gerencia.outback@jpmall.com.br", claimsCount: 5 },
-  { id: 7, name: "Vivara", category: "Acessórios", piso: "L1", cnpj: "11.222.333/0001-44", policyActive: true, contact: "Ricardo Alves", phone: "(11) 93333-2222", email: "loja.vivara@jpmall.com.br", claimsCount: 0 },
-  { id: 8, name: "Riachuelo", category: "Vestuário", piso: "L2", cnpj: "55.666.777/0001-88", policyActive: true, contact: "Camila Barros", phone: "(11) 92222-1111", email: "camila@riachuelo.com.br", claimsCount: 1 },
-];
-
-export function StoreDirectory() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStore, setSelectedStore] = useState<typeof stores[0] | null>(null);
-
-  const filteredStores = stores.filter(store => 
-    store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    store.cnpj.includes(searchTerm)
-  );
-
-  return (
-    <div className="relative h-full flex flex-col space-y-6">
-      {/* Header & Search */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Lojistas</h1>
-          <p className="text-gray-600 dark:text-[#94A3B8] mt-1">Diretório e consulta rápida de apólices e histórico.</p>
-        </div>
-        
-        <div className="w-full md:w-96 relative shadow-sm rounded-lg">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-[#64748B]" />
-          <input
-            type="text"
-            placeholder="Buscar por Nome da Loja ou CNPJ..."
-            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-[#1E2435] border border-gray-200 dark:border-[#2E3447] rounded-lg focus:ring-2 focus:ring-[#D93030] dark:focus:ring-[#E04444] focus:border-transparent outline-none transition-all text-gray-800 dark:text-[#F1F5F9] placeholder:text-gray-400 dark:placeholder:text-[#64748B]"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
-        {filteredStores.map((store) => (
-          <div 
-            key={store.id} 
-            className="bg-white dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg p-5 hover:shadow-md transition-all group flex flex-col"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-12 h-12 bg-gray-50 dark:bg-[#1A1F2E] rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#2E3447] text-[#D93030] dark:text-[#E04444]">
-                <Store className="w-6 h-6" />
-              </div>
-              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${store.policyActive ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700'}`}>
-                {store.policyActive ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                {store.policyActive ? 'Apólice Ativa' : 'Irregular'}
-              </div>
-            </div>
-            
-            <div className="mb-4 flex-1">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-[#F1F5F9] mb-1">{store.name}</h3>
-              <div className="flex items-center text-sm text-gray-500 dark:text-[#94A3B8] gap-2">
-                <span>{store.category}</span>
-                <span>•</span>
-                <span>Piso {store.piso}</span>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setSelectedStore(store)}
-              className="mt-auto flex items-center justify-between w-full py-2.5 px-4 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-lg text-[#D93030] dark:text-[#E04444] font-medium hover:bg-[#D93030] dark:hover:bg-[#E04444] hover:text-white transition-colors"
-            >
-              Ver Detalhes
-              <ChevronRight className="w-4 h-4 opacity-50" />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Side Drawer Overlay */}
-      {selectedStore && (
-        <div className="fixed inset-0 bg-black/40 z-40 transition-opacity" onClick={() => setSelectedStore(null)} />
-      )}
-
-      {/* Side Drawer Panel */}
-      <div 
-        className={`fixed top-0 right-0 h-full w-full sm:w-[480px] bg-[#FAF7F2] shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-[#E8DCCB] flex flex-col ${selectedStore ? 'translate-x-0' : 'translate-x-full'}`}
-      >
-        {selectedStore && (
-          <>
-            {/* Drawer Header */}
-            <div className="px-6 py-5 border-b border-[#E8DCCB] bg-white flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#FAF7F2] rounded-xl flex items-center justify-center border border-[#E8DCCB] text-[#8B1A1A]">
-                  <Store className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{selectedStore.name}</h2>
-                  <p className="text-sm text-gray-500">{selectedStore.category} • Piso {selectedStore.piso}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedStore(null)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Drawer Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              
-              {/* Status Banner */}
-              <div className={`p-4 rounded-xl flex items-start gap-3 border ${selectedStore.policyActive ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
-                {selectedStore.policyActive ? (
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600 mt-0.5" />
-                ) : (
-                  <AlertCircle className="w-6 h-6 text-red-600 mt-0.5" />
-                )}
-                <div>
-                  <h3 className={`font-semibold ${selectedStore.policyActive ? 'text-emerald-800' : 'text-red-800'}`}>
-                    {selectedStore.policyActive ? 'Apólice de Seguro Regular' : 'Atenção: Apólice Vencida ou Inexistente'}
-                  </h3>
-                  <p className={`text-sm mt-1 ${selectedStore.policyActive ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {selectedStore.policyActive 
-                      ? 'O lojista está em conformidade com as exigências contratuais do JP Mall.' 
-                      : 'É necessário notificar o lojista para regularização imediata do seguro.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Contact Info */}
-              <div className="bg-white rounded-xl border border-[#E8DCCB] p-5 shadow-sm">
-                <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider mb-4">Informações de Contato</h3>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-xs text-gray-500 block mb-1">CNPJ</span>
-                    <span className="text-gray-800 font-medium">{selectedStore.cnpj}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-500 block">Telefone / WhatsApp</span>
-                      <span className="text-gray-800 font-medium">{selectedStore.phone}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-                      <Mail className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-500 block">E-mail do Responsável</span>
-                      <span className="text-gray-800 font-medium">{selectedStore.email}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500 block mb-1">Responsável Local</span>
-                    <span className="text-gray-800 font-medium">{selectedStore.contact}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Documents */}
-              <div className="bg-white rounded-xl border border-[#E8DCCB] p-5 shadow-sm">
-                <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider mb-4">Documentos Anexados</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#8B1A1A]" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">Contrato de Locação.pdf</p>
-                        <p className="text-xs text-gray-500">Adicionado em 12/05/2022</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#8B1A1A]" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">Apólice_Seguro_2023.pdf</p>
-                        <p className="text-xs text-gray-500">Adicionado em {selectedStore.policyActive ? '15/01/2023' : 'Vencido em 10/10/2023'}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick History */}
-              <div className="bg-white rounded-xl border border-[#E8DCCB] p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider">Histórico de Sinistros</h3>
-                  <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-1 rounded-full">
-                    {selectedStore.claimsCount} Registro(s)
-                  </span>
-                </div>
-                
-                {selectedStore.claimsCount > 0 ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: Math.min(2, selectedStore.claimsCount) }).map((_, i) => (
-                      <div key={i} className="flex gap-4 p-3 rounded-lg border border-gray-100">
-                        <div className="w-1.5 h-auto bg-[#D93030] rounded-full" />
-                        <div>
-                          <p className="text-sm font-semibold text-[#8B1A1A]">SIN-2023-08{90 - i}</p>
-                          <p className="text-sm text-gray-600 mt-1">Vazamento interno afetando corredor L2.</p>
-                          <p className="text-xs text-gray-400 mt-2">Ocorrido há {i + 2} meses</p>
-                        </div>
-                      </div>
-                    ))}
-                    {selectedStore.claimsCount > 2 && (
-                      <button className="w-full py-2 text-sm text-[#8B1A1A] font-medium hover:underline text-center">
-                        Ver todo o histórico
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <AlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">Nenhum sinistro registrado para esta loja.</p>
-                  </div>
-                )}
-              </div>
-
-            </div>
-            
-            {/* Drawer Footer */}
-            <div className="px-6 py-4 border-t border-[#E8DCCB] bg-white">
-              <button className="w-full bg-[#8B1A1A] text-white py-3 rounded-xl font-medium hover:bg-[#701515] transition-colors shadow-sm">
-                Notificar Lojista
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-````
-
 ## File: Figma/src/app/routes.tsx
 ````typescript
 import { createBrowserRouter, redirect } from "react-router";
@@ -13438,789 +14221,6 @@ export const router = createBrowserRouter([
     ],
   },
 ]);
-````
-
-## File: Figma/src/app/store.ts
-````typescript
-export type ClaimStatus = "Aberto" | "Aguardando Regulador" | "Em Análise" | "Aprovado" | "Pago";
-export type ClaimSeverity = "Baixa" | "Média" | "Alta";
-
-export interface Claim {
-  id: string;
-  store: string;
-  type: string;
-  severity: ClaimSeverity;
-  status: ClaimStatus;
-  date: string;
-  description: string;
-  files: string[];
-  regulator?: string;
-  indemnityValue?: number;
-  deductibleValue?: number; // Franquia
-  fraudAlert?: boolean;
-}
-
-export const initialClaims: Claim[] = [
-  {
-    id: "SIN-001",
-    store: "Loja 104 - Vestuário",
-    type: "Vazamento / Infiltração",
-    severity: "Alta",
-    status: "Aberto",
-    date: "2026-04-06",
-    description: "Rompimento de cano na laje superior causando alagamento no estoque da loja.",
-    files: ["foto1.jpg", "laudo_bombeiros.pdf"],
-    fraudAlert: false,
-  },
-  {
-    id: "SIN-002",
-    store: "Loja 210 - Eletrônicos",
-    type: "Pico de Energia",
-    severity: "Média",
-    status: "Aguardando Regulador",
-    date: "2026-04-05",
-    description: "Curto circuito no quadro de distribuição, queima de 3 computadores e 1 monitor vitrine.",
-    files: [],
-    fraudAlert: true,
-  },
-  {
-    id: "SIN-003",
-    store: "Praça de Alimentação",
-    type: "Incêndio",
-    severity: "Alta",
-    status: "Em Análise",
-    date: "2026-04-01",
-    description: "Princípio de incêndio na coifa do restaurante 05.",
-    files: ["vistoria_tecnica.pdf"],
-    regulator: "Carlos Mendes (Susep 1234)",
-    fraudAlert: false,
-  },
-  {
-    id: "SIN-004",
-    store: "Quiosque 12 - Joias",
-    type: "Dano Físico / Vandalismo",
-    severity: "Baixa",
-    status: "Pago",
-    date: "2026-03-25",
-    description: "Vidro do expositor trincado durante a madrugada.",
-    files: ["camera_seguranca.mp4"],
-    regulator: "Ana Souza (Susep 9876)",
-    indemnityValue: 4500,
-    deductibleValue: 500,
-    fraudAlert: false,
-  }
-];
-
-// Simple in-memory store for prototype
-let claims = [...initialClaims];
-
-export const getClaims = () => claims;
-export const getClaimById = (id: string) => claims.find(c => c.id === id);
-export const addClaim = (claim: Claim) => {
-  claims.unshift(claim);
-};
-export const updateClaim = (id: string, updates: Partial<Claim>) => {
-  claims = claims.map(c => c.id === id ? { ...c, ...updates } : c);
-};
-````
-
-## File: Figma/src/imports/DESIGN_SYSTEM__JP_Mall_Corporativo.txt
-````
-DESIGN_SYSTEM: JP Mall Corporativo
-PROJETO: Flamboyant Shopping | UFG 2026/1
-
-
----
-
-
-1. OVERVIEW
-- objetivo: interface corporativa limpa, moderna e funcional
-- foco: produtividade, acessibilidade, baixo ruído visual
-- modos:
-  - light: padrão (uso em escritório)
-  - dark: uso prolongado / baixa luz
-- toggle: header
-- persistencia: localStorage
-
-
----
-
-
-2. COLORS
-
-
-2.1 BRAND_LIGHT
-- primary_dark: #8B1A1A
-- primary: #D93030
-- background: #F7F4EF
-- accent: #C8A882
-
-
-2.2 NEUTRAL_LIGHT
-- white: #FFFFFF
-- text_primary: #1F2937
-- text_secondary: #4B5563
-- border: #E5E7EB
-- bg_input: #F9FAFB
-- bg_table_alt: #F3F4F6
-
-
-2.3 SEMANTIC_LIGHT
-- success: #10B981
-- warning: #F59E0B
-- error: #D93030
-- info: #3B82F6
-
-
----
-
-
-3. COLORS_DARK
-
-
-3.1 BACKGROUND
-- base: #0F1117
-- surface: #1A1F2E
-- card: #242938
-- border: #2E3447
-- input: #1E2435
-
-
-3.2 BRAND
-- primary_dark: #8B1A1A
-- primary: #E04444
-- accent: #D4A96A
-
-
-3.3 TEXT
-- primary: #F1F5F9
-- secondary: #94A3B8
-- muted: #64748B
-
-
-3.4 SEMANTIC
-- success: #34D399
-- warning: #FBBF24
-- error: #E04444
-- info: #60A5FA
-
-
----
-
-
-4. TYPOGRAPHY
-- font_primary: Inter
-- fallback: Roboto, system-ui, sans-serif
-- base_size: 16px
-
-
-SCALE:
-- h1: { size: 24px, weight: 700 }
-- h2: { size: 18-20px, weight: 700 }
-- h3: { size: 14px, weight: 700 }
-- body: { size: 14-16px, weight: 400 }
-- small: { size: 12px, weight: 400 }
-
-
----
-
-
-5. SPACING
-- base_unit: 8px
-- scale:
-  - xs: 4px
-  - sm: 8px
-  - md: 16px
-  - lg: 24px
-  - xl: 32px
-- border_radius: 8px
-
-
----
-
-
-6. COMPONENTS
-
-
-6.1 BUTTON
-- min_height: 44px
-
-
-light:
-- primary_bg: #D93030
-- primary_hover: #b92828
-
-
-dark:
-- primary_bg: #E04444
-- primary_hover: #F05555
-
-
----
-
-
-6.2 INPUT
-
-
-light:
-- bg: #F9FAFB
-- border: #E5E7EB
-
-
-dark:
-- bg: #1E2435
-- border: #2E3447
-
-
-focus:
-- light: ring #D93030
-- dark: ring #E04444
-
-
-error:
-- light: #D93030
-- dark: #E04444
-
-
-label:
-- light: #4B5563
-- dark: #94A3B8
-
-
----
-
-
-6.3 CARD
-
-
-light:
-- bg: #FFFFFF
-- border: #E5E7EB
-
-
-dark:
-- bg: #242938
-- border: #2E3447
-
-
-- radius: 8px
-
-
----
-
-
-6.4 BADGES
-
-
-success:
-- light: bg-green-50 text-green-700 border-green-200
-- dark: bg-green-900/30 text-green-400 border-green-700
-
-
-warning:
-- light: bg-orange-50 text-orange-700 border-orange-200
-- dark: bg-orange-900/30 text-orange-400 border-orange-700
-
-
-error:
-- light: bg-red-50 text-#D93030 border-red-200
-- dark: bg-red-900/30 text-#E04444 border-red-700
-
-
-info:
-- light: bg-blue-50 text-blue-700 border-blue-200
-- dark: bg-blue-900/30 text-blue-400 border-blue-700
-
-
----
-
-
-7. ACCESSIBILITY
-
-
-- contrast:
-  - light: WCAG AA/AAA
-  - dark: WCAG AA
-
-
-- buttons:
-  - light: OK (#D93030)
-  - dark: revisar (#E04444)
-
-
-- touch_target: 44px mínimo
-
-
-- focus:
-  - light: #D93030
-  - dark: #E04444
-
-
----
-
-
-8. DARK_TOKENS (CSS VARIABLES)
-
-
-- --color-bg: #0F1117
-- --color-surface: #1A1F2E
-- --color-card: #242938
-- --color-border: #2E3447
-- --color-input-bg: #1E2435
-
-
-- --color-primary: #8B1A1A
-- --color-action: #E04444
-- --color-action-hover: #F05555
-- --color-accent: #D4A96A
-
-
-- --color-text-primary: #F1F5F9
-- --color-text-secondary: #94A3B8
-- --color-text-muted: #64748B
-
-
-- --color-success: #34D399
-- --color-warning: #FBBF24
-- --color-error: #E04444
-- --color-info: #60A5FA
-
-
----
-
-
-9. IMPLEMENTATION
-
-
-toggle_dark_mode:
-document.documentElement.classList.toggle('dark')
-
-
-tailwind_example:
-bg-white dark:bg-[#242938]
-text-gray-800 dark:text-[#F1F5F9]
-border-gray-200 dark:border-[#2E3447]
-````
-
-## File: Figma/src/main.tsx
-````typescript
-import { createRoot } from "react-dom/client";
-  import App from "./app/App.tsx";
-  import "./styles/index.css";
-
-  createRoot(document.getElementById("root")!).render(<App />);
-````
-
-## File: Figma/src/styles/fonts.css
-````css
-
-````
-
-## File: Figma/src/styles/index.css
-````css
-@import './fonts.css';
-@import './tailwind.css';
-@import './theme.css';
-````
-
-## File: Figma/src/styles/tailwind.css
-````css
-@import 'tailwindcss' source(none);
-@source '../**/*.{js,ts,jsx,tsx}';
-
-@import 'tw-animate-css';
-````
-
-## File: Figma/src/styles/theme.css
-````css
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  /* JP Mall Brand Colors - Light Mode */
-  --jp-primary-dark: #8B1A1A;
-  --jp-primary: #D93030;
-  --jp-background: #F7F4EF;
-  --jp-accent: #C8A882;
-  
-  /* Neutral Colors - Light */
-  --jp-white: #FFFFFF;
-  --jp-text-primary: #1F2937;
-  --jp-text-secondary: #4B5563;
-  --jp-border: #E5E7EB;
-  --jp-bg-input: #F9FAFB;
-  --jp-bg-table-alt: #F3F4F6;
-  
-  /* Semantic Colors - Light */
-  --jp-success: #10B981;
-  --jp-warning: #F59E0B;
-  --jp-error: #D93030;
-  --jp-info: #3B82F6;
-  
-  /* Original theme variables */
-  --font-size: 16px;
-  --background: #F7F4EF;
-  --foreground: #1F2937;
-  --card: #FFFFFF;
-  --card-foreground: #1F2937;
-  --popover: #FFFFFF;
-  --popover-foreground: #1F2937;
-  --primary: #D93030;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F3F4F6;
-  --secondary-foreground: #1F2937;
-  --muted: #F3F4F6;
-  --muted-foreground: #4B5563;
-  --accent: #C8A882;
-  --accent-foreground: #1F2937;
-  --destructive: #D93030;
-  --destructive-foreground: #FFFFFF;
-  --border: #E5E7EB;
-  --input: transparent;
-  --input-background: #F9FAFB;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: #D93030;
-  --chart-1: #D93030;
-  --chart-2: #3B82F6;
-  --chart-3: #10B981;
-  --chart-4: #F59E0B;
-  --chart-5: #C8A882;
-  --radius: 0.5rem;
-  --sidebar: #8B1A1A;
-  --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #D93030;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #a43030;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #a43030;
-  --sidebar-ring: #D93030;
-}
-
-.dark {
-  /* JP Mall Dark Mode Colors */
-  --jp-bg-base: #0F1117;
-  --jp-bg-surface: #1A1F2E;
-  --jp-bg-card: #242938;
-  --jp-border: #2E3447;
-  --jp-bg-input: #1E2435;
-  
-  --jp-primary-dark: #8B1A1A;
-  --jp-primary: #E04444;
-  --jp-accent: #D4A96A;
-  
-  --jp-text-primary: #F1F5F9;
-  --jp-text-secondary: #94A3B8;
-  --jp-text-muted: #64748B;
-  
-  --jp-success: #34D399;
-  --jp-warning: #FBBF24;
-  --jp-error: #E04444;
-  --jp-info: #60A5FA;
-  
-  /* Theme variables for dark mode */
-  --background: #0F1117;
-  --foreground: #F1F5F9;
-  --card: #242938;
-  --card-foreground: #F1F5F9;
-  --popover: #242938;
-  --popover-foreground: #F1F5F9;
-  --primary: #E04444;
-  --primary-foreground: #FFFFFF;
-  --secondary: #1A1F2E;
-  --secondary-foreground: #F1F5F9;
-  --muted: #1A1F2E;
-  --muted-foreground: #94A3B8;
-  --accent: #D4A96A;
-  --accent-foreground: #1F2937;
-  --destructive: #E04444;
-  --destructive-foreground: #FFFFFF;
-  --border: #2E3447;
-  --input: #2E3447;
-  --input-background: #1E2435;
-  --ring: #E04444;
-  --chart-1: #E04444;
-  --chart-2: #60A5FA;
-  --chart-3: #34D399;
-  --chart-4: #FBBF24;
-  --chart-5: #D4A96A;
-  --sidebar: #0F1117;
-  --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #E04444;
-  --sidebar-primary-foreground: #F1F5F9;
-  --sidebar-accent: #1A1F2E;
-  --sidebar-accent-foreground: #F1F5F9;
-  --sidebar-border: #2E3447;
-  --sidebar-ring: #E04444;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-input-background: var(--input-background);
-  --color-switch-background: var(--switch-background);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-  }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
-  html {
-    font-size: var(--font-size);
-  }
-
-  h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
-  }
-}
-````
-
-## File: Figma/vite.config.ts
-````typescript
-import { defineConfig } from 'vite'
-import path from 'path'
-import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
-
-
-function figmaAssetResolver() {
-  return {
-    name: 'figma-asset-resolver',
-    resolveId(id) {
-      if (id.startsWith('figma:asset/')) {
-        const filename = id.replace('figma:asset/', '')
-        return path.resolve(__dirname, 'src/assets', filename)
-      }
-    },
-  }
-}
-
-export default defineConfig({
-  plugins: [
-    figmaAssetResolver(),
-    // The React and Tailwind plugins are both required for Make, even if
-    // Tailwind is not being actively used – do not remove them
-    react(),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      // Alias @ to the src directory
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-
-  // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
-  assetsInclude: ['**/*.svg', '**/*.csv'],
-})
-````
-
-## File: postman/collections/JP-MALL-Testes/.resources/definition.yaml
-````yaml
-$kind: collection
-name: JP-MALL-Testes
-````
-
-## File: postman/collections/JP-MALL-Testes/ping.request.yaml
-````yaml
-$kind: http-request
-name: ping
-url: localhost:8080/ping
-method: GET
-order: 3439669128790969
-````
-
-## File: .gitignore
-````
-# ================================================================
-# Projeto-Flamboyant — .gitignore
-# Cobre: Figma (Node/Vite), API (Go/Gin/MongoDB), Postman
-# ================================================================
-
-
-# ───────────────────────────────────────────
-# Go — API/
-# ───────────────────────────────────────────
-
-# Binários compilados
-API/bin/
-API/*.exe
-API/*.out
-
-# Cache de build e testes
-API/vendor/
-API/tmp/
-API/coverage.out
-API/coverage.html
-API/*.test
-
-# Variáveis de ambiente
-API/.env
-API/.env.*
-API/config.local.yaml
-API/config.local.toml
-
-
-# ───────────────────────────────────────────
-# Node / Vite — Figma/
-# ───────────────────────────────────────────
-
-# Dependências
-Figma/node_modules/
-Figma/.pnp
-Figma/.pnp.js
-
-# Build
-Figma/dist/
-Figma/dist-ssr/
-Figma/build/
-
-# Cache Vite e TypeScript
-Figma/.vite/
-Figma/*.local
-Figma/*.tsbuildinfo
-
-# Cache pnpm
-Figma/.pnpm-store/
-Figma/.pnpm-debug.log*
-
-# Variáveis de ambiente
-Figma/.env
-Figma/.env.*
-
-
-# ───────────────────────────────────────────
-# Postman
-# ───────────────────────────────────────────
-
-# Environments e globals contêm tokens, API keys e URLs sensíveis
-# As demais pastas (collections, specs, flows, mocks) são versionadas
-postman/environments/
-postman/globals/
-.postman/
-
-
-# ───────────────────────────────────────────
-# Logs (qualquer subprojeto)
-# ───────────────────────────────────────────
-
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-
-# ───────────────────────────────────────────
-# Sistema operacional
-# ───────────────────────────────────────────
-
-.DS_Store
-Thumbs.db
-desktop.ini
-
-
-# ───────────────────────────────────────────
-# Editores
-# ───────────────────────────────────────────
-
-# VS Code — mantém extensions.json (recomendações de equipe)
-.vscode/settings.json
-.vscode/launch.json
-.vscode/*.code-snippets
-
-# JetBrains / GoLand
-.idea/
-*.iml
-*.iws
-
-# Vim / Emacs
-*.sw?
-*~
-\#*\#
 ````
 
 ## File: Figma/package.json

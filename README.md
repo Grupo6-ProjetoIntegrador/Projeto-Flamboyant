@@ -1,6 +1,176 @@
-# Projeto-Flamboyant 🏬
+# Projeto Flamboyant - Sistema de Gestão de Shopping Center
 
-O projeto tem como objetivo a concepção de uma plataforma integrada de gestão de lojistas, capaz de consolidar informações provenientes de diferentes áreas do shopping, permitindo rastreabilidade, análise estratégica e apoio à tomada de decisão.
+![Logo do Projeto](images/logo.png) <!-- Adicione uma imagem de logo aqui -->
+
+## 📋 Descrição
+
+O **Projeto Flamboyant** é um sistema completo de gestão para shopping centers, desenvolvido para administrar locatários comerciais, contratos, propostas, multas e sinistros (reclamações de seguro). O sistema oferece uma interface web intuitiva para gerenciar operações comerciais e de risco.
+
+### Funcionalidades Principais
+- ✅ **Gestão de Locatários**: Cadastro, atualização e monitoramento de lojas e contratos.
+- ✅ **Propostas e Negociações**: Controle de propostas de instalação, renovação e reajustes.
+- ✅ **Multas e Penalidades**: Registro e acompanhamento de infrações.
+- ✅ **Sinistros (Seguros)**: Gestão de reclamações com alertas de fraude e cálculo de indenizações.
+- ✅ **Dashboards e Relatórios**: Análises visuais de desempenho, receita e status de contratos.
+- ✅ **Interface Responsiva**: Design moderno com componentes reutilizáveis.
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Backend**: Go 1.26.3 com Gin-gonic (framework web) e GORM (ORM para PostgreSQL).
+- **Frontend**: React 18 com TypeScript, Vite, Tailwind CSS e Shadcn/UI.
+- **Banco de Dados**: PostgreSQL.
+- **Outros**: Docker (opcional para containerização), Postman (para testes de API).
+
+## 📋 Pré-requisitos
+
+Antes de começar, certifique-se de ter instalado em seu computador:
+
+- **Go** (versão 1.26 ou superior): [Download aqui](https://golang.org/dl/)
+- **Node.js** (versão 18 ou superior): [Download aqui](https://nodejs.org/)
+- **PostgreSQL** (versão 12 ou superior): [Download aqui](https://www.postgresql.org/download/)
+- **Git**: Para clonar o repositório.
+
+### Verificações
+Abra o terminal e execute:
+```bash
+go version  # Deve mostrar algo como "go version go1.26.3"
+node --version  # Deve mostrar algo como "v18.17.0"
+psql --version  # Deve mostrar a versão do PostgreSQL
+```
+
+![Verificação de versões](images/pre-requisitos.png) <!-- Captura de tela mostrando os comandos acima -->
+
+## 🚀 Instalação e Configuração
+
+### Passo 1: Clonar o Repositório
+```bash
+git clone https://github.com/seu-usuario/projeto-flamboyant.git
+cd projeto-flamboyant
+```
+
+### Passo 2: Configurar o Banco de Dados
+1. Abra o PostgreSQL e crie um banco de dados chamado `jp-mall`:
+   ```sql
+   CREATE DATABASE jp_mall;
+   ```
+2. Execute o script SQL fornecido:
+   ```bash
+   psql -U seu_usuario -d jp_mall -f "Banco de dados/jp-mall.sql"
+   ```
+   Substitua `seu_usuario` pelo seu usuário do PostgreSQL.
+
+![Criação do banco](images/banco-config.png) <!-- Imagem mostrando a criação do DB no pgAdmin ou terminal -->
+
+### Passo 3: Configurar o Backend (API em Go)
+1. Navegue para a pasta da API:
+   ```bash
+   cd API
+   ```
+2. Instale as dependências do Go:
+   ```bash
+   go mod tidy
+   ```
+3. Verifique se o arquivo `go.mod` está correto (deve listar gin-gonic, gorm, etc.).
+
+### Passo 4: Configurar o Frontend (React)
+1. Navegue para a pasta do frontend:
+   ```bash
+   cd ../Figma
+   ```
+2. Instale as dependências do Node.js:
+   ```bash
+   npm install
+   # ou se usar pnpm: pnpm install
+   ```
+
+## ▶️ Como Rodar o Projeto
+
+### Rodar o Backend
+1. Na pasta `API`, execute:
+   ```bash
+   go run cmd/main.go
+   ```
+2. O servidor deve iniciar na porta 8082. Você verá algo como:
+   ```
+   [GIN-debug] Listening and serving HTTP on :8082
+   ```
+
+![Servidor backend rodando]
+
+### Rodar o Frontend
+1. Na pasta `Figma`, execute:
+   ```bash
+   npm run dev
+   # ou se usar pnpm: pnpm run dev
+   ```
+2. O frontend deve abrir em `http://localhost:5173` (porta padrão do Vite).
+
+![Frontend rodando]
+
+### Acessar a Aplicação
+- Abra seu navegador e vá para `http://localhost:5173`.
+- Faça login (credenciais padrão podem estar no código ou use as definidas).
+- Explore as páginas: Dashboard, Diretório de Lojas, Sinistros, etc.
+
+![Página inicial]
+
+## 📁 Estrutura do Projeto
+
+```
+projeto-flamboyant/
+├── API/                          # Backend em Go
+│   ├── cmd/
+│   │   └── main.go              # Ponto de entrada da API
+│   ├── go.mod                   # Dependências Go
+│   └── GO/
+│       └── models.go            # Modelos de dados
+├── Banco de dados/
+│   └── jp-mall.sql              # Script SQL do banco
+├── Figma/                        # Frontend React
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── components/      # Componentes reutilizáveis
+│   │   │   ├── pages/           # Páginas da aplicação
+│   │   │   ├── routes.tsx       # Definições de rotas
+│   │   │   └── store.ts         # Gerenciamento de estado
+│   │   └── assets/              # Imagens e estilos
+│   ├── package.json             # Dependências Node.js
+│   └── vite.config.ts           # Configuração do Vite
+├── postman/                      # Coleções para testes de API
+├── README.md                     # Este arquivo
+└── images/                       # Pasta para imagens do README
+```
+
+## 🧪 Testes
+
+### Testar a API
+Use o Postman para testar os endpoints:
+- Importe a coleção em `postman/collections/JP-MALL-Testes/`.
+- Exemplos: `GET /ping`, `GET /lojistas`.
+
+### Testar o Frontend
+- Navegue pelas páginas e verifique se os dados carregam corretamente.
+- Teste filtros, formulários e modais.
+
+## 🤝 Contribuição
+
+1. Fork o projeto.
+2. Crie uma branch para sua feature: `git checkout -b feature/nova-funcionalidade`.
+3. Commit suas mudanças: `git commit -m 'Adiciona nova funcionalidade'`.
+4. Push para a branch: `git push origin feature/nova-funcionalidade`.
+5. Abra um Pull Request.
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## 📞 Suporte
+
+Se tiver dúvidas, abra uma issue no GitHub ou entre em contato com a equipe de desenvolvimento.
+
+---
+
+*Desenvolvido com ❤️ para gestão eficiente de shopping centers.*
 
 ## 📋 Sumário
 
