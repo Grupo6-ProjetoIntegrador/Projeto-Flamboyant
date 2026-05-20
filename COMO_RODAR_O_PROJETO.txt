@@ -43,21 +43,30 @@ PASSO 2 — Configurar o banco de dados
 
 PASSO 3 — Criar o arquivo de configuração da API
 --------------------------------------------------
-Dentro da pasta API/, crie um arquivo chamado .env
-com o seguinte conteúdo (ajuste os valores marcados):
+O repositório já inclui um arquivo de exemplo em:
 
-    SERVER_PORT=8080
-    GIN_MODE=debug
-    JWT_SECRET=bes2026-secret-change-in-production
-    DB_HOST=localhost
-    DB_PORT=5432
+    API/.env.example
+
+Copie-o e renomeie para API/.env:
+
+    No PowerShell:
+        Copy-Item API\.env.example API\.env
+
+    No Explorer:
+        Copie o arquivo API\.env.example e renomeie a cópia para .env
+        (o arquivo .env deve ficar dentro da pasta API/)
+
+Em seguida, abra API/.env e preencha os campos em branco:
+
+    JWT_SECRET=coloque-uma-chave-secreta-aqui
     DB_USER=postgres
     DB_PASSWORD=SUA_SENHA_AQUI
-    DB_NAME=jp-mall
-    DB_SSLMODE=disable
-    ALLOWED_ORIGIN=
 
   Substitua SUA_SENHA_AQUI pela senha do seu PostgreSQL.
+  O JWT_SECRET pode ser qualquer texto longo (ex: uma frase aleatória).
+
+  Os demais valores já vêm com padrões que funcionam para
+  ambiente local e normalmente não precisam ser alterados.
 
   OBS: o arquivo Figma/.env é criado automaticamente pelo
        script de inicialização. Não precisa criar manualmente.
