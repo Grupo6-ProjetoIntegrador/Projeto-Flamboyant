@@ -1,0 +1,5 @@
+$kind: http-request
+name: Listar Histórico
+method: GET
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/historico'
+order: 13000

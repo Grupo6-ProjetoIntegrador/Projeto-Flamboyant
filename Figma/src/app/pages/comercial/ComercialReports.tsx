@@ -1,510 +1,887 @@
-import { useState, useMemo } from "react";
+/**
+ * ComercialReports.tsx — View de Relatórios Comerciais.
+ *
+ * Papel na arquitetura MVVM: camada VIEW.
+ * Toda lógica está em useComercialReports (ViewModel).
+ *
+ * O que exibe:
+ *  Desktop (2 colunas):
+ *   Esquerda: seleção de campos (árvore por categoria) + filtros
+ *   Direita:  gráficos (segmento, piso, status) + pré-visualização
+ *
+ *  Mobile: accordion separado para gráficos e campos + modal de preview
+ *
+ * Seleção de campos (árvore):
+ *  - Categorias: Disponibilidade, Proposta, Histórico
+ *  - Cada categoria é expansível/retrátil (isCategoryExpanded)
+ *  - Checkbox de categoria seleciona/deseleciona todos os campos filhos
+ *  - Histórico tem recuo visual (ml-4) indicando que é filho de Proposta
+ *
+ * Pré-visualização:
+ *  - Exibe até 8 unidades em estrutura hierárquica:
+ *    Unidade → Proposta → Histórico
+ *  - Blocos coloridos por categoria: vermelho (disp.), roxo (prop.), âmbar (hist.)
+ *
+ * Exportação:
+ *  - XLSX: usa SheetJS para gerar planilha com colunas achatadas
+ *  - PDF: usa jsPDF + autoTable com cabeçalho da marca JP Mall
+ *  - handleExportXLSX/PDF: aliases do handleExport do ViewModel,
+ *    que setam o formato antes de chamar a função de exportação
+ *
+ * Aliases locais:
+ *  isCategoryExpanded(cat) — função derivada de expandedCategories (string[])
+ *  isExpandedCat           — calculado por .map() de categoria, booleano local
+ *  fmtCurrency             — formata número como R$ para exibição
+ *  getEdicoesByProposal    — retorna [] (histórico via API futuramente)
+ *  hasDisp/hasProp/hasHist — booleanos de categoria com campo selecionado
+ */
+import React from "react";
 import {
-  Download, Filter, Calendar, CheckSquare, BarChart3,
-  FileText, TrendingUp, RefreshCw, Check, ChevronDown,
-  Printer, Table, FileSpreadsheet
+  Download, Filter, Calendar, CheckSquare,
+  FileText, Check, ChevronRight, ChevronDown, X, BarChart2
 } from "lucide-react";
-import { FilterSelect } from "../../components/FilterSelect";
-import { allLojistas, propostasAtivas } from "../../data/comercialData";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-
-interface ReportField {
-  id: string;
-  label: string;
-  category: string;
-  selected: boolean;
-}
-
-const DEFAULT_FIELDS: ReportField[] = [
-  // Lojista
-  { id: "nome", label: "Nome do Lojista", category: "Lojista", selected: true },
-  { id: "cnpj", label: "CNPJ", category: "Lojista", selected: false },
-  { id: "segmento", label: "Segmento", category: "Lojista", selected: true },
-  { id: "responsavel", label: "Responsável", category: "Lojista", selected: false },
-  { id: "email", label: "E-mail", category: "Lojista", selected: false },
-  { id: "telefone", label: "Telefone", category: "Lojista", selected: false },
-  // Unidade
-  { id: "unidade", label: "Unidade", category: "Unidade", selected: true },
-  { id: "piso", label: "Piso", category: "Unidade", selected: true },
-  { id: "corredor", label: "Corredor", category: "Unidade", selected: false },
-  { id: "area", label: "Área (m²)", category: "Unidade", selected: false },
-  { id: "status", label: "Status da Unidade", category: "Unidade", selected: true },
-  // Contrato
-  { id: "contratoId", label: "Código do Contrato", category: "Contrato", selected: false },
-  { id: "contratoInicio", label: "Início do Contrato", category: "Contrato", selected: false },
-  { id: "contratoFim", label: "Fim do Contrato", category: "Contrato", selected: true },
-  { id: "contratoStatus", label: "Status do Contrato", category: "Contrato", selected: true },
-  { id: "valorAluguel", label: "Valor do Aluguel", category: "Contrato", selected: true },
-  { id: "luvas", label: "Valor das Luvas", category: "Contrato", selected: false },
-  { id: "percentualFaturamento", label: "% Faturamento", category: "Contrato", selected: false },
-  { id: "indiceReajuste", label: "Índice de Reajuste", category: "Contrato", selected: false },
-  { id: "diasRestantes", label: "Dias Restantes", category: "Contrato", selected: false },
-  // Financeiro
-  { id: "faturamentoMedio", label: "Faturamento Médio", category: "Financeiro", selected: false },
-  // Relacionamento — removido
-];
-
-function fmt(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-}
-
-function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <button
-      onClick={onChange}
-      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${checked ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
-    >
-      {checked && <Check className="w-3 h-3 text-white" />}
-    </button>
-  );
-}
+import { DatePickerInput } from "../../components/DatePickerInput";
+import { MobileCarousel } from "../../components/MobileCarousel";
+import type { StatusProposta } from "../../data/comercialData";
+import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
+import { SEGMENTOS, PISOS, STATUS_LOJA } from "../../enums";
+import { useComercialReports, type ReportField } from "../../viewmodels/useComercialReports";
+import { DataTable } from "../../components/DataTable";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, Legend
+} from "recharts";
 
 const CHART_COLORS = ['#D93030', '#C8A882', '#8B1A1A', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
 
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const isBar = label !== undefined;
+  return (
+    <div style={{
+      backgroundColor: 'var(--color-background-primary)',
+      border: '1px solid var(--color-border-secondary)',
+      borderRadius: '10px',
+      padding: '10px 12px',
+      fontSize: '11px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+      minWidth: '120px',
+    }}>
+      {isBar && (
+        <p style={{
+          fontWeight: 600,
+          marginBottom: '6px',
+          paddingBottom: '6px',
+          borderBottom: '1px solid var(--color-border-tertiary)',
+          color: '#C8A882',
+        }}>{label}</p>
+      )}
+      {payload.map((entry: any, i: number) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              backgroundColor: entry.payload?.fill ?? entry.color ?? '#D93030',
+              flexShrink: 0,
+            }} />
+            <span style={{ color: 'var(--color-text-secondary)' }}>{entry.name ?? entry.payload?.name}</span>
+          </div>
+          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+            {entry.value} {entry.value === 1 ? 'loja' : 'lojas'}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Ordem de renderização das categorias
+const CATEGORY_ORDER = ['Disponibilidade', 'Proposta', 'Dados da Loja', 'Histórico'] as const;
+
+// Cores por categoria
+const CATEGORY_COLORS: Record<string, string> = {
+  Disponibilidade: 'bg-[#D93030]/10 text-[#D93030] dark:bg-[#D93030]/20',
+  Proposta:        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  'Dados da Loja': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
+  Histórico:       'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+};
+
+const CATEGORY_BORDER: Record<string, string> = {
+  Disponibilidade: 'border-l-4 border-[#D93030]',
+  Proposta:        'border-l-4 border-purple-500',
+  'Dados da Loja': 'border-l-4 border-teal-500',
+  Histórico:       'border-l-4 border-amber-500 ml-4',
+};
+
 export function ComercialReports() {
-  const [fields, setFields] = useState<ReportField[]>(DEFAULT_FIELDS);
-  const [dateFrom, setDateFrom] = useState("2024-01-01");
-  const [dateTo, setDateTo] = useState("2026-04-30");
-  const [filterPiso, setFilterPiso] = useState("Todos");
-  const [filterStatus, setFilterStatus] = useState("Todos");
-  const [filterSegmento, setFilterSegmento] = useState("Todos");
-  const [reportType, setReportType] = useState<"contratos" | "propostas" | "ocupacao">("contratos");
-  const [showPreview, setShowPreview] = useState(false);
-  const [exportFormat, setExportFormat] = useState<"csv" | "pdf" | "xlsx">("xlsx");
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const {
+    allLojistas, allPropostas, filteredLojistas, filteredPropostas,
+    segmentosChart, pisoChart, propostasChart,
+    fields, setFields, selectedFields, dispFields, propFields, lojFields, histFields,
+    expandedCategories,
+    dateFrom, setDateFrom, dateTo, setDateTo,
+    filterPisos, setFilterPisos,
+    filterStatuses, setFilterStatuses,
+    filterSegmentos, setFilterSegmentos,
+    showMobileFilters, setShowMobileFilters,
+    exportFormat, setExportFormat,
+    reportChartIndex, setReportChartIndex,
+    showPreviewModal, setShowPreviewModal,
+    mobileReportSection,
+    toggleField, toggleCategory, toggleExpanded, toggleReportSection,
+    handleExport,
+  } = useComercialReports();
 
-  const toggleField = (id: string) => {
-    setFields(prev => prev.map(f => f.id === id ? { ...f, selected: !f.selected } : f));
-  };
+  // ── Aliases e variáveis locais ──────────────────────────
+  // expandedCategories era Set — agora é string[] — adaptar .has()
+  const isCategoryExpanded = (cat: string) => expandedCategories.includes(cat);
 
-  const toggleCategory = (category: string) => {
-    const catFields = fields.filter(f => f.category === category);
-    const allSelected = catFields.every(f => f.selected);
-    setFields(prev => prev.map(f => f.category === category ? { ...f, selected: !allSelected } : f));
-  };
+  // Booleanos de categoria selecionada
+  const hasDisp = dispFields.length > 0;
+  const hasProp = propFields.length > 0;
+  const hasHist = histFields.length > 0;
+  // hasLoj removido — categoria "Dados da Loja" removida
 
-  const selectAll = () => setFields(prev => prev.map(f => ({ ...f, selected: true })));
-  const clearAll = () => setFields(prev => prev.map(f => ({ ...f, selected: false })));
+  // fmtCurrency local
+  const fmtCurrency = (v: number) =>
+    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
 
-  const categories = useMemo(() => {
-    const cats: Record<string, ReportField[]> = {};
-    fields.forEach(f => { if (!cats[f.category]) cats[f.category] = []; cats[f.category].push(f); });
-    return cats;
-  }, [fields]);
+  // getEdicoesByProposal — retorna [] pois histórico vem da API
+  const getEdicoesByProposal = (_id: string): Array<{ editadoEm: string; editadoPorNome: string; snapshot: { status: string } }> => [];
 
-  const selectedFields = fields.filter(f => f.selected);
-
-  // Report data based on filters
-  const reportData = useMemo(() => {
-    return allLojistas.filter(l => {
-      const matchPiso = filterPiso === "Todos" || l.piso === filterPiso;
-      const matchStatus = filterStatus === "Todos" || l.status === filterStatus;
-      const matchSeg = filterSegmento === "Todos" || l.segmento === filterSegmento;
-      return matchPiso && matchStatus && matchSeg;
-    });
-  }, [filterPiso, filterStatus, filterSegmento]);
-
-  // Charts data
-  const segmentosChart = useMemo(() => {
-    const map: Record<string, number> = {};
-    reportData.filter(l => l.status === 'Ocupado').forEach(l => { map[l.segmento] = (map[l.segmento] || 0) + 1; });
-    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
-  }, [reportData]);
-
-  const multasChart = useMemo(() => {
-    const map: Record<string, number> = {};
-    reportData.forEach(l => l.multas.forEach(m => { map[m.tipo] = (map[m.tipo] || 0) + 1; }));
-    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 6);
-  }, [reportData]);
-
-  // Preview table data
-  const previewRows = useMemo(() => {
-    return reportData.slice(0, 15).map(l => {
-      const row: Record<string, string> = {};
-      selectedFields.forEach(f => {
-        switch (f.id) {
-          case "nome": row[f.label] = l.nome || "—"; break;
-          case "cnpj": row[f.label] = l.cnpj || "—"; break;
-          case "segmento": row[f.label] = l.segmento; break;
-          case "responsavel": row[f.label] = l.responsavel || "—"; break;
-          case "email": row[f.label] = l.email || "—"; break;
-          case "telefone": row[f.label] = l.telefone || "—"; break;
-          case "unidade": row[f.label] = l.unidade; break;
-          case "piso": row[f.label] = l.piso; break;
-          case "corredor": row[f.label] = l.corredor; break;
-          case "area": row[f.label] = `${l.area} m²`; break;
-          case "status": row[f.label] = l.status; break;
-          case "contratoId": row[f.label] = l.contratoAtivo?.id || "—"; break;
-          case "contratoInicio": row[f.label] = l.contratoAtivo?.inicio || "—"; break;
-          case "contratoFim": row[f.label] = l.contratoAtivo?.fim || "—"; break;
-          case "contratoStatus": row[f.label] = l.contratoAtivo?.status || "—"; break;
-          case "valorAluguel": row[f.label] = l.contratoAtivo ? fmt(l.contratoAtivo.valorAluguel) : "—"; break;
-          case "luvas": row[f.label] = l.contratoAtivo ? fmt(l.contratoAtivo.luvas) : "—"; break;
-          case "percentualFaturamento": row[f.label] = l.contratoAtivo ? `${l.contratoAtivo.percentualFaturamento}%` : "—"; break;
-          case "indiceReajuste": row[f.label] = l.contratoAtivo?.indiceReajuste || "—"; break;
-          case "diasRestantes": row[f.label] = l.contratoAtivo ? `${l.contratoAtivo.diasRestantes} dias` : "—"; break;
-          case "faturamentoMedio": row[f.label] = fmt(l.faturamentoMedio); break;
-          default: row[f.label] = "—";
-        }
-      });
-      return row;
-    });
-  }, [reportData, selectedFields]);
+  // Aliases para compatibilidade com o JSX existente
+  const handleExportXLSX = () => { const prev = exportFormat; setExportFormat('xlsx'); handleExport(); setExportFormat(prev); };
+  const handleExportPDF  = () => { const prev = exportFormat; setExportFormat('pdf');  handleExport(); setExportFormat(prev); };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full overflow-hidden gap-4 p-6">
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Relatórios Comerciais</h1>
-          <p className="text-gray-500 dark:text-[#94A3B8] mt-1">Selecione campos, aplique filtros e exporte relatórios.</p>
         </div>
-        {/* Export button */}
-        <div className="relative">
-          <div className="flex gap-2">
-            <div className="flex border border-gray-200 dark:border-[#2E3447] rounded-xl overflow-hidden">
-              {(["xlsx", "csv", "pdf"] as const).map(fmt2 => (
-                <button
-                  key={fmt2}
-                  onClick={() => setExportFormat(fmt2)}
-                  className={`px-3 py-2 text-xs font-medium transition-colors ${exportFormat === fmt2 ? 'bg-[#D93030] text-white' : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E]'}`}
-                >
-                  {fmt2.toUpperCase()}
-                </button>
-              ))}
-            </div>
-            <button className="flex items-center gap-2 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-5 py-2.5 text-sm font-medium transition-colors shadow-sm">
-              <Download className="w-4 h-4" /> Exportar Relatório
-            </button>
+        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+          <div className="flex border border-gray-200 dark:border-[#2E3447] rounded-xl overflow-hidden">
+            {(['xlsx', 'pdf'] as const).map(f => (
+              <button key={f} onClick={() => setExportFormat(f)}
+                className={`px-3 py-2 text-xs font-medium transition-colors
+                  ${exportFormat === f ? 'bg-[#D93030] text-white' : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E]'}`}>
+                {f.toUpperCase()}
+              </button>
+            ))}
           </div>
+          <button
+            onClick={() => exportFormat === 'xlsx' ? handleExportXLSX() : handleExportPDF()}
+            disabled={selectedFields.length === 0}
+            className="flex items-center gap-2 bg-[#D93030] hover:bg-[#c02828] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-5 py-2.5 text-sm font-medium transition-colors shadow-sm"
+          >
+            <Download className="w-4 h-4" /> Exportar
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Filters + Field selector */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Date Range */}
-          <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#D93030]" /> Filtro por Período
-            </h3>
-            <div className="space-y-2.5">
-              <div>
-                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Data Inicial</label>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={e => setDateFrom(e.target.value)}
-                  className="w-full h-9 px-3 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-700 dark:text-[#CBD5E1] focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Data Final</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={e => setDateTo(e.target.value)}
-                  className="w-full h-9 px-3 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-700 dark:text-[#CBD5E1] focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-1.5 pt-1">
-                {[
-                  { label: "1 mês", from: "2026-03-17" },
-                  { label: "3 meses", from: "2026-01-17" },
-                  { label: "6 meses", from: "2025-10-17" },
-                  { label: "1 ano", from: "2025-04-17" },
-                  { label: "2 anos", from: "2024-04-17" },
-                  { label: "Tudo", from: "2019-01-01" },
-                ].map(q => (
-                  <button
-                    key={q.label}
-                    onClick={() => { setDateFrom(q.from); setDateTo("2026-04-17"); }}
-                    className="h-7 px-1 text-xs border border-gray-200 dark:border-[#2E3447] rounded-xl text-gray-500 dark:text-[#94A3B8] bg-white dark:bg-[#1A1F2E] hover:border-[#D93030]/50 hover:text-[#D93030] transition-colors"
-                  >
-                    {q.label}
-                  </button>
+      {/* Filtros — desktop: inline | mobile: região expansível independente */}
+
+      {/* Cabeçalho da região — mobile only */}
+      <button
+        onClick={() => setShowMobileFilters(f => !f)}
+        className="sm:hidden flex-shrink-0 w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]"
+      >
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-[#D93030]" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Filtros</span>
+          {/* Indicador de filtros ativos */}
+          {(dateFrom || dateTo || filterPisos.length > 0 || filterStatuses.length > 0 || filterSegmentos.length > 0) && (
+            <span className="w-2 h-2 rounded-full bg-[#D93030]" />
+          )}
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showMobileFilters ? '' : '-rotate-90'}`} />
+      </button>
+
+      {/* Conteúdo dos filtros */}
+      {/* Desktop: sempre visível | Mobile: só quando expandido */}
+      <div className={`flex-shrink-0 flex-col sm:flex-row sm:items-stretch sm:justify-start gap-0
+        ${showMobileFilters ? 'flex' : 'hidden sm:flex'}
+        bg-white dark:bg-[#242938] sm:bg-transparent sm:dark:bg-transparent
+        rounded-xl sm:rounded-none
+        border border-gray-100 dark:border-[#2E3447] sm:border-0
+        p-3 sm:p-0`}>
+
+        {/* Data de criação */}
+        <div className="flex flex-col gap-1 w-full sm:w-auto sm:pr-6 pb-2 sm:pb-0">
+          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Data de criação da proposta</span>
+          <div className="flex items-center gap-1.5 h-9">
+            <DatePickerInput value={dateFrom} onChange={setDateFrom} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
+            <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap flex-shrink-0">até</span>
+            <DatePickerInput value={dateTo} onChange={setDateTo} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
+          </div>
+        </div>
+
+        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+
+        {/* Piso */}
+        <EnumCheckboxFilter
+          label="Piso"
+          options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
+          selected={filterPisos}
+          onToggle={p => setFilterPisos(prev =>
+            prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+          )}
+          mobileGrid="grid-cols-3"
+        />
+
+        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+
+        {/* Status da unidade */}
+        <EnumCheckboxFilter
+          label="Status da unidade"
+          options={STATUS_LOJA}
+          selected={filterStatuses}
+          onToggle={s => setFilterStatuses(prev =>
+            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+          )}
+        />
+
+        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+
+        {/* Segmento */}
+        <EnumCheckboxFilter
+          label="Segmento"
+          options={SEGMENTOS}
+          selected={filterSegmentos}
+          onToggle={s => setFilterSegmentos(prev =>
+            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+          )}
+        />
+
+      </div>
+
+      {/* Área principal — flex-1 com scroll */}
+      <div className="flex-1 overflow-hidden flex flex-col gap-4">
+
+        {/* Gráficos */}
+        {/* Desktop */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-4 flex-shrink-0">
+
+          {/* Gráfico 1: Segmento (barras) */}
+          <div className="lg:col-span-1 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4">Lojas por Segmento</h3>
+            <div className="h-[170px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={segmentosChart} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10 }} dy={8} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10 }} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="value" fill="#D93030" radius={[4, 4, 0, 0]} barSize={28} name="Lojas" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Gráfico 2: Ocupação por piso (donut) */}
+          <div className="lg:col-span-1 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4">Ocupação por Piso</h3>
+            <div className="h-[170px] flex items-center">
+              <ResponsiveContainer width="55%" height="100%">
+                <PieChart>
+                  <Pie data={pisoChart} cx="50%" cy="50%" outerRadius={52} innerRadius={28} dataKey="value" paddingAngle={4}>
+                    {pisoChart.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex-1 space-y-2 pl-2">
+                {pisoChart.map((d, i) => (
+                  <div key={d.name} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
+                    <span className="text-xs text-gray-600 dark:text-[#94A3B8] flex-1 leading-tight">{d.name}</span>
+                    <span className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9]">{d.value}</span>
+                  </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4 flex items-center gap-2">
-              <Filter className="w-4 h-4 text-[#D93030]" /> Filtros do Relatório
-            </h3>
-            <div className="space-y-2.5">
-              <div>
-                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Piso</label>
-                <FilterSelect
-                  value={filterPiso}
-                  onChange={setFilterPiso}
-                  options={[
-                    { value: "Todos", label: "Todos os Pisos" },
-                    { value: "P", label: "Primeiro Piso" },
-                    { value: "S", label: "Segundo Piso" },
-                    { value: "T", label: "Terceiro Piso" },
-                  ]}
-                />
+          {/* Gráfico 3: Status das propostas (donut) */}
+          <div className="lg:col-span-1 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4">Status das Propostas</h3>
+            <div className="h-[170px] flex items-center">
+              <ResponsiveContainer width="55%" height="100%">
+                <PieChart>
+                  <Pie data={propostasChart} cx="50%" cy="50%" outerRadius={52} dataKey="value" paddingAngle={3}>
+                    {propostasChart.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex-1 space-y-1.5 pl-2 overflow-hidden">
+                {propostasChart.map((d, i) => (
+                  <div key={d.name} className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span className="text-[10px] text-gray-600 dark:text-[#94A3B8] flex-1 leading-tight truncate">{d.name}</span>
+                    <span className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9] flex-shrink-0">{d.value}</span>
+                  </div>
+                ))}
               </div>
-              <div>
-                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Status</label>
-                <FilterSelect
-                  value={filterStatus}
-                  onChange={setFilterStatus}
-                  options={[
-                    { value: "Todos", label: "Todos" },
-                    { value: "Ocupado", label: "Ocupados" },
-                    { value: "Disponível", label: "Disponíveis" },
-                  ]}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 dark:text-[#64748B] mb-1 block">Segmento</label>
-                <FilterSelect
-                  value={filterSegmento}
-                  onChange={setFilterSegmento}
-                  options={[
-                    { value: "Todos", label: "Todos" },
-                    ...["Moda", "Alimentação", "Serviços", "Eletrônicos", "Esportes", "Entretenimento", "Outros"].map(s => ({ value: s, label: s })),
-                  ]}
-                />
-              </div>
-              <button
-                onClick={() => { setFilterPiso("Todos"); setFilterStatus("Todos"); setFilterSegmento("Todos"); }}
-                className="w-full h-9 flex items-center justify-center gap-2 border border-[#D93030]/25 bg-[#D93030]/5 text-[#D93030] rounded-xl text-sm hover:bg-[#D93030]/10 transition-colors"
-              >
-                <RefreshCw className="w-3.5 h-3.5" /> Limpar Filtros
-              </button>
             </div>
           </div>
 
-          {/* Field selector */}
-          <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
-            <div className="flex items-center justify-between mb-4">
+        </div>
+
+        {/* Gráficos mobile — região expansível */}
+        <div className="sm:hidden flex-shrink-0 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] overflow-hidden">
+          <button
+            onClick={() => toggleReportSection('graficos')}
+            className="w-full flex items-center justify-between px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <BarChart2 className="w-4 h-4 text-[#D93030]" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Gráficos</span>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${mobileReportSection === 'graficos' ? '' : '-rotate-90'}`} />
+          </button>
+
+          {mobileReportSection === 'graficos' && (
+            <div className="border-t border-gray-100 dark:border-[#2E3447] h-[260px]">
+              <MobileCarousel
+                index={reportChartIndex}
+                total={3}
+                onPrev={() => setReportChartIndex(i => Math.max(0, i - 1))}
+                onNext={() => setReportChartIndex(i => Math.min(2, i + 1))}
+              >
+                <div className="h-full p-2">
+                  {reportChartIndex === 0 && (
+                    <>
+                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-1.5">Lojas por Segmento</h3>
+                      <ResponsiveContainer width="100%" height={130}>
+                        <BarChart data={segmentosChart} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10 }} dy={8} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10 }} />
+                          <Tooltip content={<ChartTooltip />} />
+                          <Bar dataKey="value" fill="#D93030" radius={[4, 4, 0, 0]} barSize={28} name="Lojas" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </>
+                  )}
+                  {reportChartIndex === 1 && (
+                    <>
+                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-1.5">Ocupação por Piso</h3>
+                      <div className="h-[130px] flex items-center">
+                        <ResponsiveContainer width="55%" height="100%">
+                          <PieChart>
+                            <Pie data={pisoChart} cx="50%" cy="50%" outerRadius={52} innerRadius={28} dataKey="value" paddingAngle={4}>
+                              {pisoChart.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}
+                            </Pie>
+                            <Tooltip content={<ChartTooltip />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="flex-1 space-y-2 pl-2">
+                          {pisoChart.map((d, i) => (
+                            <div key={d.name} className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
+                              <span className="text-xs text-gray-600 dark:text-[#94A3B8] flex-1 leading-tight">{d.name}</span>
+                              <span className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9]">{d.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {reportChartIndex === 2 && (
+                    <>
+                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-1.5">Status das Propostas</h3>
+                      <div className="h-[130px] flex items-center">
+                        <ResponsiveContainer width="55%" height="100%">
+                          <PieChart>
+                            <Pie data={propostasChart} cx="50%" cy="50%" outerRadius={52} dataKey="value" paddingAngle={3}>
+                              {propostasChart.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip content={<ChartTooltip />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="flex-1 space-y-1.5 pl-2 overflow-hidden">
+                          {propostasChart.map((d, i) => (
+                            <div key={d.name} className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                              <span className="text-[10px] text-gray-600 dark:text-[#94A3B8] flex-1 leading-tight truncate">{d.name}</span>
+                              <span className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9] flex-shrink-0">{d.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </MobileCarousel>
+            </div>
+          )}
+        </div>
+
+        {/* Grid Campos + Preview */}
+        {/* Desktop */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-4 flex-1 overflow-hidden min-h-0">
+
+          {/* Campos a Exportar — 1/3 */}
+          <div className="lg:col-span-1 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4 flex flex-col overflow-hidden">
+            <div className="flex items-center mb-3 flex-shrink-0">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] flex items-center gap-2">
                 <CheckSquare className="w-4 h-4 text-[#D93030]" /> Campos a Exportar
               </h3>
-              <div className="flex gap-2">
-                <button onClick={selectAll} className="text-xs text-[#D93030] hover:underline">Todos</button>
-                <span className="text-gray-300 dark:text-[#3E4557]">|</span>
-                <button onClick={clearAll} className="text-xs text-gray-500 hover:underline">Nenhum</button>
-              </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-[#64748B] mb-4">{selectedFields.length} de {fields.length} campos selecionados</p>
-            <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
-              {Object.entries(categories).map(([category, catFields]) => {
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+              {/* Linha de controle — dentro do scroll */}
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#2E3447] mb-2 mt-3">
+                <span className="text-[10px] text-gray-400 dark:text-[#64748B]">{selectedFields.length} de {fields.length} selecionados</span>
+                <div className="flex gap-2">
+                  <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: true })))} className="text-[10px] text-[#D93030] hover:underline">Todos</button>
+                  <span className="text-[10px] text-gray-300 dark:text-[#3E4557]">|</span>
+                  <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: false })))} className="text-[10px] text-gray-500 hover:underline">Nenhum</button>
+                </div>
+              </div>
+
+              {CATEGORY_ORDER.map(category => {
+                const catFields = fields.filter(f => f.category === category);
                 const allSel = catFields.every(f => f.selected);
                 const someSel = catFields.some(f => f.selected);
+                const isHistorico = category === 'Histórico';
+                const isExpandedCat = isCategoryExpanded(category);
+
                 return (
-                  <div key={category}>
-                    <button
-                      onClick={() => toggleCategory(category)}
-                      className="flex items-center gap-2 mb-2 w-full text-left group"
-                    >
-                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-[#D93030]/30 border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557]'}`}>
+                  <div key={category} className={isHistorico ? 'ml-4' : ''}>
+                    {/* Linha do nó pai (categoria) — clique no chevron expande, clique no checkbox seleciona */}
+                    <div className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors
+                      ${isHistorico ? 'border-l-2 border-amber-400 pl-3' : ''}`}>
+
+                      {/* Chevron de expand/collapse */}
+                      <button
+                        onClick={() => toggleExpanded(category)}
+                        className="flex-shrink-0 w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-[#F1F5F9] transition-colors"
+                      >
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isExpandedCat ? '' : '-rotate-90'}`} />
+                      </button>
+
+                      {/* Checkbox da categoria */}
+                      <button
+                        onClick={() => toggleCategory(category)}
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
+                          ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-[#D93030]/30 border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
+                      >
                         {allSel && <Check className="w-2.5 h-2.5 text-white" />}
                         {someSel && !allSel && <div className="w-2 h-0.5 bg-[#D93030] rounded" />}
+                      </button>
+
+                      {/* Badge da categoria + indicação filho */}
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${CATEGORY_COLORS[category]}`}>
+                          {category}
+                        </span>
+                        {isHistorico && (
+                          <span className="text-[9px] text-amber-500/70 whitespace-nowrap">↳ Proposta</span>
+                        )}
+                        <span className="text-[10px] text-gray-400 dark:text-[#64748B] ml-auto flex-shrink-0">
+                          {catFields.filter(f => f.selected).length}/{catFields.length}
+                        </span>
                       </div>
-                      <span className="text-xs font-semibold text-gray-700 dark:text-[#94A3B8] uppercase tracking-wider">{category}</span>
-                    </button>
-                    <div className="ml-2 space-y-1.5">
-                      {catFields.map(field => (
-                        <label key={field.id} className="flex items-center gap-2.5 cursor-pointer group">
-                          <Checkbox checked={field.selected} onChange={() => toggleField(field.id)} />
-                          <span className="text-sm text-gray-700 dark:text-[#F1F5F9] group-hover:text-[#D93030] transition-colors">{field.label}</span>
-                        </label>
-                      ))}
                     </div>
+
+                    {/* Filhos — colapsáveis */}
+                    {isExpandedCat && (
+                      <div className="ml-7 mt-0.5 space-y-0.5">
+                        {catFields.map(field => (
+                          <label
+                            key={field.id}
+                            className="flex items-center gap-2 py-1 px-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors group"
+                          >
+                            <button
+                              onClick={() => toggleField(field.id)}
+                              className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
+                                ${field.selected ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
+                            >
+                              {field.selected && <Check className="w-2 h-2 text-white" />}
+                            </button>
+                            <span className="text-xs text-gray-700 dark:text-[#CBD5E1] group-hover:text-[#D93030] transition-colors leading-tight">
+                              {field.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
 
-        {/* Right: Charts + Preview */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Report type tabs */}
-          <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-1 flex gap-1">
-            {[
-              { id: "contratos", label: "Contratos", icon: FileText },
-              { id: "ocupacao", label: "Ocupação", icon: BarChart3 },
-              { id: "propostas", label: "Propostas", icon: TrendingUp },
-            ].map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setReportType(id as any)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${reportType === id ? 'bg-[#D93030] text-white shadow-sm' : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E]'}`}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:block">{label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Charts */}
-          {reportType === "contratos" && (
-            <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4">Distribuição por Segmento</h3>
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={segmentosChart} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} />
-                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', backgroundColor: '#1E2435', color: '#F1F5F9' }} />
-                    <Bar dataKey="value" fill="#D93030" radius={[4, 4, 0, 0]} barSize={36} name="Lojas" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
-          {reportType === "ocupacao" && (
-            <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4">Ocupação por Piso</h3>
-              <div className="h-56 flex items-center justify-center">
-                <ResponsiveContainer width="60%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={["P", "S", "T"].map(p => ({
-                        name: p,
-                        value: allLojistas.filter(l => l.piso === p && l.status === "Ocupado").length,
-                      }))}
-                      cx="50%" cy="50%" outerRadius={80} innerRadius={45}
-                      dataKey="value" paddingAngle={4}
-                    >
-                      {["P", "S", "T"].map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', backgroundColor: '#1E2435', color: '#F1F5F9' }} formatter={(v, n) => [`${v} lojas`, n]} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-3">
-                  {["P", "S", "T"].map((p, i) => {
-                    const count = allLojistas.filter(l => l.piso === p && l.status === "Ocupado").length;
-                    return (
-                      <div key={p} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
-                        <span className="text-sm text-gray-600 dark:text-[#94A3B8]">{p}</span>
-                        <span className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{count} lojas</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {reportType === "propostas" && (
-            <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-5">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] mb-4">Status das Propostas</h3>
-              <div className="h-56 flex items-center justify-center">
-                <ResponsiveContainer width="60%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Ag. Financeiro", value: propostasAtivas.filter(p => p.status === "Aguardando análise financeira").length },
-                        { name: "Ag. Comitê", value: propostasAtivas.filter(p => p.status === "Aguardando análise do comitê").length },
-                        { name: "Aprovado", value: propostasAtivas.filter(p => p.status === "Aprovado").length },
-                        { name: "Reprovado", value: propostasAtivas.filter(p => p.status === "Reprovado").length },
-                        { name: "Cancelado", value: propostasAtivas.filter(p => p.status === "Cancelado").length },
-                      ]}
-                      cx="50%" cy="50%" outerRadius={80} dataKey="value" paddingAngle={3}
-                    >
-                      {CHART_COLORS.map((c, i) => <Cell key={i} fill={c} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', backgroundColor: '#1E2435', color: '#F1F5F9' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-2">
-                  {[
-                    "Aguardando análise financeira",
-                    "Aguardando análise do comitê",
-                    "Aprovado",
-                    "Reprovado",
-                    "Cancelado",
-                  ].map((s, i) => (
-                    <div key={s} className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
-                      <span className="text-xs text-gray-600 dark:text-[#94A3B8] max-w-[120px] leading-tight">{s}</span>
-                      <span className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9] ml-auto">{propostasAtivas.filter(p => p.status === s).length}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Preview toggle */}
-          <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] overflow-hidden">
-            <button
-              onClick={() => setShowPreview(p => !p)}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors"
-            >
+          {/* Preview hierárquico — 2/3 */}
+          <div className="lg:col-span-2 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-[#2E3447] flex-shrink-0">
               <div className="flex items-center gap-2">
-                <Table className="w-4 h-4 text-[#D93030]" />
+                <FileText className="w-4 h-4 text-[#D93030]" />
                 <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">
-                  Pré-visualização da Tabela ({selectedFields.length} colunas · {reportData.length} linhas)
+                  Pré-visualização ({filteredLojistas.length} unidades)
                 </span>
               </div>
-              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showPreview ? 'rotate-180' : ''}`} />
-            </button>
+              <div className="flex gap-2">
+                {/* Legenda de categorias */}
+                {CATEGORY_ORDER.filter(c => selectedFields.some(f => f.category === c)).map(c => (
+                  <span key={c} className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${CATEGORY_COLORS[c]}`}>{c}</span>
+                ))}
+              </div>
+            </div>
 
-            {showPreview && selectedFields.length > 0 && (
-              <div className="border-t border-gray-100 dark:border-[#2E3447] overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-100 dark:divide-[#2E3447] text-xs">
-                  <thead className="bg-gray-50 dark:bg-[#1A1F2E]">
-                    <tr>
-                      {selectedFields.map(f => (
-                        <th key={f.id} className="px-4 py-2.5 text-left font-medium text-gray-500 dark:text-[#94A3B8] uppercase tracking-wider whitespace-nowrap">
-                          {f.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-[#242938] divide-y divide-gray-100 dark:divide-[#2E3447]">
-                    {previewRows.map((row, i) => (
-                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors">
-                        {selectedFields.map(f => (
-                          <td key={f.id} className="px-4 py-2.5 whitespace-nowrap text-gray-700 dark:text-[#94A3B8]">
-                            {row[f.label]}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="px-5 py-3 bg-gray-50/50 dark:bg-[#1A1F2E] border-t border-gray-100 dark:border-[#2E3447] flex items-center justify-between">
-                  <p className="text-xs text-gray-500 dark:text-[#64748B]">
-                    Exibindo prévia de 15 de {reportData.length} registros
-                  </p>
-                  <div className="flex gap-2">
-                    <button className="flex items-center gap-1.5 bg-[#D93030] hover:bg-[#c02828] text-white rounded-lg px-4 py-2 text-xs font-medium transition-colors">
-                      <Download className="w-3.5 h-3.5" /> Exportar {exportFormat.toUpperCase()} ({reportData.length} registros)
-                    </button>
-                    <button className="flex items-center gap-1.5 border border-gray-200 dark:border-[#2E3447] text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-[#1A1F2E] rounded-lg px-3 py-2 text-xs font-medium transition-colors">
-                      <Printer className="w-3.5 h-3.5" /> Imprimir
-                    </button>
-                  </div>
+            {selectedFields.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-[#64748B]">
+                <div className="text-center">
+                  <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">Selecione ao menos um campo para pré-visualizar</p>
                 </div>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {filteredLojistas.slice(0, 8).map(l => {
+                  const props = allPropostas.filter(p => p.unidade === l.unidade);
+                  const dispExpanded = true;
+
+                  return (
+                    <div key={l.id} className="border border-red-200 dark:border-red-900/30 rounded-xl overflow-hidden">
+
+                      {/* ══ CABEÇALHO DISPONIBILIDADE ══ */}
+                      <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/20">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
+                          Disponibilidade
+                        </span>
+                      </div>
+
+                      {/* ══ TABELA DISPONIBILIDADE ══ */}
+                      {dispFields.length > 0 && (
+                        <DataTable
+                          data={[{
+                            ...Object.fromEntries(dispFields.map(f => [f.id, 
+                              f.id === 'unidade' ? l.unidade :
+                              f.id === 'piso' ? (l.piso === 'P' ? 'Primeiro Piso' : l.piso === 'S' ? 'Segundo Piso' : 'Terceiro Piso') :
+                              f.id === 'corredor' ? l.corredor :
+                              f.id === 'area' ? `${l.area} m²` :
+                              f.id === 'statusUnidade' ? l.status : '—'
+                            ]))
+                          }]}
+                          columnConfig={Object.fromEntries(dispFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
+                        />
+                      )}
+
+                      {/* ══ SUB-RELATÓRIOS DE PROPOSTA (só quando expandido) ══ */}
+                      {dispExpanded && (
+                        <div className="p-3 space-y-2 bg-white dark:bg-[#1A1F2E]">
+                          {props.length === 0 ? (
+                            <p className="text-xs text-gray-400 dark:text-[#64748B] text-center py-2">
+                              Nenhuma proposta vinculada
+                            </p>
+                          ) : props.map(p => {
+                            const propExpanded = true;
+                            // Buscar lojista pelo lojistaId da proposta (não pela unidade)
+                            // Dados da loja vêm de nomeFantasia/segmento/responsavel da Proposta
+                            const edicoes = histFields.length > 0
+                              ? getEdicoesByProposal(p.id)
+                              : [];
+                            const hasChildren =
+                              (false) ||
+                              edicoes.length > 0;
+
+                            return (
+                              <div key={p.id} className="border border-purple-200 dark:border-purple-800/40 rounded-lg overflow-hidden">
+
+                                {/* — CABEÇALHO PROPOSTA — */}
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30">
+                                  <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
+                                    Proposta
+                                  </span>
+                                </div>
+
+                                {/* — TABELA PROPOSTA — */}
+                                {propFields.length > 0 && (
+                                  <DataTable
+                                    data={[{
+                                      ...Object.fromEntries(propFields.map(f => [f.id,
+                                        f.id === 'propCodigo' ? p.id :
+                                        f.id === 'propTipo' ? p.tipo :
+                                        f.id === 'propValor' ? fmtCurrency(p.valorProposto) :
+                                        f.id === 'propStatus' ? p.status :
+                                        f.id === 'propCriacao' ? p.dataCriacao :
+                                        f.id === 'propVencimento' ? (p.dataVencimento || '—') :
+                                        f.id === 'propResponsavel' ? (p.responsavel || '—') : '—'
+                                      ]))
+                                    }]}
+                                    columnConfig={Object.fromEntries(propFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
+                                  />
+                                )}
+
+                                {/* — SUB-BLOCOS LOJISTA E HISTÓRICO (só quando proposta expandida) — */}
+                                {propExpanded && (
+                                  <div className="p-2 space-y-2 bg-white dark:bg-[#1A1F2E]">
+
+                                    {/* LOJISTA — só renderiza se p.nomeFantasia || '—'Id existir e lojista for encontrado */}
+                                    {false && (
+                                      <div className="border border-teal-200 dark:border-teal-800/40 rounded-lg overflow-hidden">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 border-b border-teal-100 dark:border-teal-800/30">
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-teal-700 dark:text-teal-400">
+                                            Dados da Loja
+                                          </span>
+                                        </div>
+
+                                      </div>
+                                    )}
+
+                                    {/* HISTÓRICO — só renderiza se houver edições e campos selecionados */}
+                                    {edicoes.length > 0 && histFields.length > 0 && (
+                                      <div className="border border-amber-200 dark:border-amber-800/40 rounded-lg overflow-hidden">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800/30">
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
+                                            Histórico
+                                          </span>
+                                        </div>
+                                        <DataTable
+                                          data={edicoes.slice(0, 5).map(e => ({
+                                            ...Object.fromEntries(histFields.map(f => [f.id,
+                                              f.id === 'histData'       ? new Date(e.editadoEm).toLocaleString('pt-BR') :
+                                              f.id === 'histEditor'     ? e.editadoPorNome :
+                                              f.id === 'histStatusAnt'  ? e.snapshot.status :
+                                              f.id === 'histStatusNovo' ? p.status : '—'
+                                            ]))
+                                          }))}
+                                          columnConfig={Object.fromEntries(histFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
+                                        />
+                                      </div>
+                                    )}
+
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            {showPreview && selectedFields.length === 0 && (
-              <div className="border-t border-gray-100 dark:border-[#2E3447] p-8 text-center text-gray-400 dark:text-[#64748B]">
-                <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Selecione ao menos um campo para pré-visualizar</p>
+            <div className="flex-shrink-0 px-5 py-3 bg-gray-50/50 dark:bg-[#1A1F2E] border-t border-gray-100 dark:border-[#2E3447] flex items-center justify-between">
+              <p className="text-xs text-gray-500 dark:text-[#64748B]">
+                Exibindo prévia de {Math.min(8, filteredLojistas.length)} de {filteredLojistas.length} unidades
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => exportFormat === 'xlsx' ? handleExportXLSX() : handleExportPDF()}
+                  disabled={selectedFields.length === 0}
+                  className="flex items-center gap-1.5 bg-[#D93030] hover:bg-[#c02828] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 py-2 text-xs font-medium transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" /> Exportar
+                </button>
               </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Campos a Exportar mobile — região expansível com flex-1 quando aberta */}
+        <div className={`sm:hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] overflow-hidden flex flex-col
+          ${mobileReportSection === 'campos' ? 'flex-1 min-h-0' : 'flex-shrink-0'}`}>
+
+          <button
+            onClick={() => toggleReportSection('campos')}
+            className="w-full flex items-center justify-between px-4 py-3 text-left flex-shrink-0"
+          >
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-[#D93030]" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Campos a Exportar</span>
+              <span className="text-[10px] text-gray-400 dark:text-[#64748B] font-normal">({selectedFields.length}/{fields.length})</span>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${mobileReportSection === 'campos' ? '' : '-rotate-90'}`} />
+          </button>
+
+          {mobileReportSection === 'campos' && (
+            <div className="flex-1 overflow-y-auto space-y-1 px-4 pb-4 border-t border-gray-100 dark:border-[#2E3447]">
+              {/* Linha de controle — dentro do scroll */}
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#2E3447] mb-2 mt-3">
+                <span className="text-[10px] text-gray-400 dark:text-[#64748B]">{selectedFields.length} de {fields.length} selecionados</span>
+                <div className="flex gap-2">
+                  <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: true })))} className="text-[10px] text-[#D93030] hover:underline">Todos</button>
+                  <span className="text-[10px] text-gray-300 dark:text-[#3E4557]">|</span>
+                  <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: false })))} className="text-[10px] text-gray-500 hover:underline">Nenhum</button>
+                </div>
+              </div>
+
+              {CATEGORY_ORDER.map(category => {
+                const catFields = fields.filter(f => f.category === category);
+                const allSel = catFields.every(f => f.selected);
+                const someSel = catFields.some(f => f.selected);
+                const isHistorico = category === 'Histórico';
+                const isExpandedCat = isCategoryExpanded(category);
+
+                return (
+                  <div key={category} className={isHistorico ? 'ml-4' : ''}>
+                    <div className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors
+                      ${isHistorico ? 'border-l-2 border-amber-400 pl-3' : ''}`}>
+                      <button onClick={() => toggleExpanded(category)} className="flex-shrink-0">
+                        <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isExpandedCat ? '' : '-rotate-90'}`} />
+                      </button>
+                      <div
+                        onClick={() => toggleCategory(category)}
+                        className={`w-3.5 h-3.5 border rounded flex items-center justify-center flex-shrink-0 cursor-pointer transition-colors
+                          ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-gray-300 dark:bg-[#3E4557] border-gray-400 dark:border-[#64748B]' : 'border-gray-400 dark:border-[#64748B]'}`}
+                      >
+                        {allSel && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                        {someSel && !allSel && <div className="w-1.5 h-0.5 bg-gray-700 dark:bg-[#CBD5E1]" />}
+                      </div>
+                      <span className={`text-xs font-semibold flex-1 ${CATEGORY_COLORS[category]}`}>{category}</span>
+                      <span className="text-[10px] text-gray-400 dark:text-[#64748B] font-mono">{catFields.filter(f => f.selected).length}/{catFields.length}</span>
+                    </div>
+                    {isExpandedCat && (
+                      <div className="ml-6 space-y-0.5 mt-0.5">
+                        {catFields.map(field => (
+                          <div key={field.id}
+                            onClick={() => toggleField(field.id)}
+                            className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50 dark:hover:bg-[#1A1F2E] cursor-pointer transition-colors">
+                            <div className={`w-3 h-3 border rounded flex items-center justify-center flex-shrink-0
+                              ${field.selected ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#64748B]'}`}>
+                              {field.selected && <Check className="w-2 h-2 text-white" strokeWidth={3} />}
+                            </div>
+                            <span className="text-xs text-gray-700 dark:text-[#CBD5E1] flex-1">{field.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* FAB — mobile only */}
+      <button
+        onClick={() => setShowPreviewModal(true)}
+        className="sm:hidden fixed bottom-20 right-4 z-[70] w-14 h-14 bg-[#D93030] hover:bg-[#c02828] text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+        title="Pré-visualizar relatório"
+      >
+        <FileText className="w-6 h-6" />
+      </button>
+
+      {/* Modal Preview — mobile only */}
+      {showPreviewModal && (
+        <div className="sm:hidden fixed inset-0 z-[80] flex flex-col bg-white dark:bg-[#1E2435]">
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#8B1A1A] to-[#D93030]">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-white" />
+              <span className="text-sm font-semibold text-white">
+                Pré-visualização ({filteredLojistas.length} unidades)
+              </span>
+            </div>
+            <button
+              onClick={() => setShowPreviewModal(false)}
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {selectedFields.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-[#64748B]">
+                <CheckSquare className="w-8 h-8 mb-2 opacity-40" />
+                <p className="text-sm">Selecione ao menos um campo</p>
+              </div>
+            ) : (
+              filteredLojistas.slice(0, 8).map(l => {
+                const props = allPropostas.filter(p => p.unidade === l.unidade);
+                return (
+                  <div key={l.id} className={`flex flex-col rounded-xl overflow-hidden bg-white dark:bg-[#242938] border ${CATEGORY_BORDER.Disponibilidade}`}>
+                    {hasDisp && (
+                      <div>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/20">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
+                            Disponibilidade
+                          </span>
+                        </div>
+                        <div className="p-3 space-y-1.5">
+                          {dispFields.map(f => (
+                            <div key={f.id} className="flex items-center justify-between text-xs">
+                              <span className="text-gray-500 dark:text-[#94A3B8]">{f.label}:</span>
+                              <span className="font-medium text-gray-900 dark:text-[#F1F5F9]">
+                                {f.id === 'unidade' ? l.unidade : f.id === 'piso' ? (l.piso === 'P' ? 'Primeiro' : l.piso === 'S' ? 'Segundo' : 'Terceiro') : f.id === 'corredor' ? l.corredor : f.id === 'area' ? `${l.area} m²` : l.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {props.map(p => {
+                      const lojista: { nome: string; cnpj: string; segmento: string; responsavel: string; email: string; telefone: string } | undefined = undefined; // lojistaId não disponível na API
+                      const edicoes = histFields.length > 0 ? getEdicoesByProposal(p.id) : [];
+                      return (
+                        <div key={p.id}>
+                          {hasProp && (
+                            <div className={`ml-3 rounded-lg overflow-hidden ${CATEGORY_BORDER.Proposta}`}>
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
+                                  Proposta
+                                </span>
+                              </div>
+                              <div className="p-3 space-y-1.5">
+                                {propFields.map(f => (
+                                  <div key={f.id} className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-500 dark:text-[#94A3B8]">{f.label}:</span>
+                                    <span className="font-medium text-gray-900 dark:text-[#F1F5F9]">
+                                      {f.id === 'propCodigo' ? p.id : f.id === 'propTipo' ? p.tipo : f.id === 'propValor' ? fmtCurrency(p.valorProposto) : f.id === 'propStatus' ? p.status : f.id === 'propCriacao' ? p.dataCriacao : f.id === 'propVencimento' ? p.dataVencimento : p.responsavel}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
             )}
           </div>
 
-          {/* Export actions */}
-          
+          <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 dark:border-[#2E3447] bg-gray-50 dark:bg-[#1A1F2E] flex items-center justify-between gap-3">
+            <div className="flex border border-gray-200 dark:border-[#2E3447] rounded-lg overflow-hidden">
+              {(['xlsx', 'pdf'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setExportFormat(f)}
+                  className={`px-3 py-2 text-xs font-medium transition-colors
+                    ${exportFormat === f ? 'bg-[#D93030] text-white' : 'text-gray-600 dark:text-[#94A3B8]'}`}
+                >
+                  {f.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { exportFormat === 'xlsx' ? handleExportXLSX() : handleExportPDF(); setShowPreviewModal(false); }}
+              disabled={selectedFields.length === 0}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#D93030] hover:bg-[#c02828] disabled:opacity-50 text-white rounded-lg px-4 py-2 text-xs font-medium transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Exportar
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

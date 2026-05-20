@@ -1,6 +1,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
   /* JP Mall Brand Colors - Light Mode */
   --jp-primary-dark: #8B1A1A;
   --jp-primary: #D93030;
@@ -63,6 +64,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   /* JP Mall Dark Mode Colors */
   --jp-bg-base: #0F1117;
   --jp-bg-surface: #1A1F2E;

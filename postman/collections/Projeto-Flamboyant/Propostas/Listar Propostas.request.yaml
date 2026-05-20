@@ -1,0 +1,5 @@
+$kind: http-request
+name: Listar Propostas
+method: GET
+url: '{{baseUrl}}/api/v1/propostas'
+order: 7000

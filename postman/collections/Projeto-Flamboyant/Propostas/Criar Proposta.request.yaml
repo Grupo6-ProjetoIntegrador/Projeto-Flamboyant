@@ -1,0 +1,23 @@
+$kind: http-request
+name: Criar Proposta
+method: POST
+url: '{{baseUrl}}/api/v1/propostas'
+order: 9000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "idUnidade": "{{unidade_id}}",
+      "segmento": "Moda",
+      "tipoOperacao": "Nova Instalação",
+      "valorProposto": 45000,
+      "area": 120.5,
+      "abl": 110.0,
+      "nomeFantasia": "Loja Exemplo",
+      "status": "Aguardando análise financeira",
+      "dataVencimento": "2026-12-31",
+      "observacoes": "Proposta criada via API para testes"
+    }

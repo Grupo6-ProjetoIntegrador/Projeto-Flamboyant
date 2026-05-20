@@ -1,0 +1,39 @@
+$kind: http-request
+name: Salvar Necessidades Técnicas
+method: PUT
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/necessidades-tecnicas'
+order: 17000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "demandaEletricaKva": 45.0,
+      "tensaoNecessaria": "220V",
+      "circuitosEspeciais": false,
+      "obsEletrica": "Padrão comercial",
+      "pontoAgua": true,
+      "quantidadePontosAgua": 2,
+      "pontoEsgoto": true,
+      "vazaoNecessariaLmin": 10.0,
+      "caixaGordura": false,
+      "obsHidraulica": "",
+      "necessitaGas": false,
+      "tipoGas": "Não se aplica",
+      "necessitaExaustao": true,
+      "vazaoExaustaoM3h": 2000.0,
+      "necessitaMakeUpAr": false,
+      "areaMinimaM2": 100.0,
+      "areaMaximaM2": 150.0,
+      "peDireitoMinimoM": 3.5,
+      "cargaPisoKgm2": 500.0,
+      "necessitaMezanino": false,
+      "frenteMinimaM": 8.0,
+      "tipoFachada": "Aberta",
+      "comunicacaoVisualLed": true,
+      "pontosDados": 4,
+      "necessitaFibra": true,
+      "status": "Rascunho"
+    }

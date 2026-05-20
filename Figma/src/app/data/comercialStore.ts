@@ -1,9 +1,30 @@
 /**
+ * comercialStore.ts — Store de estado local (legado de protótipo)
+ *
+ * CONTEXTO: este arquivo é um resquício da fase inicial do protótipo,
+ * quando os dados eram mantidos em memória (arrays JavaScript mutáveis)
+ * em vez de virem da API. As telas principais já NÃO usam mais este store
+ * — buscam dados da API via useApi + Services.
+ *
+ * O que ainda está em uso:
+ *  getUserSession()     — lido pelo Layout.tsx para exibir nome/e-mail
+ *                         do usuário na sidebar
+ *  setUserSession()     — chamado pelo AuthContext ao fazer login
+ *  getEdicoesByProposal() — chamado pelo useComercialReports para o
+ *                           histórico de edições (retorna [] por ora)
+ *  PropostaEdicao (tipo) — usado pelo PropostaManutencaoModal para
+ *                          tipar o histórico de snapshots
+ *
+ * O que pode ser removido no futuro:
+ *  - propostasAtivas (dados mock)
+ *  - funções de CRUD local (criarProposta, atualizarStatusProposta, etc.)
+ *  - auditLog (será substituído pelo histórico real da API)
+ *
  * Comercial Store — Gerenciamento de estado e operações comerciais
  * Cobre: RF-02, RF-03, RF-05, RF-07, RF-08 | RNF-04, RNF-05 | RN-01 ao RN-05
  */
 import { propostasAtivas as initialPropostas } from './comercialData';
-import type { Proposta, StatusProposta, Multa } from './comercialData';
+import type { Proposta, StatusProposta } from './comercialData';
 
 // ============================================================
 // TIPOS
@@ -11,7 +32,7 @@ import type { Proposta, StatusProposta, Multa } from './comercialData';
 
 export interface AuditEntry {
   id: string;
-  entityType: 'Proposta' | 'Contrato' | 'Multa';
+  entityType: 'Proposta';
   entityId: string;
   action: string;
   details: string;
@@ -24,34 +45,12 @@ export interface AuditEntry {
 export interface Documento {
   id: string;
   entityId: string;
-  entityType: 'Proposta' | 'Contrato';
+  entityType: 'Proposta';
   nome: string;
   tamanho: string;
   tipo: 'PDF' | 'DOCX' | 'XLSX' | 'JPG' | 'PNG';
   dataUpload: string;
   uploadedBy: string;
-}
-
-export interface ContratoGerado {
-  id: string;
-  proposalId: string;
-  lojistaId?: string;
-  lojista: string;
-  unidade: string;
-  segmento: string;
-  area: number;
-  valorAluguel: number;
-  luvas: number;
-  percentualFaturamento: number;
-  inicio: string; // dd/mm/yyyy
-  fim: string;    // dd/mm/yyyy — RN-03: obrigatório
-  status: 'Ativo' | 'Em Renovação' | 'Vencendo' | 'Vencido';
-  indiceReajuste: 'IGPM' | 'IPCA';
-  tipo: 'Aluguel Fixo' | 'Aluguel + Percentual' | 'Só Percentual';
-  desempenho: number;
-  diasRestantes: number;
-  createdAt: string;
-  createdBy: string;
 }
 
 export interface ProposalOverride {
@@ -61,15 +60,39 @@ export interface ProposalOverride {
   updatedBy: string;
 }
 
+export interface PropostaEdicao {
+  id: string;           // ex: "EDIT-1716900000000"
+  proposalId: string;   // ID da proposta original
+  snapshot: Proposta;   // cópia completa da proposta ANTES da edição
+  editadoEm: string;    // ISO string
+  editadoPor: string;
+  editadoPorNome: string;
+}
+
 // ============================================================
 // ESTADO GLOBAL (module-level mutable state)
 // ============================================================
 
 let proposalsState: Proposta[] = [...initialPropostas];
 const proposalOverrides: Record<string, ProposalOverride> = {};
-let generatedContracts: ContratoGerado[] = [];
 let auditLog: AuditEntry[] = [];
-let documentos: Documento[] = [];
+// Inicializar documentos do localStorage
+function loadDocumentosFromStorage(): Documento[] {
+  try {
+    const saved = localStorage.getItem('jp-mall-documentos');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return [];
+}
+
+function saveDocumentosToStorage(): void {
+  try {
+    localStorage.setItem('jp-mall-documentos', JSON.stringify(documentos));
+  } catch {}
+}
+
+let documentos: Documento[] = loadDocumentosFromStorage();
+let edicoesProposta: PropostaEdicao[] = [];
 let listeners: Set<() => void> = new Set();
 
 // ============================================================
@@ -141,7 +164,7 @@ export function addProposal(p: Omit<Proposta, 'id'>): Proposta {
     entityType: 'Proposta',
     entityId: newP.id,
     action: 'Nova proposta criada',
-    details: `Proposta ${newP.id} criada para ${p.lojista} na unidade ${p.unidade}.`,
+    details: `Proposta ${newP.id} criada para ${p.nomeFantasia || '—'} na unidade ${p.unidade}.`,
   });
   notify();
   return newP;
@@ -163,77 +186,10 @@ export function updateProposalStatus(id: string, newStatus: StatusProposta, obs?
     action: `Status alterado: "${old.status}" → "${newStatus}"`,
     details: obs ?? `Proposta ${id} atualizada para status "${newStatus}".`,
   });
-  // RN-01: Gerar contrato APENAS se status = "Aprovado"
-  if (newStatus === 'Aprovado') {
-    const alreadyGenerated = generatedContracts.some(c => c.proposalId === id);
-    if (!alreadyGenerated) generateContractFromProposal(id);
-  }
   notify();
   return true;
 }
 
-// ============================================================
-// CONTRATOS GERADOS (RF-03, RN-01, RN-03, RN-04, RN-05)
-// ============================================================
-
-function generateContractFromProposal(proposalId: string): ContratoGerado | null {
-  const proposal = getProposalById(proposalId);
-  // RN-01: Somente propostas aprovadas geram contrato
-  if (!proposal || proposal.status !== 'Aprovado') return null;
-  // RN-05: Contrato vinculado a lojista (lojista campo é obrigatório)
-  if (!proposal.lojista) return null;
-  // RN-04: Não pode ter dois contratos ativos na mesma unidade
-  const existingActive = generatedContracts.find(
-    c => c.unidade === proposal.unidade && c.status === 'Ativo'
-  );
-  if (existingActive) return null;
-
-  const now = new Date();
-  const fimDate = new Date(now);
-  fimDate.setFullYear(fimDate.getFullYear() + 3);
-  const fmtDate = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const diasRestantes = Math.round((fimDate.getTime() - now.getTime()) / 86400000);
-  const user = getUserSession();
-
-  // RN-03: Contrato com datas obrigatórias (início e fim)
-  const contract: ContratoGerado = {
-    id: `CTR-${now.getFullYear()}-GERADO-${Date.now().toString().slice(-5)}`,
-    proposalId,
-    lojistaId: proposal.lojistaId,
-    lojista: proposal.lojista,
-    unidade: proposal.unidade,
-    segmento: proposal.segmento,
-    area: proposal.area,
-    valorAluguel: proposal.valorProposto,
-    luvas: Math.round(proposal.valorProposto * 3),
-    percentualFaturamento: 3.5,
-    inicio: fmtDate(now),
-    fim: fmtDate(fimDate), // RN-03
-    status: 'Ativo',
-    indiceReajuste: 'IGPM',
-    tipo: 'Aluguel + Percentual',
-    desempenho: 80,
-    diasRestantes,
-    createdAt: now.toISOString(),
-    createdBy: user.name,
-  };
-  generatedContracts.push(contract);
-  addAudit({
-    entityType: 'Contrato',
-    entityId: contract.id,
-    action: 'Contrato gerado automaticamente',
-    details: `Contrato ${contract.id} gerado a partir da proposta aceita ${proposalId} para ${proposal.lojista} — unidade ${proposal.unidade}. Vencimento: ${contract.fim}.`,
-  });
-  return contract;
-}
-
-export function getGeneratedContracts(): ContratoGerado[] {
-  return [...generatedContracts];
-}
-
-export function getGeneratedContractByUnit(unidade: string): ContratoGerado | undefined {
-  return generatedContracts.find(c => c.unidade === unidade && c.status === 'Ativo');
-}
 
 // ============================================================
 // DOCUMENTOS (RF-08)
@@ -248,6 +204,7 @@ export function addDocument(doc: Omit<Documento, 'id' | 'dataUpload' | 'uploaded
     uploadedBy: user.name,
   };
   documentos.push(d);
+  saveDocumentosToStorage();
   addAudit({
     entityType: doc.entityType,
     entityId: doc.entityId,
@@ -266,6 +223,7 @@ export function removeDocument(docId: string): void {
   const doc = documentos.find(d => d.id === docId);
   if (!doc) return;
   documentos = documentos.filter(d => d.id !== docId);
+  saveDocumentosToStorage();
   addAudit({
     entityType: doc.entityType,
     entityId: doc.entityId,
@@ -279,41 +237,91 @@ export function removeDocument(docId: string): void {
 // AUDIT LOG (RNF-04, RNF-05)
 // ============================================================
 
-export function getAuditLog(): AuditEntry[] {
-  return [...auditLog];
-}
 
-export function getAuditByEntity(entityId: string): AuditEntry[] {
-  return auditLog.filter(a => a.entityId === entityId);
-}
+
+
 
 // ============================================================
-// MULTAS POR LOJISTA (mutable — para botão "Adicionar Multa")
+// EDIÇÕES DE PROPOSTA (histórico)
 // ============================================================
 
-const multasExtras: Record<string, Multa[]> = {}; // lojistaId → Multa[]
-
-export function getMultasExtras(lojistaId: string): Multa[] {
-  return multasExtras[lojistaId] ?? [];
+export function getEdicoesByProposal(proposalId: string): PropostaEdicao[] {
+  return edicoesProposta
+    .filter(e => e.proposalId === proposalId)
+    .sort((a, b) => b.editadoEm.localeCompare(a.editadoEm));
 }
 
-export function addMultaToLojista(
-  lojistaId: string,
-  lojistaNome: string,
-  multa: Omit<Multa, 'id'>
-): Multa {
-  if (!multasExtras[lojistaId]) multasExtras[lojistaId] = [];
-  const newMulta: Multa = {
-    ...multa,
-    id: `MUL-NOVO-${Date.now()}`,
-  };
-  multasExtras[lojistaId].push(newMulta);
-  addAudit({
-    entityType: 'Multa',
-    entityId: lojistaId,
-    action: 'Multa registrada',
-    details: `Multa "${multa.tipo}" de ${multa.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })} lançada para ${lojistaNome}. Motivo: ${multa.descricao}`,
+export function updateProposalData(
+  id: string,
+  updates: Partial<Proposta>,
+  snapshotAntes?: Proposta  // estado ANTES da edição — fornecido pelo modal via propostaOld
+): boolean {
+  const idx = proposalsState.findIndex(p => p.id === id);
+  if (idx === -1) return false;
+
+  const user = getUserSession();
+
+  // Usar snapshot fornecido pelo modal (propostaOld) se disponível,
+  // caso contrário capturar do store como fallback
+  const before: Proposta = snapshotAntes ?? getProposalById(id) ?? proposalsState[idx];
+
+  // Salvar histórico com o estado ANTERIOR
+  edicoesProposta.push({
+    id: `EDIT-${Date.now()}`,
+    proposalId: id,
+    snapshot: before,
+    editadoEm: new Date().toISOString(),
+    editadoPor: user.email,
+    editadoPorNome: user.name,
   });
+
+  // Aplicar novos dados
+  proposalsState[idx] = { ...proposalsState[idx], ...updates };
+
+  addAudit({
+    entityType: 'Proposta',
+    entityId: id,
+    action: 'Proposta editada',
+    details: `Dados da proposta ${id} atualizados por ${user.name}.`,
+  });
+
   notify();
-  return newMulta;
+  return true;
+}
+export function getProposalsByUnidade(unidade: string): Proposta[] {
+  return getProposals().filter(p => p.unidade === unidade);
+}
+
+export function checkAndUpdateVencidas(): void {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  proposalsState.forEach(p => {
+    // Somente propostas com status Aprovado podem vencer automaticamente
+    const statusAtual = proposalOverrides[p.id]?.status ?? p.status;
+    if (statusAtual !== 'Aprovado') return;
+    if (!p.dataVencimento) return;
+
+    const parts = p.dataVencimento.split('/');
+    if (parts.length !== 3) return;
+    const venc = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    venc.setHours(0, 0, 0, 0);
+
+    if (venc < hoje) {
+      proposalOverrides[p.id] = {
+        ...proposalOverrides[p.id],
+        status: 'Vencida',
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'Sistema',
+      };
+      addAudit({
+        entityType: 'Proposta',
+        entityId: p.id,
+        action: 'Status atualizado automaticamente: "Aprovado" → "Vencida"',
+        details: `Proposta ${p.id} venceu em ${p.dataVencimento} e foi marcada automaticamente como Vencida.`,
+      });
+    }
+  });
+
+  notify();
 }

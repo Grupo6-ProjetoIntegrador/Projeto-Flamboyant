@@ -1,0 +1,5 @@
+$kind: http-request
+name: Listar Documentos
+method: GET
+url: '{{baseUrl}}/api/v1/documentos?id_proposta={{proposta_id}}'
+order: 24000

@@ -1,0 +1,15 @@
+$kind: http-request
+name: Atualizar Status
+method: PATCH
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/status'
+order: 11000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "Aguardando análise do comitê",
+      "observacoes": "Aprovado pela análise financeira"
+    }

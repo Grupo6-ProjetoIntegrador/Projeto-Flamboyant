@@ -1,0 +1,20 @@
+$kind: http-request
+name: Salvar Cessão de Direitos
+method: PUT
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/cessao-direitos'
+order: 19000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "resSperataPropostaPcd": 120000,
+      "referenciaMercadoPorM2Pcd": 1000.0,
+      "sinalResSperataPcd": 30000,
+      "formaPagamentoSaldoPcd": "Parcelado",
+      "numParcelasPcd": 3,
+      "statusResSperataPcd": "Pendente",
+      "observacoesPcd": "Cessão negociada com desconto de 10%"
+    }

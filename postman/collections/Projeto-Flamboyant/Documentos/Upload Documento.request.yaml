@@ -1,0 +1,19 @@
+$kind: http-request
+name: Upload Documento
+method: POST
+url: '{{baseUrl}}/api/v1/documentos'
+order: 25000
+headers:
+  - key: Content-Type
+    value: multipart/form-data
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''
+      description: Arquivo a ser enviado
+    - key: id_proposta
+      type: text
+      value: '{{proposta_id}}'
+      description: ID da proposta associada

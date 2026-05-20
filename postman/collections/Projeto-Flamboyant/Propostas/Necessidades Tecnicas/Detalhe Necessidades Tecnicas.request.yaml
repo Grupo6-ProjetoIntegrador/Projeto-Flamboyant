@@ -1,0 +1,5 @@
+$kind: http-request
+name: Detalhe Necessidades Técnicas
+method: GET
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/necessidades-tecnicas'
+order: 16000

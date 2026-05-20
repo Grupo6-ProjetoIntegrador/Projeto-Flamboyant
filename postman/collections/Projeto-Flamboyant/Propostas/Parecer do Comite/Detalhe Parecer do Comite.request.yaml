@@ -1,0 +1,5 @@
+$kind: http-request
+name: Detalhe Parecer do Comitê
+method: GET
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/parecer-comite'
+order: 22000

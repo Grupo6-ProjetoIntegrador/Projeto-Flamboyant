@@ -1,0 +1,26 @@
+$kind: http-request
+name: Atualizar Proposta
+method: PUT
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}'
+order: 10000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nomeFantasia": "Loja Exemplo Atualizada",
+      "valorProposto": 48000,
+      "area": 120.5,
+      "abl": 115.0,
+      "aluguelPercent": 5.5,
+      "prazoLocacaoMeses": 36,
+      "aluguelPorM2": 398.0,
+      "condominioAprox": 3200,
+      "fppAprox": 1100,
+      "inicioContrato": "2026-07-01",
+      "fimContrato": "2029-06-30",
+      "dataInauguracao": "2026-07-15",
+      "observacoes": "Atualização dos termos financeiros"
+    }

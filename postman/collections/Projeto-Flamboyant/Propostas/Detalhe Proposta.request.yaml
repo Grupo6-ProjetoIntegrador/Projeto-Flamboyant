@@ -1,0 +1,5 @@
+$kind: http-request
+name: Detalhe Proposta
+method: GET
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}'
+order: 8000
