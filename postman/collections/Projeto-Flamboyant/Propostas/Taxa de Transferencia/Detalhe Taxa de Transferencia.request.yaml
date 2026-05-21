@@ -1,0 +1,5 @@
+$kind: http-request
+name: Detalhe Taxa de Transferência
+method: GET
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/taxa-transferencia'
+order: 20000

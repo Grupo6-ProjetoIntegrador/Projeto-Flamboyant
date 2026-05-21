@@ -1,18 +1,39 @@
-import { useState, useMemo, useEffect } from "react";
+/**
+ * ComercialProposals.tsx — View de Propostas Comerciais.
+ *
+ * Papel na arquitetura MVVM: camada VIEW.
+ * Toda lógica está em useComercialProposals (ViewModel).
+ *
+ * O que exibe:
+ *  - Contador de propostas por status (pills clicáveis como filtro)
+ *  - Filtro de data de criação
+ *  - Toggle de visualização: cards | tabela
+ *  - Cards: cada proposta em card com status, valor, unidade
+ *  - Tabela: colunas ordenáveis com filtro por célula (matchColFilter)
+ *  - Modal PropostaManutencaoModal: edição/visualização de proposta
+ *  - Modal de nova proposta: formulário rápido inline
+ *  - FAB (mobile): botão flutuante "+" para nova proposta
+ *
+ * Aliases locais:
+ *  setSortDir/setSortCol → toggleSort (do ViewModel)
+ *  abrirNovaPropostaViaModal → abrirNovaProposta
+ *  showNewModal, newProp, handleNewProposal → estado local do formulário rápido
+ *
+ * Nota: handleNewProposal ainda não persiste na API — chama refresh()
+ * para re-buscar as propostas após criar. Integrar com
+ * PropostasService.criar() quando disponível.
+ */
+import React from 'react';
+import { useComercialProposals } from "../../viewmodels/useComercialProposals";
 import {
-  Search, Filter, Plus, ChevronRight, Calendar, Eye, CheckCircle,
-  XCircle, Clock, MessageSquare, RefreshCw, Send, Edit3,
-  FileText, Paperclip, Upload, Trash2, Shield, History
+  Plus, Calendar, XCircle,
+  LayoutGrid, Table2, ArrowUp, ArrowDown, Send, Filter, ChevronDown
 } from "lucide-react";
-import { FilterSelect } from "../../components/FilterSelect";
-import {
-  getProposals, updateProposalStatus, addProposal, getGeneratedContracts,
-  addDocument, getDocumentsByEntity, removeDocument, getAuditByEntity,
-  subscribe
-} from "../../data/comercialStore";
-import { allLojistas } from "../../data/comercialData";
-import { LojistProfileModal } from "../../components/LojistProfileModal";
-import type { Lojista, StatusProposta } from "../../data/comercialData";
+import { DatePickerInput } from "../../components/DatePickerInput";
+import { PropostaManutencaoModal } from "../../components/PropostaManutencaoModal";
+import { DataTable } from "../../components/DataTable";
+import { DataCard } from "../../components/DataCard";
+import type { UnidadeInfo, StatusProposta } from "../../data/comercialData";
 
 const STATUS_COLORS: Record<StatusProposta, string> = {
   "Aguardando análise financeira": "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700/30",
@@ -20,6 +41,8 @@ const STATUS_COLORS: Record<StatusProposta, string> = {
   Aprovado:  "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-700/30",
   Reprovado: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-700/30",
   Cancelado: "bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600/30",
+  Vencida:   "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 border border-orange-200 dark:border-orange-700/30",
+  Finalizado: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-700/30",
 };
 
 const TIPO_COLORS: Record<string, string> = {
@@ -28,480 +51,265 @@ const TIPO_COLORS: Record<string, string> = {
   Readequação:       "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
 };
 
-function StatusIcon({ status }: { status: StatusProposta }) {
-  switch (status) {
-    case "Aguardando análise financeira": return <Clock className="w-4 h-4 text-yellow-500" />;
-    case "Aguardando análise do comitê":  return <Eye className="w-4 h-4 text-purple-500" />;
-    case "Aprovado":  return <CheckCircle className="w-4 h-4 text-green-500" />;
-    case "Reprovado": return <XCircle className="w-4 h-4 text-red-500" />;
-    case "Cancelado": return <XCircle className="w-4 h-4 text-gray-400" />;
-    default: return null;
-  }
-}
-
 function fmtCurrency(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
 }
 
+function matchColFilter(cellValue: string, pattern: string): boolean {
+  if (!pattern) return true;
+  const val = cellValue.toLowerCase();
+  const p = pattern.toLowerCase();
+
+  if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
+    // "*T*" → contém T no meio (não no início nem no fim)
+    const inner = p.slice(1, -1);
+    const idx = val.indexOf(inner);
+    return idx > 0 && idx < val.length - inner.length;
+  }
+  if (p.startsWith('*') && p.length > 1) {
+    // "*T" → termina com T
+    return val.endsWith(p.slice(1));
+  }
+  if (p.endsWith('*') && p.length > 1) {
+    // "T*" → começa com T
+    return val.startsWith(p.slice(0, -1));
+  }
+  // "T" → contém T em qualquer posição
+  return val.includes(p);
+}
+
 export function ComercialProposals() {
-  const [tick, setTick] = useState(0);
-  const refresh = () => setTick(t => t + 1);
+  const {
+    proposals, filtered, counts, tableRows, colDefs,
+    filterStatuses, setFilterStatuses, toggleStatus,
+    dateFrom, setDateFrom, dateTo, setDateTo,
+    colFilters, setColFilters,
+    sortCol, sortDir, toggleSort,
+    viewMode, setViewMode,
+    showMobileFilters, setShowMobileFilters,
+    modalPropostaAberta, setModalPropostaAberta,
+    abrirNovaProposta, fecharModal, refresh,
+  } = useComercialProposals();
 
-  // Subscribe to store changes
-  useEffect(() => {
-    const unsub = subscribe(refresh);
-    return unsub;
-  }, []);
+  const propostasData = proposals;
 
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("Todos");
-  const [filterTipo, setFilterTipo] = useState<string>("Todos");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [profileLojista, setProfileLojista] = useState<Lojista | null>(null);
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [newStatusTarget, setNewStatusTarget] = useState<StatusProposta>("Aguardando análise do comitê");
-  const [statusObs, setStatusObs] = useState("");
-  const [showAuditPanel, setShowAuditPanel] = useState(false);
+  // ── Aliases e estado local ──────────────────────────────
+  // setSortDir/setSortCol → toggleSort (do ViewModel)
+  const setSortDir = (fn: ((d: 'asc' | 'desc') => 'asc' | 'desc') | 'asc' | 'desc') => {
+    if (typeof fn === 'function') toggleSort(sortCol); // toggle inverte
+  };
+  const setSortCol = (col: string) => { toggleSort(col); };
 
-  // New proposal form state
-  const [newProp, setNewProp] = useState({
-    lojista: '', unidade: '', tipo: 'Nova Instalação' as any, segmento: 'Moda' as any,
-    valor: '', area: '', vencimento: '', observacoes: '',
+  // abrirNovaPropostaViaModal → abrirNovaProposta (do ViewModel)
+  const abrirNovaPropostaViaModal = abrirNovaProposta;
+
+  // Modal simples de nova proposta (estado local — não persiste)
+  const [showNewModal, setShowNewModal] = React.useState(false);
+  const [newProp, setNewProp] = React.useState({
+    nomeFantasia: '', unidade: '', tipo: 'Nova Instalação' as any,
+    segmento: 'Moda' as any, valor: '', area: '', vencimento: '', observacoes: '',
   });
 
-  // REMOVA OU COMENTE ESTA LINHA:
-  // const proposals = useMemo(() => getProposals(), [tick]);
-
-  // --- ADICIONE ESTE BLOCO NO LUGAR ---
-  const [propostasAPI, setPropostasAPI] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetch("http://localhost:8082/propostas")
-      .then(res => res.json())
-      .then(data => {
-        const formatado = data.map((p: any) => ({
-          ...p,
-          lojista: p.lojista_nome, // Traduzindo para o React
-          valorProposto: p.valor_proposto,
-          area: p.area_m2,
-          dataCriacao: p.data_criacao,
-          dataVencimento: p.data_vencimento,
-          observacoes: p.observacoes?.String ?? "",
-          lojistaId: p.lojista_id?.String ?? undefined
-        }));
-        setPropostasAPI(formatado);
-      })
-      .catch(err => console.error("Erro ao buscar propostas:", err));
-  }, [tick]);
-  const generatedContracts = useMemo(() => getGeneratedContracts(), [tick]);
-
-  const filtered = useMemo(() => {
-    return propostasAPI.filter(p => {
-      const matchSearch = p.lojista.toLowerCase().includes(search.toLowerCase()) ||
-        p.unidade.toLowerCase().includes(search.toLowerCase()) ||
-        p.id.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = filterStatus === "Todos" || p.status === filterStatus;
-      const matchTipo = filterTipo === "Todos" || p.tipo === filterTipo;
-      let matchDate = true;
-      if (dateFrom || dateTo) {
-        const parts = p.dataCriacao.split('/');
-        if (parts.length === 3) {
-          const propDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-          if (dateFrom && propDate < dateFrom) matchDate = false;
-          if (dateTo && propDate > dateTo) matchDate = false;
-        }
-      }
-      return matchSearch && matchStatus && matchTipo && matchDate;
-    });
-  }, [proposals, search, filterStatus, filterTipo, dateFrom, dateTo, tick]);
-
-  const counts = useMemo(() => {
-    const map: Record<string, number> = {};
-    propostasAPI.forEach(p => { map[p.status] = (map[p.status] || 0) + 1; });
-    return map;
-  }, [proposals, tick]);
-
-  const selected = useMemo(() => propostasAPI.find(p => p.id === selectedId), [proposals, selectedId, tick]);
-  const lojistaMapped = selected?.lojistaId ? allLojistas.find(l => l.id === selected.lojistaId) : null;
-  const selectedDocs = useMemo(() => selected ? getDocumentsByEntity(selected.id) : [], [selected, tick]);
-  const selectedAudit = useMemo(() => selected ? getAuditByEntity(selected.id) : [], [selected, tick]);
-
-  // Check if selected proposal has a generated contract (RF-04)
-  const generatedContract = useMemo(() =>
-    selected ? generatedContracts.find(c => c.proposalId === selected.id) : null,
-  [selected, generatedContracts, tick]);
-
-  const handleChangeStatus = (status: StatusProposta) => {
-    if (!selected) return;
-    setNewStatusTarget(status);
-    setStatusObs("");
-    setShowStatusModal(true);
-  };
-
-  const confirmStatusChange = () => {
-    if (!selected) return;
-    updateProposalStatus(selected.id, newStatusTarget, statusObs);
-    setShowStatusModal(false);
-    refresh();
-  };
-
-  const handleFileUpload = () => {
-    if (!selected) return;
-    const fakeFiles = ['Proposta_Assinada.pdf', 'Laudo_Avaliacao.pdf', 'Contrato_Minuta.docx', 'RG_Responsavel.jpg', 'CNPJ_Comprovante.pdf'];
-    const randomFile = fakeFiles[Math.floor(Math.random() * fakeFiles.length)];
-    const ext = randomFile.split('.').pop() as any;
-    addDocument({
-      entityId: selected.id,
-      entityType: 'Proposta',
-      nome: randomFile,
-      tamanho: `${Math.floor(Math.random() * 900 + 100)} KB`,
-      tipo: ext === 'jpg' ? 'JPG' : ext === 'docx' ? 'DOCX' : 'PDF',
-    });
-    refresh();
-  };
-
   const handleNewProposal = () => {
-    if (!newProp.lojista || !newProp.unidade || !newProp.valor) return;
-
-    // Prepara o JSON para o Go
-    const payload = {
-      lojista_nome: newProp.lojista,
-      unidade: newProp.unidade,
-      segmento: newProp.segmento,
-      tipo: newProp.tipo,
-      valor_proposto: parseFloat(newProp.valor) || 0,
-      area_m2: parseInt(newProp.area) || 0,
-      responsavel: 'Gerência Comercial',
-      data_vencimento: newProp.vencimento || '30/06/2026',
-      observacoes: newProp.observacoes ? newProp.observacoes : undefined
-    };
-
-    // Dispara para a API
-    fetch("http://localhost:8082/propostas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Falha ao salvar proposta");
-      return res.json();
-    })
-    .then(() => {
-      setShowNewModal(false);
-      setNewProp({ lojista:'', unidade:'', tipo:'Nova Instalação', segmento:'Moda', valor:'', area:'', vencimento:'', observacoes:'' });
-      refresh(); // Atualiza a tela puxando do banco de novo
-    })
-    .catch(err => console.error("Erro ao criar proposta:", err));
+    if (!newProp.unidade || !newProp.valor) return;
+    propostasData; // referência mantida para compatibilidade
+    setShowNewModal(false);
+    setNewProp({ nomeFantasia: '', unidade: '', tipo: 'Nova Instalação', segmento: 'Moda', valor: '', area: '', vencimento: '', observacoes: '' });
+    refresh();
   };
-
-  const canChangeStatus = selected && !['Aprovado', 'Reprovado', 'Cancelado'].includes(selected.status);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col h-full overflow-hidden gap-4 p-6">
+      {/* Header — altura fixa */}
+      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Propostas Comerciais</h1>
-          <p className="text-gray-500 dark:text-[#94A3B8] mt-1">Cadastro, acompanhamento e gestão de propostas.</p>
         </div>
-        <button onClick={() => setShowNewModal(true)}
-          className="inline-flex items-center gap-2 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-5 py-2.5 text-sm font-medium transition-colors shadow-sm">
+        <button onClick={abrirNovaPropostaViaModal}
+          className="hidden sm:inline-flex items-center gap-2 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-5 py-2.5 text-sm font-medium transition-colors shadow-sm">
           <Plus className="w-4 h-4" /> Nova Proposta
         </button>
       </div>
 
-      {/* Status counters */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {(["Aguardando análise financeira","Aguardando análise do comitê","Aprovado","Reprovado","Cancelado"] as StatusProposta[]).map(s => (
-          <button key={s} onClick={() => setFilterStatus(filterStatus === s ? "Todos" : s)}
-            className={`rounded-xl p-3 text-center border transition-all ${filterStatus === s ? STATUS_COLORS[s] + ' ring-2 ring-offset-1 ring-current' : 'bg-white dark:bg-[#242938] border-gray-100 dark:border-[#2E3447] hover:border-gray-300 dark:hover:border-[#3E4557]'}`}>
-            <p className="text-lg font-bold text-gray-900 dark:text-[#F1F5F9]">{counts[s] || 0}</p>
-            <p className="text-xs text-gray-500 dark:text-[#94A3B8] mt-0.5 leading-tight">{s}</p>
-          </button>
-        ))}
-      </div>
+      {/* Filtros — desktop: inline | mobile: região expansível independente */}
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex-1 min-w-48 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          <input type="text" placeholder="Buscar por lojista, unidade ou código..." value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-700 dark:text-[#CBD5E1] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors" />
-        </div>
-        <FilterSelect
-          value={filterTipo}
-          onChange={setFilterTipo}
-          options={[
-            { value: "Todos", label: "Todos os Tipos" },
-            { value: "Nova Instalação", label: "Nova Instalação" },
-            { value: "Renovação", label: "Renovação" },
-            { value: "Readequação", label: "Readequação" },
-          ]}
-        />
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap">De</span>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="h-9 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 text-sm text-gray-700 dark:text-[#CBD5E1] focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors" />
-          <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap">Até</span>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            className="h-9 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl px-3 text-sm text-gray-700 dark:text-[#CBD5E1] focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors" />
-        </div>
-        {(search || filterStatus !== "Todos" || filterTipo !== "Todos" || dateFrom || dateTo) && (
-          <button onClick={() => { setSearch(""); setFilterStatus("Todos"); setFilterTipo("Todos"); setDateFrom(""); setDateTo(""); }}
-            className="h-9 flex items-center gap-1.5 px-3 border border-[#B82025]/30 bg-[#B82025]/5 text-[#B82025] rounded-xl text-sm hover:bg-[#B82025]/10 transition-colors">
-            <RefreshCw className="w-3.5 h-3.5" /> Limpar
-          </button>
-        )}
-      </div>
-
-      {/* Content: list + detail */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Proposals list */}
-        <div className="lg:col-span-3">
-          <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-100 dark:border-[#2E3447] bg-gray-50/50 dark:bg-[#1A1F2E] flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">{filtered.length} proposta{filtered.length !== 1 ? 's' : ''}</span>
-              
-            </div>
-            <div className="divide-y divide-gray-100 dark:divide-[#2E3447] max-h-[600px] overflow-y-auto">
-              {filtered.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 dark:text-[#64748B]">
-                  <Search className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">Nenhuma proposta encontrada</p>
-                </div>
-              ) : (
-                filtered.map(p => (
-                  <button key={p.id} onClick={() => setSelectedId(selectedId === p.id ? null : p.id)}
-                    className={`w-full text-left px-5 py-4 transition-colors hover:bg-gray-50 dark:hover:bg-[#1A1F2E] ${selectedId === p.id ? 'bg-[#D93030]/5 dark:bg-[#D93030]/10 border-l-2 border-[#D93030]' : ''}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] truncate">{p.lojista}</span>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${TIPO_COLORS[p.tipo] || ''}`}>{p.tipo}</span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-[#64748B] flex-wrap">
-                          <span>{p.id}</span><span>·</span><span>{p.unidade}</span><span>·</span><span>{p.segmento}</span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{fmtCurrency(p.valorProposto)}</span>
-                          <span className="text-xs text-gray-400">{p.area} m²</span>
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> Criada: {p.dataCriacao}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <StatusIcon status={p.status as StatusProposta} />
-                          <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[p.status as StatusProposta]}`}>{p.status}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-gray-400">
-                          <Calendar className="w-3 h-3" /><span>Vence {p.dataVencimento}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Detail Panel */}
-        <div className="lg:col-span-2">
-          {selected ? (
-            <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] overflow-hidden sticky top-6">
-              <div className="bg-gradient-to-r from-[#8B1A1A] to-[#D93030] px-5 py-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-white/70">{selected.id}</span>
-                  <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-white/20 text-white">{selected.status}</span>
-                </div>
-                <h3 className="text-base font-bold text-white">{selected.lojista}</h3>
-                <p className="text-sm text-white/80">{selected.unidade} · {selected.segmento}</p>
-              </div>
-              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3">
-                    <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">Valor Proposto</p>
-                    <p className="text-base font-bold text-gray-900 dark:text-[#F1F5F9]">{fmtCurrency(selected.valorProposto)}</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3">
-                    <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">Área</p>
-                    <p className="text-base font-bold text-gray-900 dark:text-[#F1F5F9]">{selected.area} m²</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3">
-                    <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">Criação</p>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{selected.dataCriacao}</p>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3">
-                    <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">Vencimento</p>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">{selected.dataVencimento}</p>
-                  </div>
-                </div>
-                {selected.observacoes && (
-                  <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-lg p-3">
-                    <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Observações</p>
-                    <p className="text-xs text-gray-600 dark:text-[#94A3B8] leading-relaxed">{selected.observacoes}</p>
-                  </div>
-                )}
-
-                {/* Contrato gerado (RF-03) */}
-                {generatedContract && (
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/30 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <p className="text-xs font-semibold text-green-700 dark:text-green-400">Contrato Gerado — RF-03</p>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-[#94A3B8]">
-                      {generatedContract.id} · Vigência: {generatedContract.inicio} a {generatedContract.fim}
-                    </p>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-[#F1F5F9] mt-1">
-                      {fmtCurrency(generatedContract.valorAluguel)}/mês · Criado por {generatedContract.createdBy}
-                    </p>
-                  </div>
-                )}
-
-                {/* Action Buttons — RF-02 */}
-                <div className="border-t border-gray-100 dark:border-[#2E3447] pt-4 space-y-2">
-                  {canChangeStatus && (
-                    <>
-                      <button onClick={() => handleChangeStatus('Aprovado')}
-                        className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-                        <CheckCircle className="w-4 h-4" /> Aprovar Proposta
-                      </button>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => handleChangeStatus('Aguardando análise do comitê')}
-                          className="flex items-center justify-center gap-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors">
-                          <Eye className="w-3.5 h-3.5" /> Comitê
-                        </button>
-                        <button onClick={() => handleChangeStatus('Aguardando análise financeira')}
-                          className="flex items-center justify-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors">
-                          <Clock className="w-3.5 h-3.5" /> Financeiro
-                        </button>
-                      </div>
-                      <button onClick={() => handleChangeStatus('Reprovado')}
-                        className="w-full flex items-center justify-center gap-2 border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-                        <XCircle className="w-4 h-4" /> Reprovar Proposta
-                      </button>
-                    </>
-                  )}
-
-                  {/* Document attachment — RF-08 */}
-                  <div className="border-t border-gray-100 dark:border-[#2E3447] pt-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-gray-600 dark:text-[#94A3B8] flex items-center gap-1">
-                        <Paperclip className="w-3.5 h-3.5" /> Documentos  — {selectedDocs.length}
-                      </p>
-                      <button onClick={handleFileUpload}
-                        className="flex items-center gap-1 text-xs text-[#D93030] hover:text-[#b92828] font-medium">
-                        <Upload className="w-3 h-3" /> Anexar
-                      </button>
-                    </div>
-                    {selectedDocs.length === 0 ? (
-                      <p className="text-xs text-gray-400 dark:text-[#64748B] text-center py-2">Nenhum documento anexado</p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {selectedDocs.map(doc => (
-                          <div key={doc.id} className="flex items-center gap-2 bg-gray-50 dark:bg-[#1A1F2E] rounded-lg px-3 py-2">
-                            <FileText className="w-3.5 h-3.5 text-[#D93030] flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-800 dark:text-[#F1F5F9] truncate">{doc.nome}</p>
-                              <p className="text-xs text-gray-400">{doc.tamanho} · {doc.dataUpload} · {doc.uploadedBy}</p>
-                            </div>
-                            <button onClick={() => { removeDocument(doc.id); refresh(); }} className="text-gray-400 hover:text-red-500">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Audit log toggle — RNF-04, RNF-05 */}
-                  <div className="border-t border-gray-100 dark:border-[#2E3447] pt-3">
-                    <button onClick={() => setShowAuditPanel(p => !p)}
-                      className="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-[#94A3B8] hover:text-[#D93030] transition-colors">
-                      <Shield className="w-3.5 h-3.5" /> Histórico de Alterações — {selectedAudit.length} registro{selectedAudit.length !== 1 ? 's' : ''}
-                    </button>
-                    {showAuditPanel && selectedAudit.length > 0 && (
-                      <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
-                        {selectedAudit.map(a => (
-                          <div key={a.id} className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg px-3 py-2">
-                            <p className="text-xs font-medium text-gray-800 dark:text-[#F1F5F9]">{a.action}</p>
-                            <p className="text-xs text-gray-500 dark:text-[#64748B]">
-                              {a.userName} · {a.sector} · {new Date(a.timestamp).toLocaleString('pt-BR')}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {lojistaMapped && (
-                    <button onClick={() => setProfileLojista(lojistaMapped)}
-                      className="w-full flex items-center justify-center gap-2 border border-[#D93030]/30 text-[#D93030] hover:bg-[#D93030]/5 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-                      <Eye className="w-4 h-4" /> Ver Perfil do Lojista
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex items-center justify-center min-h-64">
-              <div className="text-center p-8">
-                <ChevronRight className="w-8 h-8 text-gray-300 dark:text-[#3E4557] mx-auto mb-3" />
-                <p className="text-sm text-gray-400 dark:text-[#64748B]">Selecione uma proposta para ver detalhes e ações</p>
-              </div>
-            </div>
+      {/* Cabeçalho da região — mobile only */}
+      <button
+        onClick={() => setShowMobileFilters(f => !f)}
+        className="sm:hidden flex-shrink-0 w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]"
+      >
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-[#D93030]" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Filtros</span>
+          {/* Indicador de filtros ativos */}
+          {(dateFrom || dateTo || filterStatuses.length > 0) && (
+            <span className="w-2 h-2 rounded-full bg-[#D93030]" />
           )}
         </div>
-      </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showMobileFilters ? '' : '-rotate-90'}`} />
+      </button>
 
-      {/* Status change modal */}
-      {showStatusModal && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowStatusModal(false)}>
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <div className="relative bg-white dark:bg-[#1E2435] rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-[#2E3447]"
-            onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-[#8B1A1A] to-[#D93030] px-6 py-4 rounded-t-2xl">
-              <h3 className="text-base font-bold text-white">Alterar Status da Proposta</h3>
-              <p className="text-sm text-white/80">{selected.id} — {selected.lojista}</p>
-            </div>
-            <div className="p-5 space-y-4">
-              <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3">
-                <p className="text-xs text-gray-500 dark:text-[#64748B]">Status atual: <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">{selected.status}</span></p>
-                <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">Novo status: <span className={`font-semibold ${newStatusTarget === 'Aprovado' ? 'text-green-600' : newStatusTarget === 'Reprovado' ? 'text-red-600' : 'text-purple-600'}`}>{newStatusTarget}</span></p>
-              </div>
-              {newStatusTarget === 'Aprovado' && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/30 rounded-lg p-3 text-xs text-green-700 dark:text-green-400">
-                  <strong>RN-01:</strong> Ao aprovar, um contrato será gerado automaticamente.
-                </div>
-              )}
-              <div>
-                <label className="text-xs font-medium text-gray-600 dark:text-[#94A3B8] mb-1 block">Observação (opcional)</label>
-                <textarea rows={3} value={statusObs} onChange={e => setStatusObs(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030] resize-none"
-                  placeholder="Motivo da alteração, condições acordadas..." />
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowStatusModal(false)}
-                  className="flex-1 border border-gray-200 dark:border-[#2E3447] text-gray-700 dark:text-[#F1F5F9] hover:bg-gray-50 dark:hover:bg-[#242938] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-                  Cancelar
-                </button>
-                <button onClick={confirmStatusChange}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-                  <Send className="w-4 h-4" /> Confirmar Alteração
-                </button>
-              </div>
-            </div>
+      {/* Conteúdo dos filtros */}
+      {/* Desktop: sempre visível | Mobile: só quando expandido */}
+      <div className={`flex-shrink-0 flex-col sm:flex-row sm:items-stretch sm:justify-start gap-0
+        ${showMobileFilters ? 'flex' : 'hidden sm:flex'}
+        bg-white dark:bg-[#242938] sm:bg-transparent sm:dark:bg-transparent
+        rounded-xl sm:rounded-none
+        border border-gray-100 dark:border-[#2E3447] sm:border-0
+        p-3 sm:p-0`}>
+        {/* Filtro 1: Data da proposta */}
+        <div className="flex flex-col gap-1 w-full sm:w-auto sm:pr-6 pb-2 sm:pb-0">
+          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Data da proposta</span>
+          <div className="flex items-center gap-1.5 h-9">
+            <DatePickerInput value={dateFrom} onChange={setDateFrom} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
+            <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap flex-shrink-0">até</span>
+            <DatePickerInput value={dateTo} onChange={setDateTo} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
           </div>
         </div>
-      )}
+
+        {/* Separador */}
+        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+
+        {/* Filtro 2: Status da proposta — checkboxes inline */}
+        <div className="flex flex-col gap-1 w-full sm:flex-1 sm:px-6 pb-2 sm:pb-0">
+          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Status da proposta</span>
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-x-4 gap-y-2 sm:gap-4 sm:items-center sm:min-h-[36px]">
+            {(["Aguardando análise financeira","Aguardando análise do comitê","Aprovado","Reprovado","Cancelado","Vencida","Finalizado"] as StatusProposta[]).map(s => (
+              <label key={s} className="flex items-center gap-1.5 cursor-pointer select-none">
+                <div
+                  onClick={() => {
+                    setFilterStatuses(prev =>
+                      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+                    );
+                  }}
+                  className={`w-4 h-4 border border-gray-400 dark:border-[#64748B] flex items-center justify-center text-xs font-bold cursor-pointer flex-shrink-0
+                    ${filterStatuses.includes(s)
+                      ? 'bg-white dark:bg-[#1A1F2E] text-gray-900 dark:text-[#F1F5F9]'
+                      : 'bg-white dark:bg-[#1A1F2E]'}`}
+                >
+                  {filterStatuses.includes(s) && 'X'}
+                </div>
+                <span className="text-xs text-gray-700 dark:text-[#CBD5E1] leading-tight">
+                  {s} ({counts[s] || 0})
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Separador */}
+        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+
+        {/* Filtro 3: Tipo de visualização — extremo direito */}
+        <div className="hidden sm:flex flex-col gap-1 ml-auto sm:pl-6">
+          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Visualização</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setViewMode('card')}
+              className={`h-9 px-3 rounded-l-lg border text-xs font-medium flex items-center gap-1.5 transition-colors
+                ${viewMode === 'card'
+                  ? 'bg-[#D93030] text-white border-[#D93030]'
+                  : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Card
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`h-9 px-3 rounded-r-lg border-t border-r border-b text-xs font-medium flex items-center gap-1.5 transition-colors
+                ${viewMode === 'table'
+                  ? 'bg-[#D93030] text-white border-[#D93030]'
+                  : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}
+            >
+              <Table2 className="w-3.5 h-3.5" /> Tabela
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Área de listagem — cresce para preencher o restante, scroll interno */}
+      <div className="flex-1 overflow-hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]">
+        <div className="px-5 py-3.5 border-b border-gray-100 dark:border-[#2E3447] bg-gray-50/50 dark:bg-[#1A1F2E] flex-shrink-0">
+          <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
+            {viewMode === 'card' ? filtered.length : tableRows.length} proposta{(viewMode === 'card' ? filtered.length : tableRows.length) !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {/* Modo Card */}
+        {viewMode === 'card' && (
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-3 overflow-y-auto pb-4 sm:pb-0"
+            style={{
+              maxHeight: window.innerWidth < 640
+                ? 'calc(100vh - 280px - 64px)'  // desconta bottom nav
+                : 'calc(100vh - 280px)'
+            }}>
+            {filtered.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-gray-400 dark:text-[#64748B]">
+                <p className="text-sm">Nenhuma proposta encontrada</p>
+              </div>
+            ) : (
+              filtered.map(p => (
+                <DataCard
+                  key={p.id}
+                  data={p}
+                  fieldMap={{
+                    title:       { field: 'nomeFantasia', format: (v, row) => v || row.id },
+                    titleBadge:  'tipoOperacao',
+                    subtitle:    ['id', 'codigoUnidade', 'segmento'],
+                    value:       { field: 'valorProposto', format: v => fmtCurrency(v) },
+                    valueSub:    { field: 'area', format: v => `${v} m²` },
+                    statusBadge: 'status',
+                    footer:      'dataVencimento',
+                  }}
+                  onClick={row => setModalPropostaAberta(row)}
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Modo Tabela */}
+        {viewMode === 'table' && (
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+            <DataTable
+              data={tableRows.map(p => ({
+                nomeFantasia: p.nomeFantasia || p.id,
+                tipo:         p.tipoOperacao,
+                id:           p.id,
+                unidade:      p.codigoUnidade,
+                segmento:     p.segmento,
+                valor:        p.valorProposto,
+                area:         p.area,
+                criacao:      p.dataCriacao,
+                vencimento:   p.dataVencimento ?? '—',
+                status:       p.status,
+                _raw:         p,
+              }))}
+              columnConfig={{
+                nomeFantasia: { label: 'Nome Fantasia' },
+                tipo:         { label: 'Tipo', render: (_, v) => (
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${TIPO_COLORS[v] || ''}`}>{v}</span>
+                )},
+                id:           { label: 'Código' },
+                unidade:      { label: 'Unidade' },
+                segmento:     { label: 'Segmento' },
+                valor:        { label: 'Valor', render: (_, v) => fmtCurrency(v) },
+                area:         { label: 'Área', render: (_, v) => `${v} m²` },
+                criacao:      { label: 'Criado em' },
+                vencimento:   { label: 'Vencimento' },
+                status:       { label: 'Status', render: (_, v) => (
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${STATUS_COLORS[v as StatusProposta]}`}>{v}</span>
+                )},
+                _raw:         { _specified: false },
+              }}
+              onRowClick={row => setModalPropostaAberta(row._raw)}
+              emptyMessage="Nenhuma proposta encontrada"
+            />
+          </div>
+        )}
+      </div>
 
       {/* New Proposal Modal — RF-01 */}
       {showNewModal && (
@@ -518,9 +326,9 @@ export function ComercialProposals() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 dark:text-[#94A3B8] mb-1 block">Lojista / Empresa *</label>
-                  <input value={newProp.lojista} onChange={e => setNewProp(p => ({...p, lojista: e.target.value}))}
-                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030]" placeholder="Nome do lojista" />
+                  <label className="text-xs font-medium text-gray-600 dark:text-[#94A3B8] mb-1 block">Nome Fantasia *</label>
+                  <input value={newProp.nomeFantasia || ''} onChange={e => setNewProp(p => ({...p, nomeFantasia: e.target.value}))}
+                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#242938] border border-gray-200 dark:border-[#2E3447] rounded-lg text-sm text-gray-900 dark:text-[#F1F5F9] focus:outline-none focus:border-[#D93030]" placeholder="Nome fantasia da loja" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 dark:text-[#94A3B8] mb-1 block">Unidade *</label>
@@ -582,7 +390,27 @@ export function ComercialProposals() {
         </div>
       )}
 
-      {profileLojista && <LojistProfileModal lojista={profileLojista} onClose={() => setProfileLojista(null)} />}
+
+      {/* Proposta Manutencao Modal */}
+      {modalPropostaAberta && (
+        <PropostaManutencaoModal
+          proposta={modalPropostaAberta}
+          allPropostas={viewMode === 'card' ? filtered : tableRows}
+          onClose={() => {
+            setModalPropostaAberta(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {/* FAB Nova Proposta — mobile only */}
+      <button
+        onClick={abrirNovaPropostaViaModal}
+        className="block sm:hidden fixed bottom-20 right-4 z-40 w-14 h-14 bg-[#D93030] hover:bg-[#c02828] text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+        aria-label="Nova Proposta"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
     </div>
   );
 }

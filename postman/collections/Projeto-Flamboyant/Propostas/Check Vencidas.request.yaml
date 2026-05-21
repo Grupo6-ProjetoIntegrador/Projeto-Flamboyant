@@ -1,0 +1,5 @@
+$kind: http-request
+name: Check Vencidas
+method: POST
+url: '{{baseUrl}}/api/v1/propostas/check-vencidas'
+order: 12000

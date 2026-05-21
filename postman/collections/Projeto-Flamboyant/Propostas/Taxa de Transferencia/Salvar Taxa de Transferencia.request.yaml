@@ -1,0 +1,20 @@
+$kind: http-request
+name: Salvar Taxa de Transferência
+method: PUT
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/taxa-transferencia'
+order: 21000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "ttContratualPtt": 90000,
+      "ttPropostaPtt": 75000,
+      "ttPropostaNumAmmPtt": 2.5,
+      "sinalTtPtt": 20000,
+      "formaPagamentoTtPtt": "Parcelado",
+      "justificativaTtPtt": "Desconto concedido por histórico positivo do lojista",
+      "statusTtPtt": "Em análise"
+    }

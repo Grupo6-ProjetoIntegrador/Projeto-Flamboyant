@@ -1,0 +1,5 @@
+$kind: http-request
+name: Detalhe Cessão de Direitos
+method: GET
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/cessao-direitos'
+order: 18000

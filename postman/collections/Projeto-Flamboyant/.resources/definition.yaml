@@ -1,0 +1,18 @@
+$kind: collection
+name: Projeto-Flamboyant
+variables:
+  - key: baseUrl
+    value: 'http://localhost:8080'
+  - key: token
+    value: ''
+  - key: proposta_id
+    value: ''
+  - key: unidade_id
+    value: ''
+  - key: documento_id
+    value: ''
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

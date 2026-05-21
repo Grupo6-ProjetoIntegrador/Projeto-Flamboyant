@@ -1,0 +1,143 @@
+============================================================
+  BES-2026 — Como rodar o projeto em uma nova máquina
+============================================================
+
+
+PRE-REQUISITOS
+--------------
+Instale os programas abaixo antes de continuar:
+
+  1. Go 1.21 ou superior
+     https://go.dev/dl/
+
+  2. Node.js 18 ou superior (vem com npm)
+     https://nodejs.org/
+
+  3. PostgreSQL (qualquer versão recente)
+     https://www.postgresql.org/download/
+
+Após instalar, verifique se estão funcionando abrindo
+o PowerShell e rodando:
+
+    go version
+    node --version
+    npm --version
+
+
+PASSO 1 — Clonar ou copiar o projeto
+--------------------------------------
+Coloque a pasta do projeto em qualquer lugar da sua máquina.
+Exemplo: C:\Projetos\Projeto-Flamboyant
+
+
+PASSO 2 — Configurar o banco de dados
+---------------------------------------
+  Apenas certifique-se de que o PostgreSQL está rodando na
+  sua máquina e anote o usuário e senha (por padrão costuma
+  ser usuário "postgres").
+
+  O banco jp-mall, as tabelas e os dados iniciais são criados
+  AUTOMATICAMENTE quando a API sobe pela primeira vez.
+  Não precisa criar nada manualmente.
+
+
+PASSO 3 — Criar o arquivo de configuração da API
+--------------------------------------------------
+O repositório já inclui um arquivo de exemplo em:
+
+    API/.env.example
+
+Copie-o e renomeie para API/.env:
+
+    No PowerShell:
+        Copy-Item API\.env.example API\.env
+
+    No Explorer:
+        Copie o arquivo API\.env.example e renomeie a cópia para .env
+        (o arquivo .env deve ficar dentro da pasta API/)
+
+Em seguida, abra API/.env e preencha os campos em branco:
+
+    JWT_SECRET=coloque-uma-chave-secreta-aqui
+    DB_USER=postgres
+    DB_PASSWORD=SUA_SENHA_AQUI
+
+  Substitua SUA_SENHA_AQUI pela senha do seu PostgreSQL.
+  O JWT_SECRET pode ser qualquer texto longo (ex: uma frase aleatória).
+
+  Os demais valores já vêm com padrões que funcionam para
+  ambiente local e normalmente não precisam ser alterados.
+
+  OBS: o arquivo Figma/.env é criado automaticamente pelo
+       script de inicialização. Não precisa criar manualmente.
+
+
+PASSO 4 — Rodar o projeto
+--------------------------
+Abra o PowerShell na pasta raiz do projeto e execute:
+
+    .\start.ps1
+
+O script vai:
+  - Verificar se Go, Node e npm estão instalados
+  - Baixar as dependências Go (go mod tidy)
+  - Instalar as dependências Node (npm install)
+  - Criar o Figma/.env automaticamente se não existir
+  - Abrir duas janelas novas:
+      * API rodando na porta 8080
+      * Frontend rodando na porta 5173
+
+Aguarde as duas janelas abrirem e mostrarem que estão prontas.
+
+
+PASSO 5 — Acessar o projeto
+-----------------------------
+Abra o navegador e acesse:
+
+    http://localhost:5173
+
+A API fica disponível em:
+
+    http://localhost:8080
+
+
+ENCERRAR O PROJETO
+-------------------
+Feche as duas janelas do PowerShell que foram abertas
+pelo script.
+
+
+PROBLEMAS COMUNS
+-----------------
+Erro: "dial tcp: connect: connection refused" (banco)
+  -> Verifique se o PostgreSQL está rodando na sua máquina.
+  -> Confirme se o DB_USER e DB_PASSWORD no API/.env estão corretos.
+  -> Confirme se o banco jp-mall foi criado (Passo 2).
+
+Erro: "go: command not found"
+  -> Go não está instalado ou não está no PATH.
+  -> Reinstale o Go e reinicie o PowerShell.
+
+Erro: "npm: command not found"
+  -> Node.js não está instalado ou não está no PATH.
+  -> Reinstale o Node.js e reinicie o PowerShell.
+
+A tela abre mas não carrega nada
+  -> Verifique se a janela da API abriu sem erros.
+  -> Confirme se o arquivo API/.env existe e está preenchido.
+
+Porta já em uso (8080 ou 5173)
+  -> Algum outro programa está usando a porta.
+  -> Encerre o programa que está usando a porta, ou
+     altere SERVER_PORT no API/.env e VITE_API_URL no Figma/.env.
+
+
+MODO DEBUG (opcional)
+----------------------
+Para rodar com suporte a breakpoints no VS Code, use:
+
+    .\debug.ps1
+
+Consulte o arquivo COMO_USAR_DEBUG.txt para instruções completas.
+
+============================================================

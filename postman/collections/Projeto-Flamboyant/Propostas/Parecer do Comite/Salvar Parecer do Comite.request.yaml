@@ -1,0 +1,23 @@
+$kind: http-request
+name: Salvar Parecer do Comitê
+method: PUT
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/parecer-comite'
+order: 23000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "presidentePpc": true,
+      "presidenteDataPpc": "2026-05-17",
+      "diretoriaComp1Ppc": true,
+      "diretoriaComp1DataPpc": "2026-05-17",
+      "diretoriaComp2Ppc": false,
+      "diretoriaComp2DataPpc": null,
+      "superintendentePpc": true,
+      "superintendenteDataPpc": "2026-05-17",
+      "inNetworkingPpc": false,
+      "inNetworkingDataPpc": null
+    }

@@ -1,0 +1,5 @@
+$kind: http-request
+name: Listar Unidades
+method: GET
+url: '{{baseUrl}}/api/v1/unidades'
+order: 5000

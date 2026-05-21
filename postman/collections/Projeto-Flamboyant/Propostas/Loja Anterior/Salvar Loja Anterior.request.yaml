@@ -1,0 +1,24 @@
+$kind: http-request
+name: Salvar Loja Anterior
+method: PUT
+url: '{{baseUrl}}/api/v1/propostas/{{proposta_id}}/loja-anterior'
+order: 15000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nomeFantasia": "Loja Anterior Ltda",
+      "segmento": "Alimentação",
+      "tipoOperacao": "Renovação",
+      "cto": 38000,
+      "abl": 105.0,
+      "amm": 361.90,
+      "dividaAmm": 0,
+      "dividaNegociada": 0,
+      "dividaCondominio": 0,
+      "dividaFpp": 0,
+      "formaPagamento": "À vista"
+    }

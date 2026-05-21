@@ -1,0 +1,95 @@
+============================================================
+  BES-2026 — Como usar o modo Debug
+============================================================
+
+REQUISITOS
+----------
+- Go instalado (https://go.dev/dl/)
+- Node.js e npm instalados (https://nodejs.org/)
+- VS Code com a extensão "Go" da Google instalada
+
+
+PASSO 1 — Rodar o script de debug
+-----------------------------------
+Abra o PowerShell na pasta raiz do projeto e execute:
+
+    .\debug.ps1
+
+O script vai:
+  - Verificar Go, Node e npm
+  - Instalar o Delve (debugger do Go) se ainda não tiver
+  - Abrir duas janelas novas:
+      * API rodando via Delve na porta 8080 (debugger em :2345)
+      * Frontend rodando em modo desenvolvimento na porta 5173
+
+
+PASSO 2 — Configurar o VS Code para conectar ao debugger
+----------------------------------------------------------
+Crie (ou edite) o arquivo .vscode/launch.json na raiz do projeto
+com o seguinte conteúdo:
+
+    {
+      "version": "0.2.0",
+      "configurations": [
+        {
+          "name": "Attach to API (Delve)",
+          "type": "go",
+          "request": "attach",
+          "mode": "remote",
+          "remotePath": "${workspaceFolder}/API",
+          "port": 2345,
+          "host": "127.0.0.1"
+        }
+      ]
+    }
+
+
+PASSO 3 — Conectar o debugger no VS Code
+-----------------------------------------
+1. Aguarde a janela da API abrir e mostrar a mensagem de que
+   o Delve está ouvindo na porta 2345.
+
+2. No VS Code, vá em:
+       Executar > Iniciar Depuração  (ou pressione F5)
+
+3. Selecione a configuração "Attach to API (Delve)".
+
+4. O VS Code vai conectar ao processo Go em execução.
+
+
+PASSO 4 — Usar breakpoints
+----------------------------
+- Clique na margem esquerda de qualquer linha de código Go
+  para adicionar um breakpoint (ponto vermelho).
+- Faça uma requisição para a API (pelo frontend ou Postman).
+- A execução vai pausar no breakpoint automaticamente.
+- No painel lateral do VS Code você pode:
+    * Ver o valor das variáveis
+    * Inspecionar a pilha de chamadas (call stack)
+    * Avançar linha por linha (F10) ou entrar em funções (F11)
+    * Continuar a execução (F5)
+
+
+ENDEREÇOS ENQUANTO O DEBUG ESTÁ RODANDO
+-----------------------------------------
+  API:        http://localhost:8080
+  Frontend:   http://localhost:5173
+  Delve DAP:  localhost:2345
+
+
+ENCERRAR O DEBUG
+-----------------
+- Desconecte o debugger no VS Code (Shift+F5).
+- Feche as duas janelas do PowerShell que foram abertas.
+
+
+DICAS
+------
+- Se o Delve travar ou não aceitar conexão, feche a janela
+  da API e rode .\debug.ps1 novamente.
+- Logs detalhados aparecem diretamente na janela da API
+  (GIN_MODE=debug e LOG_LEVEL=debug estão ativos).
+- O frontend não precisa de configuração extra; o hot-reload
+  já funciona em modo desenvolvimento.
+
+============================================================

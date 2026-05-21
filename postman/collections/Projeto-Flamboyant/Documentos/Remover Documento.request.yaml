@@ -1,0 +1,5 @@
+$kind: http-request
+name: Remover Documento
+method: DELETE
+url: '{{baseUrl}}/api/v1/documentos/{{documento_id}}'
+order: 26000

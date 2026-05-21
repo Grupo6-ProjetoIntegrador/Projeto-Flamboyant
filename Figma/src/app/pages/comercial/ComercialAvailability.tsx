@@ -1,111 +1,78 @@
-import { useState, useMemo } from "react";
+/**
+ * ComercialAvailability.tsx — View de Disponibilidade de Unidades.
+ *
+ * Papel na arquitetura MVVM: camada VIEW.
+ * Toda lógica está em useComercialAvailability (ViewModel).
+ *
+ * O que exibe:
+ *  - Contadores: total, disponíveis, ocupadas, vencendo em breve
+ *  - Filtros: status, piso, intervalo de fim de contrato, vencendo <60 dias
+ *  - Toggle: Mapa visual | Tabela
+ *
+ * MODO MAPA:
+ *  - Grade organizada por Piso (P/S/T) e Corredor (A/B/C)
+ *  - Cada célula é um UnitBlock (sub-componente interno)
+ *  - Unidades disponíveis: borda tracejada vermelha
+ *  - Unidades ocupadas: fundo avermelhado com nome da loja
+ *  - Badge laranja: contrato vencendo em <60 dias
+ *  - Clique: abre DisponibilidadeManutencaoModal
+ *
+ * MODO TABELA:
+ *  - Colunas: unidade, piso, corredor, área, segmento, status,
+ *    nome fantasia, fim do contrato, dias restantes
+ *  - Filtro por célula e ordenação por clique no cabeçalho
+ *
+ * UnitBlock: sub-componente local (não exportado) que renderiza
+ * uma única célula do mapa. Recebe unidade e todasPropostas para
+ * calcular localmente o vencimento sem precisar voltar ao ViewModel.
+ */
+import type { UnidadeInfo } from "../../data/comercialData";
+import { useComercialAvailability } from "../../viewmodels/useComercialAvailability";
 import {
-  Building2, MapPin, Search, Eye, CheckCircle, XCircle,
-  ChevronRight, Info, Layers, RefreshCw, Clock, History
+  MapPin, Layers, LayoutGrid, Table2, ArrowUp, ArrowDown, Eye, Filter, ChevronDown
 } from "lucide-react";
-//import { allLojistas } from "../../data/comercialData";
-import { LojistProfileModal } from "../../components/LojistProfileModal";
-import { FilterSelect } from "../../components/FilterSelect";
-import type { Lojista } from "../../data/comercialData";
+import { DatePickerInput } from "../../components/DatePickerInput";
+import { DataTable } from "../../components/DataTable";
+import { DisponibilidadeManutencaoModal } from "../../components/DisponibilidadeManutencaoModal";
+import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
+import { PISOS, CORREDORES, CORREDOR_LABEL, STATUS_OCUPADO, STATUS_DISPONIVEL, STATUS_APROVADO, STATUS_VENCIDA } from "../../enums";
+import type { Piso } from "../../enums";
 
-type Piso = "P" | "S" | "T";
-type Corredor = "A" | "B" | "C";
 
-const PISO_LABELS: Record<Piso, string> = {
-  P: "Primeiro Piso",
-  S: "Segundo Piso",
-  T: "Terceiro Piso",
-};
-
-const CORREDOR_LABELS: Record<Piso, Record<Corredor, string>> = {
-  P: { A: "Corredor A", B: "Corredor B", C: "Corredor C" },
-  S: { A: "Corredor A", B: "Corredor B", C: "Corredor C" },
-  T: { A: "Corredor A", B: "Corredor B", C: "Corredor C" },
-};
-
-// RF-09: History of unit occupations
-function UnitHistoryPanel({ lojista, onClose }: { lojista: Lojista; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div
-        className="relative bg-white dark:bg-[#1E2435] rounded-2xl shadow-2xl w-full max-w-lg border border-gray-100 dark:border-[#2E3447] max-h-[85vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="bg-gradient-to-r from-[#8B1A1A] to-[#D93030] px-5 py-4 rounded-t-2xl flex items-center justify-between">
-          <div>
-            <p className="text-xs text-white/70">Histórico de Ocupações</p>
-            <h3 className="text-base font-bold text-white">{lojista.unidade}</h3>
-            <p className="text-sm text-white/80">{lojista.piso} · Corredor {lojista.corredor} · {lojista.area} m²</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center">
-            <XCircle className="w-4 h-4 text-white" />
-          </button>
-        </div>
-        <div className="p-5 space-y-4">
-          {lojista.status === 'Disponível' && (
-            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700/30 rounded-lg p-3 text-sm text-orange-700 dark:text-orange-400">
-              Esta unidade está atualmente <strong>disponível para locação</strong>.
-            </div>
-          )}
-          {lojista.status === 'Ocupado' && lojista.contratoAtivo && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/30 rounded-lg p-3">
-              <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">Contrato Atual</p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div><span className="text-gray-500 dark:text-[#64748B]">Lojista: </span><span className="font-medium text-gray-900 dark:text-[#F1F5F9]">{lojista.nome}</span></div>
-                <div><span className="text-gray-500 dark:text-[#64748B]">Contrato: </span><span className="font-medium text-gray-900 dark:text-[#F1F5F9]">{lojista.contratoAtivo.id}</span></div>
-                <div><span className="text-gray-500 dark:text-[#64748B]">Início: </span><span className="font-medium text-gray-900 dark:text-[#F1F5F9]">{lojista.contratoAtivo.inicio}</span></div>
-                <div><span className="text-gray-500 dark:text-[#64748B]">Fim: </span><span className="font-medium text-gray-900 dark:text-[#F1F5F9]">{lojista.contratoAtivo.fim}</span></div>
-                <div><span className="text-gray-500 dark:text-[#64748B]">Aluguel: </span><span className="font-semibold text-[#D93030]">{lojista.contratoAtivo.valorAluguel.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })}</span></div>
-              </div>
-            </div>
-          )}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-[#64748B] uppercase tracking-wider mb-3">Propostas Históricas desta Unidade</p>
-            {lojista.propostas.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-[#64748B] text-center py-4">Nenhuma proposta registrada</p>
-            ) : (
-              <div className="space-y-2">
-                {lojista.propostas.map(p => (
-                  <div key={p.id} className="flex items-center justify-between bg-gray-50 dark:bg-[#242938] rounded-lg px-3 py-2.5">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-800 dark:text-[#F1F5F9]">{p.tipo}</p>
-                      <p className="text-xs text-gray-500 dark:text-[#64748B]">{p.data} · {p.observacao || '—'}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9]">{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.status === 'Aceita' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : p.status === 'Recusada' || p.status === 'Expirada' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                        {p.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function matchColFilter(cellValue: string, pattern: string): boolean {
+  if (!pattern) return true;
+  const val = cellValue.toLowerCase();
+  const p = pattern.toLowerCase();
+  if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
+    const inner = p.slice(1, -1);
+    const idx = val.indexOf(inner);
+    return idx > 0 && idx < val.length - inner.length;
+  }
+  if (p.startsWith('*') && p.length > 1) return val.endsWith(p.slice(1));
+  if (p.endsWith('*') && p.length > 1) return val.startsWith(p.slice(0, -1));
+  return val.includes(p);
 }
 
 function UnitBlock({
-  lojista,
+  unidade,
   onSelect,
-  onProfile,
+  todasPropostas,
 }: {
-  lojista: Lojista;
-  onSelect: (l: Lojista) => void;
-  onProfile: (l: Lojista) => void;
+  unidade: UnidadeInfo;
+  onSelect: (l: UnidadeInfo) => void;
+  todasPropostas: any[];
 }) {
-  const isDisponivel = lojista.status === "Disponível";
-  const contrato = lojista.contratoAtivo;
-  // Orange dot: < 60 days to expire (not 90)
-  const isVencendoBreve = contrato && contrato.diasRestantes < 60;
+  const isDisponivel = unidade.status === "Disponível";
+  // Buscar proposta aprovada vinculada para obter fim do contrato
+  const propostaAprovada = todasPropostas?.find(p =>
+    p.codigoUnidade === unidade.unidade && (p.status === STATUS_APROVADO || p.status === STATUS_VENCIDA)
+  );
+  const diasRestantes = propostaAprovada ? getDiasRestantes(propostaAprovada.fimContrato) : null;
+  const isVencendoBreve = diasRestantes !== null && diasRestantes < 60;
 
   return (
     <button
-      onClick={() => onSelect(lojista)}
+      onClick={() => onSelect(unidade)}
       className={`
         group relative text-left rounded-xl border-2 p-3 transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.99] min-w-0
         ${isDisponivel
@@ -114,11 +81,10 @@ function UnitBlock({
         }
       `}
     >
-      {/* Orange alert dot: < 60 days */}
       {isVencendoBreve && !isDisponivel && (
         <div
           className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-orange-500 rounded-full border-2 border-white dark:border-[#1E2435] z-10"
-          title={`Contrato vence em ${contrato!.diasRestantes} dias`}
+          title={`Contrato vence em ${diasRestantes} dias`}
         />
       )}
 
@@ -127,375 +93,329 @@ function UnitBlock({
           {isDisponivel ? (
             <>
               <p className="text-xs font-bold text-[#D93030]">DISPONÍVEL</p>
-              <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">{lojista.unidade}</p>
-              <p className="text-xs text-gray-400 dark:text-[#475569]">{lojista.area} m²</p>
+              <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">{unidade.unidade}</p>
+              <p className="text-xs text-gray-400 dark:text-[#475569]">{unidade.area} m²</p>
             </>
           ) : (
             <>
-              <p className="text-xs font-bold text-[#8B1A1A] dark:text-[#F87171] truncate leading-tight">{lojista.nome || lojista.unidade}</p>
-              <p className="text-xs text-gray-500 dark:text-[#94A3B8] mt-0.5">{lojista.unidade}</p>
-              <p className="text-xs text-gray-400 dark:text-[#475569]">{lojista.area} m²</p>
+              <p className="text-xs font-bold text-[#8B1A1A] dark:text-[#F87171] truncate leading-tight">{unidade.nome || unidade.unidade}</p>
+              <p className="text-xs text-gray-500 dark:text-[#94A3B8] mt-0.5">{unidade.unidade}</p>
+              <p className="text-xs text-gray-400 dark:text-[#475569]">{unidade.area} m²</p>
             </>
           )}
         </div>
-        {!isDisponivel && (
-          <button
-            onClick={e => { e.stopPropagation(); onProfile(lojista); }}
-            className="w-6 h-6 rounded-md bg-white/80 dark:bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:opacity-100 hover:bg-white dark:hover:bg-black/50 transition-all flex-shrink-0"
-            title="Ver perfil completo"
-          >
-            <Eye className="w-3 h-3 text-[#D93030]" />
-          </button>
-        )}
+
       </div>
     </button>
   );
 }
+// Calcula dias restantes até o fim do contrato de uma proposta aprovada vinculada à unidade
+function getDiasRestantes(fimContrato: string | undefined): number | null {
+  if (!fimContrato) return null;
+  // Suporta dd/mm/yyyy ou yyyy-mm-dd
+  let date: Date;
+  if (fimContrato.includes('/')) {
+    const [d, m, y] = fimContrato.split('/');
+    date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+  } else {
+    date = new Date(fimContrato);
+  }
+  if (isNaN(date.getTime())) return null;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return Math.ceil((date.getTime() - hoje.getTime()) / 86400000);
+}
+
+
 
 export function ComercialAvailability() {
-  const [activePiso, setActivePiso] = useState<Piso>("P");
-  const [filterSegmento, setFilterSegmento] = useState("Todos");
-  const [filterStatus, setFilterStatus] = useState("Todos");
-  const [search, setSearch] = useState("");
-  const [selectedLojista, setSelectedLojista] = useState<Lojista | null>(null);
-  const [profileLojista, setProfileLojista] = useState<Lojista | null>(null);
-  const [historyLojista, setHistoryLojista] = useState<Lojista | null>(null);
-
-  // NOVO: Estado e Chamada da API
-  const [lojistasAPI, setLojistasAPI] = useState<Lojista[]>([]);
-
-  useEffect(() => {
-    fetch("http://localhost:8082/lojistas")
-      .then(res => res.json())
-      .then(data => {
-        const formatado = data.map((l: any) => {
-          let contratoFormatado = undefined;
-          if (l.contratoAtivo && l.contratoAtivo.id) {
-            contratoFormatado = {
-              id: l.contratoAtivo.id,
-              inicio: l.contratoAtivo.inicio,
-              fim: l.contratoAtivo.fim,
-              valorAluguel: l.contratoAtivo.valor_aluguel,
-              luvas: l.contratoAtivo.luvas,
-              percentualFaturamento: l.contratoAtivo.percentual_faturamento,
-              indiceReajuste: l.contratoAtivo.indice_reajuste,
-              tipo: l.contratoAtivo.tipo,
-              desempenho: l.contratoAtivo.desempenho,
-              diasRestantes: l.contratoAtivo.dias_restantes,
-              status: l.contratoAtivo.status
-            };
-          }
-          return {
-            ...l,
-            nome: l.nome?.String ?? "-",
-            cnpj: l.cnpj?.String ?? "-",
-            responsavel: l.responsavel?.String ?? "-",
-            email: l.email?.String ?? "-",
-            telefone: l.telefone?.String ?? "-",
-            status_relacionamento: l.status_relacionamento?.String ?? "-",
-            contratoAtivo: contratoFormatado
-          };
-        });
-        setLojistasAPI(formatado);
-      })
-      .catch(err => console.error("Erro ao buscar lojistas:", err));
-  }, []);
-
-  const pisoData = useMemo(() => {
-    const corridores: Record<Corredor, Lojista[]> = { A: [], B: [], C: [] };
-    // Usando lojistasAPI no lugar de allLojistas
-    lojistasAPI.filter(l => l.piso === activePiso).forEach(l => { corridores[l.corredor].push(l); });
-    return corridores;
-  }, [activePiso, lojistasAPI]);
-
-  const filteredPisoData = useMemo(() => {
-    const filter = (list: Lojista[]) => list.filter(l => {
-      const matchSeg = filterSegmento === "Todos" || l.segmento === filterSegmento;
-      const matchStatus = filterStatus === "Todos" || l.status === filterStatus;
-      const matchSearch = !search || l.nome.toLowerCase().includes(search.toLowerCase()) || l.unidade.toLowerCase().includes(search.toLowerCase());
-      return matchSeg && matchStatus && matchSearch;
-    });
-    return { A: filter(pisoData.A), B: filter(pisoData.B), C: filter(pisoData.C) };
-  }, [pisoData, filterSegmento, filterStatus, search]);
-
-  const globalStats = useMemo(() => {
-    // Usando lojistasAPI no lugar de allLojistas
-    const total = lojistasAPI.length;
-    const disponiveis = lojistasAPI.filter(l => l.status === "Disponível").length;
-    const ocupadas = total - disponiveis;
-    const vencendoBreve = lojistasAPI.filter(l => l.contratoAtivo && l.contratoAtivo.diasRestantes < 60).length;
-    return { total, disponiveis, ocupadas, vencendoBreve };
-  }, [lojistasAPI]);
-
-  const pisoStats = useMemo(() => {
-    const s = (piso: Piso) => {
-      // Usando lojistasAPI no lugar de allLojistas
-      const arr = lojistasAPI.filter(l => l.piso === piso);
-      return { 
-        total: arr.length, 
-        ocupadas: arr.filter(l => l.status === "Ocupado").length, 
-        disponiveis: arr.filter(l => l.status === "Disponível").length 
-      };
-    };
-    return { P: s("P"), S: s("S"), T: s("T") };
-  }, [lojistasAPI]);
+  const {
+    allLojistas, filtered, counts, mapaData, tableRows, todasPropostas,
+    loadingUnidades,
+    filterStatuses, setFilterStatuses,
+    filterPisos, setFilterPisos,
+    dateFrom, setDateFrom, dateTo, setDateTo,
+    filterVencendo, setFilterVencendo,
+    colFilters, setColFilters,
+    sortCol, sortDir, toggleSort,
+    viewMode, setViewMode,
+    showMobileFilters, setShowMobileFilters,
+    manutencaoLojista, setManutencaoLojista,
+    getDiasRestantes, getPropostaAtual, refetch,
+  } = useComercialAvailability();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col h-full overflow-hidden gap-4 p-6">
+      {/* Header — altura fixa */}
+      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-[#F1F5F9]">Disponibilidade de Unidades</h1>
-          <p className="text-gray-500 dark:text-[#94A3B8] mt-0.5 text-sm">Planta do shopping por pisos e corredores.</p>
-        </div>
-        <div className="flex items-center gap-4 text-sm flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm bg-[#D93030]/10 border-2 border-dashed border-[#D93030]/50" />
-            <span className="text-gray-600 dark:text-[#94A3B8]">Disponível ({globalStats.disponiveis})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm bg-[#D93030]/10 border border-[#D93030]/25" />
-            <span className="text-gray-600 dark:text-[#94A3B8]">Ocupado ({globalStats.ocupadas})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-orange-500" />
-            <span className="text-gray-600 dark:text-[#94A3B8]">&lt;60 dias ({globalStats.vencendoBreve}) — RF-10</span>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Disponibilidade de Unidades</h1>
         </div>
       </div>
 
-      {/* Piso summary cards */}
-      <div className="grid grid-cols-3 gap-4">
-        {(["P", "S", "T"] as Piso[]).map(piso => {
-          const s = pisoStats[piso];
-          const taxa = Math.round((s.ocupadas / s.total) * 100);
-          return (
-            <button
-              key={piso}
-              onClick={() => setActivePiso(piso)}
-              className={`rounded-xl p-4 border-2 transition-all text-left ${activePiso === piso ? 'border-[#D93030] bg-[#D93030]/5 dark:bg-[#D93030]/10' : 'border-transparent bg-white dark:bg-[#242938] hover:border-gray-300 dark:hover:border-[#3E4557]'}`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className={`text-lg font-bold ${activePiso === piso ? 'text-[#D93030]' : 'text-gray-900 dark:text-[#F1F5F9]'}`}>{piso}</span>
-                <Layers className={`w-4 h-4 ${activePiso === piso ? 'text-[#D93030]' : 'text-gray-400'}`} />
+      {/* Filtros — desktop: inline | mobile: região expansível independente */}
+
+      {/* Cabeçalho da região — mobile only */}
+      <button
+        onClick={() => setShowMobileFilters(f => !f)}
+        className="sm:hidden flex-shrink-0 w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]"
+      >
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-[#D93030]" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Filtros</span>
+          {/* Indicador de filtros ativos */}
+          {(dateFrom || dateTo || filterStatuses.length > 0 || filterPisos.length > 0 || filterVencendo) && (
+            <span className="w-2 h-2 rounded-full bg-[#D93030]" />
+          )}
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showMobileFilters ? '' : '-rotate-90'}`} />
+      </button>
+
+      {/* Conteúdo dos filtros */}
+      {/* Desktop: sempre visível | Mobile: só quando expandido */}
+      <div className={`flex-shrink-0 flex-col sm:flex-row sm:items-stretch sm:justify-start gap-0
+        ${showMobileFilters ? 'flex' : 'hidden sm:flex'}
+        bg-white dark:bg-[#242938] sm:bg-transparent sm:dark:bg-transparent
+        rounded-xl sm:rounded-none
+        border border-gray-100 dark:border-[#2E3447] sm:border-0
+        p-3 sm:p-0`}>
+
+        {/* Fim do contrato */}
+        <div className="flex flex-col gap-1 w-full sm:w-auto sm:pr-6 pb-2 sm:pb-0">
+          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Fim do contrato</span>
+          <div className="flex items-center gap-1.5 h-9">
+            <DatePickerInput value={dateFrom} onChange={setDateFrom} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
+            <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap flex-shrink-0">até</span>
+            <DatePickerInput value={dateTo} onChange={setDateTo} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
+          </div>
+        </div>
+
+        {/* Separador */}
+        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+
+        {/* Status */}
+        <div className="flex flex-col gap-1 w-full sm:w-auto sm:px-6 pb-2 sm:pb-0">
+          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Status</span>
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-x-4 gap-y-2 sm:gap-4 sm:flex-wrap">
+              {(['Disponível', 'Ocupado'] as const).map(s => (
+                <label key={s} className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <div
+                    onClick={() => setFilterStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
+                    className={`w-4 h-4 border border-gray-400 dark:border-[#64748B] flex items-center justify-center text-xs font-bold cursor-pointer flex-shrink-0
+                      ${filterStatuses.includes(s) ? 'bg-white dark:bg-[#1A1F2E] text-gray-900 dark:text-[#F1F5F9]' : 'bg-white dark:bg-[#1A1F2E]'}`}
+                  >
+                    {filterStatuses.includes(s) && 'X'}
+                  </div>
+                  <span className="text-xs text-gray-700 dark:text-[#CBD5E1] leading-tight">
+                    {s} ({allLojistas.filter(l => l.status === s).length})
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {/* Checkbox Próximo do vencimento */}
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <div
+                onClick={() => setFilterVencendo(prev => !prev)}
+                className={`w-4 h-4 border flex items-center justify-center text-xs font-bold cursor-pointer flex-shrink-0
+                  ${filterVencendo
+                    ? 'border-orange-400 bg-white dark:bg-[#1A1F2E] text-orange-500'
+                    : 'border-gray-400 dark:border-[#64748B] bg-white dark:bg-[#1A1F2E]'}`}
+              >
+                {filterVencendo && 'X'}
               </div>
-              <p className="text-xs text-gray-500 dark:text-[#64748B] mb-1">{s.ocupadas} / {s.total} ocupadas</p>
-              <div className="w-full bg-gray-200 dark:bg-[#2E3447] rounded-full h-1.5">
-                <div className="bg-[#D93030] h-1.5 rounded-full" style={{ width: `${taxa}%` }} />
-              </div>
-              <p className="text-xs font-semibold text-gray-700 dark:text-[#94A3B8] mt-1">{taxa}% ocupado · {s.disponiveis} livres</p>
-              <span className="mt-2 inline-block text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 dark:bg-[#2E3447] text-gray-600 dark:text-[#94A3B8]">
-                {PISO_LABELS[piso]}
+              <span className="text-xs text-gray-700 dark:text-[#CBD5E1] leading-tight flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+                Próximo do vencimento (&lt;60 dias)
               </span>
+            </label>
+          </div>
+        </div>
+
+        {/* Separador */}
+        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+
+        {/* Piso */}
+        <EnumCheckboxFilter
+          label="Piso"
+          options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
+          selected={filterPisos}
+          onToggle={p => setFilterPisos(prev =>
+            prev.includes(p as Piso) ? prev.filter(x => x !== p) : [...prev, p as Piso]
+          )}
+          getCount={p => allLojistas.filter(l => l.piso === p).length}
+          mobileGrid="grid-cols-3"
+        />
+
+        {/* Separador */}
+        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+
+        {/* Visualização — desktop only */}
+        <div className="hidden sm:flex flex-col gap-1 flex-shrink-0 ml-auto sm:pl-6">
+          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Visualização</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setViewMode('mapa')}
+              className={`h-9 px-3 rounded-l-lg border text-xs font-medium flex items-center gap-1.5 transition-colors
+                ${viewMode === 'mapa' ? 'bg-[#D93030] text-white border-[#D93030]' : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}>
+              <LayoutGrid className="w-3.5 h-3.5" /> Mapa
             </button>
-          );
-        })}
+            <button onClick={() => setViewMode('tabela')}
+              className={`h-9 px-3 rounded-r-lg border-t border-r border-b text-xs font-medium flex items-center gap-1.5 transition-colors
+                ${viewMode === 'tabela' ? 'bg-[#D93030] text-white border-[#D93030]' : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}>
+              <Table2 className="w-3.5 h-3.5" /> Tabela
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex-1 min-w-48 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar lojista ou unidade..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 bg-white dark:bg-[#1A1F2E] border border-gray-200 dark:border-[#2E3447] rounded-xl text-sm text-gray-700 dark:text-[#CBD5E1] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#D93030]/40 focus:border-[#D93030] transition-colors"
-          />
+      {/* Área de listagem */}
+      <div className="flex-1 overflow-hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col">
+
+        {/* Contador */}
+        <div className="px-5 py-3.5 border-b border-gray-100 dark:border-[#2E3447] bg-gray-50/50 dark:bg-[#1A1F2E] flex-shrink-0 flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
+            {filtered.length} unidade{filtered.length !== 1 ? 's' : ''}
+          </span>
+          <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500 dark:text-[#64748B]">
+            <span className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm border-2 border-dashed border-[#D93030]/50" />
+              {counts.disponiveis} disponíveis
+            </span>
+            <span className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm bg-[#D93030]/20 border border-[#D93030]/30" />
+              {counts.ocupadas} ocupadas
+            </span>
+            <span className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+              {counts.vencendoBreve} &lt;60 dias
+            </span>
+          </div>
         </div>
-        <FilterSelect
-          value={filterStatus}
-          onChange={setFilterStatus}
-          options={[
-            { value: "Todos", label: "Todos" },
-            { value: "Disponível", label: "Disponíveis" },
-            { value: "Ocupado", label: "Ocupadas" },
-          ]}
-        />
-        <FilterSelect
-          value={filterSegmento}
-          onChange={setFilterSegmento}
-          options={[
-            { value: "Todos", label: "Todos os Segmentos" },
-            ...["Moda", "Alimentação", "Serviços", "Eletrônicos", "Esportes", "Entretenimento", "Outros"].map(s => ({ value: s, label: s })),
-          ]}
-        />
-        {(search || filterStatus !== "Todos" || filterSegmento !== "Todos") && (
-          <button onClick={() => { setSearch(""); setFilterStatus("Todos"); setFilterSegmento("Todos"); }}
-            className="h-9 flex items-center gap-1.5 px-3 border border-[#D93030]/25 bg-[#D93030]/5 text-[#D93030] rounded-xl text-sm hover:bg-[#D93030]/10 transition-colors">
-            <RefreshCw className="w-3.5 h-3.5" /> Limpar
-          </button>
+
+        {/* Modo Mapa */}
+        {viewMode === 'mapa' && (
+          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            {PISOS.map(({ value: piso, label: pisoLabel }) => {
+              const hasUnits = Object.values(mapaData[piso]).some(arr => arr.length > 0);
+              if (!hasUnits) return null;
+              return (
+                <div key={piso}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-[#D93030] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Layers className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{pisoLabel}</h2>
+                      <p className="text-xs text-gray-500 dark:text-[#64748B]">
+                        {Object.values(mapaData[piso]).flat().filter(l => l.status === STATUS_OCUPADO).length} ocupadas ·{' '}
+                        {Object.values(mapaData[piso]).flat().filter(l => l.status === STATUS_DISPONIVEL).length} disponíveis
+                      </p>
+                    </div>
+                  </div>
+                  {CORREDORES.map(({ value: corredor }) => {
+                    const units = mapaData[piso][corredor];
+                    if (units.length === 0) return null;
+                    const expiring = units.filter(l => { const p = todasPropostas.find(pp => pp.unidade === l.unidade && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA)); return p ? (getDiasRestantes(p.fimContrato) ?? Infinity) < 60 : false; }).length;
+                    return (
+                      <div key={corredor} className="mb-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <MapPin className="w-3.5 h-3.5 text-[#8B1A1A] dark:text-[#C8A882]" />
+                          <h3 className="text-xs font-semibold text-gray-700 dark:text-[#F1F5F9]">
+                            {CORREDOR_LABEL[corredor]}
+                          </h3>
+                          <span className="text-xs text-gray-400 dark:text-[#64748B]">
+                            · {units.filter(l => l.status === STATUS_OCUPADO).length} ocupadas
+                            · {units.filter(l => l.status === STATUS_DISPONIVEL).length} disponíveis
+                            {expiring > 0 && <span className="text-orange-500 ml-1">· {expiring} &lt;60d</span>}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2.5">
+                          {units.map(unidade => (
+                            <UnitBlock
+                              key={unidade.id}
+                              unidade={unidade}
+                              onSelect={l => setManutencaoLojista(l)}
+                              todasPropostas={todasPropostas}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div className="text-center py-12 text-gray-400 dark:text-[#64748B]">
+                <p className="text-sm">Nenhuma unidade encontrada</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Modo Tabela */}
+        {viewMode === 'tabela' && (
+          <div className="overflow-auto flex-1">
+            <DataTable
+              data={tableRows.map(l => {
+                const propAprov = todasPropostas.find(pp => pp.codigoUnidade === l.unidade && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA));
+                const dias = propAprov ? getDiasRestantes(propAprov.fimContrato) : null;
+                const vencendo = dias !== null && dias < 60;
+                return {
+                  unidade:       l.unidade,
+                  piso:          l.piso === 'P' ? 'Primeiro Piso' : l.piso === 'S' ? 'Segundo Piso' : 'Terceiro Piso',
+                  corredor:      l.corredor,
+                  area:          l.area,
+                  segmento:      l.segmento,
+                  status:        l.status,
+                  nomeFantasia:  l.nome || '—',
+                  fimContrato:   propAprov?.fimContrato || '—',
+                  diasRestantes: dias,
+                  _vencendo:     vencendo,
+                  _raw:          l,
+                };
+              })}
+              columnConfig={{
+                unidade:       { label: 'Unidade', render: (row, v) => (
+                  <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-gray-900 dark:text-[#F1F5F9]">
+                    {row._vencendo && <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />}
+                    {v}
+                  </div>
+                )},
+                piso:          { label: 'Piso', _allowFilter: false },
+                corredor:      { label: 'Corredor' },
+                area:          { label: 'Área (m²)', render: (_, v) => `${v} m²` },
+                segmento:      { label: 'Segmento' },
+                status:        { label: 'Status', render: (_, v) => (
+                  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap ${v === 'Disponível' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300' : 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300'}`}>{v}</span>
+                )},
+                nomeFantasia:  { label: 'Nome Fantasia' },
+                fimContrato:   { label: 'Fim Contrato' },
+                diasRestantes: { label: 'Dias Rest.', _allowFilter: false, render: (row, v) => v !== null ? (
+                  <span className={`text-xs font-semibold ${row._vencendo ? 'text-orange-500' : 'text-gray-600 dark:text-[#94A3B8]'}`}>{row._vencendo && '⚠ '}{v} dias</span>
+                ) : '—'},
+                _vencendo:     { _specified: false },
+                _raw:          { _specified: false },
+              }}
+              onRowClick={row => setManutencaoLojista(row._raw)}
+              emptyMessage="Nenhuma unidade encontrada"
+            />
+          </div>
         )}
       </div>
 
-      {/* Floor plan */}
-      <div className="bg-white dark:bg-[#242938] rounded-2xl border border-gray-100 dark:border-[#2E3447] overflow-hidden">
-        <div className="px-6 py-4 bg-gradient-to-r from-[#8B1A1A]/10 to-[#D93030]/10 dark:from-[#8B1A1A]/20 dark:to-[#D93030]/20 border-b border-gray-100 dark:border-[#2E3447]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#D93030] rounded-lg flex items-center justify-center">
-                <Layers className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-gray-900 dark:text-[#F1F5F9]">{PISO_LABELS[activePiso]}</h2>
-                <p className="text-xs text-gray-500 dark:text-[#94A3B8]">
-                  {pisoStats[activePiso].ocupadas} ocupadas · {pisoStats[activePiso].disponiveis} disponíveis
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-1 bg-gray-100 dark:bg-[#1A1F2E] rounded-lg p-1">
-              {(["P", "S", "T"] as Piso[]).map(p => (
-                <button key={p} onClick={() => setActivePiso(p)}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activePiso === p ? 'bg-[#D93030] text-white shadow-sm' : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-200 dark:hover:bg-[#2E3447]'}`}>
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {(["A", "B", "C"] as Corredor[]).map(corredor => {
-            const units = filteredPisoData[corredor];
-            const totalCorredor = pisoData[corredor].length;
-            const availableCount = pisoData[corredor].filter(l => l.status === "Disponível").length;
-            const expiringCount = pisoData[corredor].filter(l => l.contratoAtivo && l.contratoAtivo.diasRestantes < 60).length;
-
-            return (
-              <div key={corredor}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-[#C8A882]/30 dark:bg-[#C8A882]/20 rounded-lg flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-[#8B1A1A] dark:text-[#C8A882]" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <h3 className="text-sm font-semibold text-gray-800 dark:text-[#F1F5F9]">
-                        {CORREDOR_LABELS[activePiso][corredor]}
-                      </h3>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-[#64748B] flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3 text-green-500" />{totalCorredor - availableCount} ocupadas
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <XCircle className="w-3 h-3 text-[#D93030]" />{availableCount} disponíveis
-                        </span>
-                        {expiringCount > 0 && (
-                          <span className="flex items-center gap-1 text-orange-500">
-                            <Clock className="w-3 h-3" />{expiringCount} vencendo &lt;60d
-                          </span>
-                        )}
-                        <span>({units.length} exibidas)</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {units.length === 0 ? (
-                  <div className="text-center py-6 text-gray-400 dark:text-[#64748B] text-sm bg-gray-50 dark:bg-[#1A1F2E] rounded-xl">
-                    Nenhuma unidade encontrada com os filtros atuais
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2.5">
-                    {units.map(lojista => (
-                      <UnitBlock
-                        key={lojista.id}
-                        lojista={lojista}
-                        onSelect={setSelectedLojista}
-                        onProfile={setProfileLojista}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Legend */}
-      
-
-      {/* Unit detail modal */}
-      {selectedLojista && !profileLojista && (
-        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-4 sm:p-6" onClick={() => setSelectedLojista(null)}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div className="relative bg-white dark:bg-[#1E2435] rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-[#2E3447]"
-            onClick={e => e.stopPropagation()}>
-            <div className={`px-5 py-4 rounded-t-2xl ${selectedLojista.status === 'Disponível' ? 'bg-gradient-to-r from-gray-600 to-gray-700' : 'bg-gradient-to-r from-[#8B1A1A] to-[#D93030]'}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full">
-                    {selectedLojista.status === 'Disponível' ? 'DISPONÍVEL' : 'OCUPADO'}
-                  </span>
-                  <h3 className="text-base font-bold text-white mt-1">
-                    {selectedLojista.status === 'Disponível' ? `Unidade ${selectedLojista.unidade}` : selectedLojista.nome}
-                  </h3>
-                  <p className="text-sm text-white/80">{selectedLojista.unidade} · {selectedLojista.piso} / Corredor {selectedLojista.corredor}</p>
-                </div>
-                <button onClick={() => setSelectedLojista(null)} className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center">
-                  <XCircle className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            </div>
-            <div className="p-5">
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 dark:text-[#64748B]">Segmento</p>
-                  <p className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9]">{selectedLojista.segmento}</p>
-                </div>
-                <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 dark:text-[#64748B]">Área</p>
-                  <p className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9]">{selectedLojista.area} m²</p>
-                </div>
-                <div className="bg-gray-50 dark:bg-[#242938] rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 dark:text-[#64748B]">Corredor</p>
-                  <p className="text-xs font-bold text-gray-900 dark:text-[#F1F5F9]">{selectedLojista.corredor}</p>
-                </div>
-              </div>
-              {selectedLojista.contratoAtivo && (
-                <div className={`${selectedLojista.contratoAtivo.diasRestantes < 60 ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700/30' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700/30'} border rounded-lg p-3 mb-4`}>
-                  <p className={`text-xs font-medium mb-1 ${selectedLojista.contratoAtivo.diasRestantes < 60 ? 'text-orange-700 dark:text-orange-400' : 'text-green-700 dark:text-green-400'}`}>
-                    {selectedLojista.contratoAtivo.diasRestantes < 60 ? `⚠ Contrato vence em ${selectedLojista.contratoAtivo.diasRestantes} dias` : 'Contrato Ativo'}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">
-                      {selectedLojista.contratoAtivo.valorAluguel.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })}/mês
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-[#94A3B8]">até {selectedLojista.contratoAtivo.fim}</span>
-                  </div>
-                </div>
-              )}
-              {selectedLojista.status === 'Disponível' && (
-                <div className="bg-[#D93030]/10 border border-[#D93030]/30 rounded-lg p-3 mb-4">
-                  <p className="text-xs font-medium text-[#D93030] mb-1">Unidade Livre para Locação (RF-11)</p>
-                  <p className="text-xs text-gray-600 dark:text-[#94A3B8]">Unidade de {selectedLojista.area} m² disponível para novas propostas.</p>
-                </div>
-              )}
-              <div className="flex gap-2">
-                <button onClick={() => { setHistoryLojista(selectedLojista); setSelectedLojista(null); }}
-                  className="flex-1 border border-gray-200 dark:border-[#2E3447] text-gray-700 dark:text-[#F1F5F9] hover:bg-gray-50 dark:hover:bg-[#242938] rounded-xl px-3 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                  <History className="w-4 h-4" /> Histórico
-                </button>
-                {selectedLojista.status === 'Ocupado' && (
-                  <button onClick={() => { setProfileLojista(selectedLojista); setSelectedLojista(null); }}
-                    className="flex-1 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                    <Eye className="w-4 h-4" /> Ver Perfil
-                  </button>
-                )}
-                {selectedLojista.status === 'Disponível' && (
-                  <button className="flex-1 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                    <ChevronRight className="w-4 h-4" /> Criar Proposta
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Modals */}
+      {manutencaoLojista && (
+        <DisponibilidadeManutencaoModal
+          unidade={manutencaoLojista}
+          allUnidades={filtered}
+          onClose={() => { setManutencaoLojista(null); refetch(); }}
+        />
       )}
-
-      {historyLojista && <UnitHistoryPanel lojista={historyLojista} onClose={() => setHistoryLojista(null)} />}
-      {profileLojista && <LojistProfileModal lojista={profileLojista} onClose={() => setProfileLojista(null)} />}
     </div>
   );
 }
