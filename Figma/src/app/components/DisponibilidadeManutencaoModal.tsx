@@ -29,15 +29,18 @@
  * Nota: propostaModalAberta é tipada como 'any' para aceitar tanto
  * PropostaResumo (da API) quanto o objeto de nova proposta criado localmente.
  */
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { FilePlus, ChevronLeft, ChevronRight, LogOut, Calendar } from "lucide-react";
 import { propostas as propostasApi } from "../data/apiClient";
 import { useApi } from "../data/useApi";
 import { PropostaManutencaoModal } from "./PropostaManutencaoModal";
 import type { UnidadeInfo, Proposta, StatusProposta } from "../data/comercialData";
-import { STATUS_VENCIDA, STATUS_APROVADO, STATUS_FINALIZADO, STATUS_DISPONIVEL } from "../enums";
+import { STATUS_VENCIDA, STATUS_APROVADO, STATUS_FINALIZADO, STATUS_DISPONIVEL, PISO_LABEL } from "../enums";
+import type { Piso } from "../enums";
 import { DataTable } from "./DataTable";
 import { DataCard } from "./DataCard";
+import { ToolbarBtn, ToolbarDivider, ManutencaoToolbar, ManutencaoModalShell, TabBar, InfoHeaderBar, HeaderField } from "./ManutencaoShared";
+import { fmtCurrency, matchColFilter } from "../utils/manutencao";
 
 const STATUS_COLORS: Record<StatusProposta, string> = {
   "Aguardando análise financeira": "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-500/40",
@@ -55,23 +58,6 @@ const TIPO_COLORS: Record<string, string> = {
   Readequação: "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400",
 };
 
-function fmtCurrency(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
-}
-
-function matchColFilter(cellValue: string, pattern: string): boolean {
-  if (!pattern) return true;
-  const val = cellValue.toLowerCase();
-  const p = pattern.toLowerCase();
-  if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
-    const inner = p.slice(1, -1);
-    const idx = val.indexOf(inner);
-    return idx > 0 && idx < val.length - inner.length;
-  }
-  if (p.startsWith('*') && p.length > 1) return val.endsWith(p.slice(1));
-  if (p.endsWith('*') && p.length > 1) return val.startsWith(p.slice(0, -1));
-  return val.includes(p);
-}
 
 interface DisponibilidadeManutencaoModalProps {
   unidade: UnidadeInfo;
@@ -169,47 +155,15 @@ export function DisponibilidadeManutencaoModal({ unidade: lojista, allUnidades: 
 
   // Vencimento agora vem da proposta aprovada via fimContrato
 
-  function ToolbarBtn({
-    icon,
-    label,
-    onClick,
-    disabled = false,
-  }: {
-    icon: React.ReactNode;
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) {
-    return (
-      <button
-        onClick={disabled ? undefined : onClick}
-        title={label}
-        className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-lg gap-0.5 transition-colors min-w-0
-          ${disabled
-            ? 'opacity-40 cursor-not-allowed text-white/40'
-            : 'text-white hover:bg-white/15 cursor-pointer'}`}
-      >
-        <div className="w-4 h-4">{icon}</div>
-        <span className="text-[10px] font-medium leading-tight">{label}</span>
-      </button>
-    );
-  }
-
   return (
     <>
-      <div className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4">
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-        <div
-          className="relative z-10 flex flex-col bg-white dark:bg-[#1E2435] rounded-2xl shadow-2xl border border-gray-100 dark:border-[#2E3447] w-full sm:max-w-3xl overflow-hidden"
-          style={{ height: 'min(90vh, 100dvh - 80px)' }}
-          onClick={e => e.stopPropagation()}
-        >
+      <ManutencaoModalShell maxWidth="sm:max-w-3xl">
           {/* Toolbar */}
-          <div className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#8B1A1A] to-[#D93030] rounded-t-2xl">
+          <ManutencaoToolbar>
 
             <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={abrirNovaProposta} />
 
-            <div className="w-px h-6 bg-white/20 mx-1" />
+            <ToolbarDivider />
 
             <ToolbarBtn
               icon={<ChevronLeft className="w-4 h-4" />}
@@ -224,7 +178,7 @@ export function DisponibilidadeManutencaoModal({ unidade: lojista, allUnidades: 
               disabled={currentIndex >= allLojistas.length - 1}
             />
 
-            <div className="w-px h-6 bg-white/20 mx-1" />
+            <ToolbarDivider />
 
             <ToolbarBtn icon={<LogOut className="w-4 h-4" />} label="Sair" onClick={onClose} />
 
@@ -235,54 +189,34 @@ export function DisponibilidadeManutencaoModal({ unidade: lojista, allUnidades: 
                 </span>
               </div>
             )}
-          </div>
+          </ManutencaoToolbar>
 
           {/* Cabeçalho de disponibilidade */}
-          <div className="flex-shrink-0 grid grid-cols-2 sm:flex sm:items-center sm:gap-6 gap-x-3 gap-y-2 px-4 sm:px-5 py-3 bg-gray-50 dark:bg-[#1A1F2E] border-b border-gray-200 dark:border-[#2E3447]">
-            {[
-              { label: 'Nº da Loja', value: lojista.unidade, mono: true },
-              { label: 'Piso', value: lojista.piso === 'P' ? 'Primeiro Piso' : lojista.piso === 'S' ? 'Segundo Piso' : 'Terceiro Piso' },
-              { label: 'Área (m²)', value: `${lojista.area} m²` },
-              { label: 'Corredor', value: lojista.corredor },
-              { label: 'Segmento', value: lojista.segmento },
-            ].map((item, i) => (
-              <div key={i} className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-medium text-gray-400 dark:text-[#64748B] uppercase tracking-wide">{item.label}</span>
-                <span className={`text-sm font-semibold text-gray-800 dark:text-[#F1F5F9] ${item.mono ? 'font-mono' : ''}`}>{item.value}</span>
-              </div>
-            ))}
-
-            {/* Status da unidade */}
-            <div className="flex flex-col gap-0.5 col-span-2 sm:col-span-1">
-              <span className="text-[10px] font-medium text-gray-400 dark:text-[#64748B] uppercase tracking-wide">Status</span>
+          <InfoHeaderBar>
+            <HeaderField label="Nº da Loja" value={lojista.unidade} mono />
+            <HeaderField label="Piso"        value={PISO_LABEL[lojista.piso as Piso] ?? '-'} />
+            <HeaderField label="Área (m²)"   value={`${lojista.area} m²`} />
+            <HeaderField label="Corredor"    value={lojista.corredor} />
+            <HeaderField label="Segmento"    value={lojista.segmento} />
+            <HeaderField label="Status" colSpanFull>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border w-auto inline-flex items-center gap-1.5
                 ${lojista.status === STATUS_DISPONIVEL
                   ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-500/40'
                   : 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-500/40'}`}>
-
                 {lojista.status}
-
               </span>
-            </div>
-          </div>
+            </HeaderField>
+          </InfoHeaderBar>
 
           {/* Abas */}
-          <div className="flex-shrink-0 bg-gray-50 dark:bg-[#1A1F2E] border-b border-gray-200 dark:border-[#2E3447]">
-            <div className="flex px-4">
-              {[
-                { id: 'proposta-atual', label: 'Proposta Atual' },
-                { id: 'propostas-vinculadas', label: `Propostas Vinculadas (${propostasVinculadas.length})` },
-              ].map(aba => (
-                <button key={aba.id} onClick={() => setActiveTab(aba.id as any)}
-                  className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors
-                    ${activeTab === aba.id
-                      ? 'text-[#D93030] dark:text-[#E04444] border-[#D93030]'
-                      : 'text-gray-500 dark:text-[#94A3B8] border-transparent hover:text-gray-800 dark:hover:text-[#F1F5F9]'}`}>
-                  {aba.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <TabBar
+            tabs={[
+              { id: 'proposta-atual', label: 'Proposta Atual' },
+              { id: 'propostas-vinculadas', label: `Propostas Vinculadas (${propostasVinculadas.length})` },
+            ]}
+            activeTab={activeTab}
+            onChange={id => setActiveTab(id as 'proposta-atual' | 'propostas-vinculadas')}
+          />
 
           {/* Conteúdo */}
           <div className="flex-1 overflow-y-auto p-5">
@@ -427,8 +361,7 @@ export function DisponibilidadeManutencaoModal({ unidade: lojista, allUnidades: 
               </>
             )}
           </div>
-        </div>
-      </div>
+      </ManutencaoModalShell>
 
       {/* Modal de manutenção de proposta — abre por cima */}
       {propostaModalAberta && (
