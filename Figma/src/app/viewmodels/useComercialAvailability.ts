@@ -30,7 +30,7 @@ import { PropostasService } from '../services/propostas.service';
 import { usePersistedState } from '../shared/hooks/usePersistedState';
 import { matchColFilter } from '../shared/utils/filters';
 import type { UnidadeInfo, Piso } from '../data/comercialData';
-import { STATUS_OCUPADO, STATUS_DISPONIVEL, STATUS_APROVADO, STATUS_VENCIDA } from '../enums';
+import { STATUS_OCUPADO, STATUS_DISPONIVEL, STATUS_APROVADO, STATUS_VENCIDA, ViewMode } from '../enums';
 import type { Corredor } from '../enums';
 
 
@@ -80,7 +80,7 @@ export function useComercialAvailability() {
   const [filterPisos,    setFilterPisos]    = usePersistedState<Piso[]>(`${NS}.filterPisos`, []);
   const [dateFrom,       setDateFrom]       = usePersistedState<string>(`${NS}.dateFrom`, '', v => v, v => v);
   const [dateTo,         setDateTo]         = usePersistedState<string>(`${NS}.dateTo`, '', v => v, v => v);
-  const [viewMode,       setViewMode]       = usePersistedState<'mapa' | 'tabela'>(`${NS}.viewMode`, 'mapa', v => v, v => v as 'mapa' | 'tabela');
+  const [viewMode,       setViewMode]       = usePersistedState<ViewMode>(`${NS}.viewMode`, ViewMode.Cards, v => v, v => v as ViewMode);
   const [sortCol,        setSortCol]        = usePersistedState<string>(`${NS}.sortCol`, 'unidade', v => v, v => v);
   const [sortDir,        setSortDir]        = usePersistedState<'asc' | 'desc'>(`${NS}.sortDir`, 'asc', v => v, v => v as 'asc' | 'desc');
   const [colFilters,     setColFilters]     = usePersistedState<Record<string, string>>(`${NS}.colFilters`, {});
@@ -92,7 +92,7 @@ export function useComercialAvailability() {
 
   // Forçar mapa em mobile
   useEffect(() => {
-    const handleResize = () => { if (window.innerWidth < 640) setViewMode('mapa'); };
+    const handleResize = () => { if (window.innerWidth < 640) setViewMode(ViewMode.Cards); };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

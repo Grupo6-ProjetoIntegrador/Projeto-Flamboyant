@@ -44,6 +44,7 @@
 
 import type { ReactNode } from 'react';
 import { Calendar } from 'lucide-react';
+import { getStatusPropostaClasses, getTipoOperacaoClasses } from './StatusBadge';
 
 // ── Tipos ────────────────────────────────────────────────────
 
@@ -83,26 +84,6 @@ interface DataCardProps<T extends Record<string, any>> {
   onClick?: (row: T) => void;
   className?: string;
 }
-
-// ── Cores de status ──────────────────────────────────────────
-// Mapeamento de status conhecidos para classes Tailwind
-const STATUS_COLORS: Record<string, string> = {
-  'Aprovado':                        'bg-green-100  dark:bg-green-500/20  text-green-700  dark:text-green-300  border border-green-200  dark:border-green-500/40',
-  'Aguardando análise financeira':   'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-500/40',
-  'Aguardando análise do comitê':    'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/40',
-  'Reprovado':                       'bg-red-100    dark:bg-red-500/20    text-red-700    dark:text-red-300    border border-red-200    dark:border-red-500/40',
-  'Cancelado':                       'bg-gray-100   dark:bg-gray-700/50   text-gray-600   dark:text-gray-400   border border-gray-200   dark:border-gray-600/30',
-  'Vencida':                         'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-500/40',
-  'Finalizado':                      'bg-blue-100   dark:bg-blue-500/20   text-blue-700   dark:text-blue-300   border border-blue-200   dark:border-blue-500/40',
-};
-
-const TIPO_COLORS: Record<string, string> = {
-  'Nova Instalação': 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400',
-  'Renovação':       'bg-teal-50   dark:bg-teal-900/20   text-teal-700   dark:text-teal-400',
-  'Readequação':     'bg-amber-50  dark:bg-amber-900/20  text-amber-700  dark:text-amber-400',
-  'Transferência':   'bg-pink-50   dark:bg-pink-900/20   text-pink-700   dark:text-pink-400',
-  'Cessão':          'bg-cyan-50   dark:bg-cyan-900/20   text-cyan-700   dark:text-cyan-400',
-};
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -171,8 +152,8 @@ export function DataCard<T extends Record<string, any>>({
   const footerVal      = footer      ? resolveSlotSingle(footer, data)        : null;
 
   const titleBadgeStr = titleBadgeVal ? String(titleBadgeVal) : null;
-  const tipoCls = titleBadgeStr ? (TIPO_COLORS[titleBadgeStr] || 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300') : '';
-  const statusCls = statusVal ? (STATUS_COLORS[statusVal] || 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400') : '';
+  const tipoCls    = titleBadgeStr ? getTipoOperacaoClasses(titleBadgeStr) : '';
+  const statusCls  = statusVal     ? getStatusPropostaClasses(statusVal as any) : '';
 
   const hasFooterRow = statusVal || footerVal;
 

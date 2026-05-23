@@ -1,0 +1,111 @@
+import type { ReactNode } from "react";
+import { Filter, ChevronDown, LayoutGrid, Table2 } from "lucide-react";
+import { DatePickerInput } from "./DatePickerInput";
+
+// ── PageShell ──────────────────────────────────────────────
+export function PageShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col h-full overflow-hidden gap-4 p-6">
+      {children}
+    </div>
+  );
+}
+
+// ── FilterBar ──────────────────────────────────────────────
+interface FilterBarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+  hasActiveFilters?: boolean;
+  children: ReactNode;
+}
+
+export function FilterBar({ isOpen, onToggle, hasActiveFilters, children }: FilterBarProps) {
+  return (
+    <>
+      <button
+        onClick={onToggle}
+        className="sm:hidden flex-shrink-0 w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]"
+      >
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-[#D93030]" />
+          <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Filtros</span>
+          {hasActiveFilters && (
+            <span className="w-2 h-2 rounded-full bg-[#D93030]" />
+          )}
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`}
+        />
+      </button>
+      <div className={`flex-shrink-0 flex-col sm:flex-row sm:items-stretch sm:justify-start gap-0
+        ${isOpen ? 'flex' : 'hidden sm:flex'}
+        bg-white dark:bg-[#242938] sm:bg-transparent sm:dark:bg-transparent
+        rounded-xl sm:rounded-none
+        border border-gray-100 dark:border-[#2E3447] sm:border-0
+        p-3 sm:p-0`}>
+        {children}
+      </div>
+    </>
+  );
+}
+
+// ── FilterSeparator ────────────────────────────────────────
+export function FilterSeparator() {
+  return (
+    <>
+      <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
+      <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
+    </>
+  );
+}
+
+// ── FilterDateRange ────────────────────────────────────────
+interface FilterDateRangeProps {
+  label: string;
+  from: string;
+  to: string;
+  onFromChange: (v: string) => void;
+  onToChange: (v: string) => void;
+}
+
+export function FilterDateRange({ label, from, to, onFromChange, onToChange }: FilterDateRangeProps) {
+  return (
+    <div className="flex flex-col gap-1 w-full sm:w-auto sm:pr-6 pb-2 sm:pb-0">
+      <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">{label}</span>
+      <div className="flex items-center gap-1.5 h-9">
+        <DatePickerInput value={from} onChange={onFromChange} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
+        <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap flex-shrink-0">até</span>
+        <DatePickerInput value={to} onChange={onToChange} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
+      </div>
+    </div>
+  );
+}
+
+// ── ViewModeToggle ─────────────────────────────────────────
+import { ViewMode } from "../enums";
+
+interface ViewModeToggleProps {
+  value: ViewMode;
+  onChange: (mode: ViewMode) => void;
+}
+
+export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
+  return (
+    <div className="hidden sm:flex items-center gap-1">
+      <button
+        onClick={() => onChange(ViewMode.Cards)}
+        className={`h-8 px-2.5 rounded-l-lg border text-xs font-medium flex items-center gap-1.5 transition-colors
+          ${value === ViewMode.Cards ? 'bg-[#D93030] text-white border-[#D93030]' : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}
+      >
+        <LayoutGrid className="w-3.5 h-3.5" /> Cards
+      </button>
+      <button
+        onClick={() => onChange(ViewMode.Tabela)}
+        className={`h-8 px-2.5 rounded-r-lg border-t border-r border-b text-xs font-medium flex items-center gap-1.5 transition-colors
+          ${value === ViewMode.Tabela ? 'bg-[#D93030] text-white border-[#D93030]' : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}
+      >
+        <Table2 className="w-3.5 h-3.5" /> Tabela
+      </button>
+    </div>
+  );
+}

@@ -114,6 +114,14 @@ export const TIPOS_OPERACAO_COLORS: Record<TipoOperacao, BadgeColors> = {
 };
 
 // ---------------------------------------------------------------------------
+// Modo de Visualização — compartilhado entre páginas com toggle Cards/Tabela
+// ---------------------------------------------------------------------------
+export enum ViewMode {
+  Cards  = 'cards',
+  Tabela = 'tabela',
+}
+
+// ---------------------------------------------------------------------------
 // Formas de Pagamento
 // ---------------------------------------------------------------------------
 export const FORMAS_PAGAMENTO = ['À vista', 'Parcelado', 'Compensação com TT'] as const;

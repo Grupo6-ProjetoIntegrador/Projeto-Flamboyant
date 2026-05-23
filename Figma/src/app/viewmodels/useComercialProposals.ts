@@ -31,6 +31,7 @@ import { usePersistedState } from '../shared/hooks/usePersistedState';
 import { matchColFilter, ptBRToISO } from '../shared/utils/filters';
 import type { PropostaResumo } from '../services/propostas.service';
 import type { StatusProposta } from '../data/comercialData';
+import { ViewMode } from '../enums';
 
 const NS = 'propostas';
 
@@ -42,7 +43,7 @@ export function useComercialProposals() {
   const [filterStatuses, setFilterStatuses] = usePersistedState<StatusProposta[]>(`${NS}.filterStatuses`, []);
   const [dateFrom,       setDateFrom]       = usePersistedState<string>(`${NS}.dateFrom`, '', v => v, v => v);
   const [dateTo,         setDateTo]         = usePersistedState<string>(`${NS}.dateTo`, '', v => v, v => v);
-  const [viewMode,       setViewMode]       = usePersistedState<'card' | 'table'>(`${NS}.viewMode`, 'card', v => v, v => v as 'card' | 'table');
+  const [viewMode,       setViewMode]       = usePersistedState<ViewMode>(`${NS}.viewMode`, ViewMode.Cards, v => v, v => v as ViewMode);
   const [sortCol,        setSortCol]        = usePersistedState<string>(`${NS}.sortCol`, 'lojista', v => v, v => v);
   const [sortDir,        setSortDir]        = usePersistedState<'asc' | 'desc'>(`${NS}.sortDir`, 'asc', v => v, v => v as 'asc' | 'desc');
   const [colFilters,     setColFilters]     = usePersistedState<Record<string, string>>(`${NS}.colFilters`, {});
