@@ -13,7 +13,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from "recharts";
-import { unidades, propostas } from "../../data/apiClient";
+import { fmtCurrency, matchColFilter } from "../../utils/manutencao";
+import { ChartTooltip } from "../../components/ChartTooltip";
 
 const DS = {
   primary: "#D93030",
@@ -29,69 +30,6 @@ const PIE_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "
 const CHART_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "#8B5CF6"];
 
 const PISO_LABELS: Record<string, string> = { P: "Primeiro Piso", S: "Segundo Piso", T: "Terceiro Piso" };
-
-const TODAY = new Date();
-
-function fmt(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-}
-
-function matchColFilter(cellValue: string, pattern: string): boolean {
-  if (!pattern) return true;
-  const val = cellValue.toLowerCase();
-  const p = pattern.toLowerCase();
-  if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
-    const inner = p.slice(1, -1);
-    const idx = val.indexOf(inner);
-    return idx > 0 && idx < val.length - inner.length;
-  }
-  if (p.startsWith('*') && p.length > 1) return val.endsWith(p.slice(1));
-  if (p.endsWith('*') && p.length > 1) return val.startsWith(p.slice(0, -1));
-  return val.includes(p);
-}
-
-function ChartTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const isBar = label !== undefined;
-  return (
-    <div style={{
-      backgroundColor: 'var(--color-background-primary)',
-      border: '1px solid var(--color-border-secondary)',
-      borderRadius: '10px',
-      padding: '10px 12px',
-      fontSize: '11px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-      minWidth: '120px',
-    }}>
-      {isBar && (
-        <p style={{
-          fontWeight: 600,
-          marginBottom: '6px',
-          paddingBottom: '6px',
-          borderBottom: '1px solid var(--color-border-tertiary)',
-          color: '#C8A882',
-        }}>{label}</p>
-      )}
-      {payload.map((entry: any, i: number) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{
-              width: '8px', height: '8px', borderRadius: '50%',
-              backgroundColor: entry.payload?.fill ?? entry.color ?? '#D93030',
-              flexShrink: 0,
-            }} />
-            <span style={{ color: 'var(--color-text-secondary)' }}>{entry.name ?? entry.payload?.name}</span>
-          </div>
-          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-            {entry.value} {entry.value === 1 ? 'loja' : 'lojas'}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-
 
 function getDiasRestantes(fimContrato: string | undefined): number | null {
   if (!fimContrato) return null;
@@ -408,7 +346,7 @@ export function ComercialDashboard() {
               unidade:      p.codigoUnidade,
               tipo:         p.tipoOperacao,
               criacao:      p.dataCriacao,
-              valor:        fmt(p.valorProposto),
+              valor:        fmtCurrency(p.valorProposto),
               status:       p.status,
             }))}
             columnConfig={{
@@ -745,7 +683,7 @@ export function ComercialDashboard() {
                   <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-[#64748B]">
                     <span>{p.tipoOperacao}</span>
                     <span className="text-gray-300 dark:text-[#2E3447]">·</span>
-                    <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">{fmt(p.valorProposto)}</span>
+                    <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">{fmtCurrency(p.valorProposto)}</span>
                   </div>
                 </div>
               ))}

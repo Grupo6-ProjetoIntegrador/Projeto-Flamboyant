@@ -37,21 +37,7 @@ import { DisponibilidadeManutencaoModal } from "../../components/Disponibilidade
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
 import { PISOS, CORREDORES, CORREDOR_LABEL, STATUS_OCUPADO, STATUS_DISPONIVEL, STATUS_APROVADO, STATUS_VENCIDA, ViewMode } from "../../enums";
 import type { Piso } from "../../enums";
-
-
-function matchColFilter(cellValue: string, pattern: string): boolean {
-  if (!pattern) return true;
-  const val = cellValue.toLowerCase();
-  const p = pattern.toLowerCase();
-  if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
-    const inner = p.slice(1, -1);
-    const idx = val.indexOf(inner);
-    return idx > 0 && idx < val.length - inner.length;
-  }
-  if (p.startsWith('*') && p.length > 1) return val.endsWith(p.slice(1));
-  if (p.endsWith('*') && p.length > 1) return val.startsWith(p.slice(0, -1));
-  return val.includes(p);
-}
+import { matchColFilter } from "../../utils/manutencao";
 
 function UnitBlock({
   unidade,
