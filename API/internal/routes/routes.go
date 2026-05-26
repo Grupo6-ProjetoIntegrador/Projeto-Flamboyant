@@ -76,7 +76,7 @@ func Register(r *gin.Engine, db *pgxpool.Pool, jwtSecret string) {
 		api.PUT("/propostas/:id/parecer-comite", propostasHandler.PlaceholderOK)
 
 		// Documentos
-		api.GET("/documentos", propostasHandler.PlaceholderOK)
+		api.GET("/documentos", propostasHandler.PlaceholderList)
 		api.POST("/documentos", propostasHandler.PlaceholderOK)
 		api.DELETE("/documentos/:id", propostasHandler.PlaceholderOK)
 	}

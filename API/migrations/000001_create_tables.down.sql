@@ -2,7 +2,6 @@
 -- BES-2026 | Migration 000001 DOWN — Remove todas as tabelas
 -- ============================================================
 
-DROP TABLE IF EXISTS "PropostaDocumentoHistorico";
 DROP TABLE IF EXISTS "PropostaParecerComiteHistorico";
 DROP TABLE IF EXISTS "PropostaTaxaTransferenciaHistorico";
 DROP TABLE IF EXISTS "PropostaCessaoDireitosHistorico";

@@ -201,7 +201,7 @@ export function PropostaManutencaoModal({
   useEffect(() => {
     // Buscar histórico e documentos da API
     propostasApi.historico.listar(proposta.id).then(hist => setHistoricoEdicoes(hist || [])).catch(() => {});
-    documentosApi.listar(proposta.id).then(docs => setDocumentos(docs || [])).catch(() => {});
+    documentosApi.listar(proposta.id).then(docs => setDocumentos(Array.isArray(docs) ? docs : [])).catch(() => {});
     // Sincronizar ambos os objetos ao trocar de proposta (navegação)
     setPropostaOld(structuredClone(proposta as Proposta));
     setDraft(structuredClone(proposta as Proposta));
@@ -214,9 +214,9 @@ export function PropostaManutencaoModal({
 
   // Derivar dados do cabeçalho
   function derivePiso(unidade: string): string {
-    if (unidade.startsWith('L1')) return PISO_LABEL['P'];
-    if (unidade.startsWith('L2')) return PISO_LABEL['S'];
-    if (unidade.startsWith('L3')) return PISO_LABEL['T'];
+    if (unidade.startsWith('P')) return PISO_LABEL['P'];
+    if (unidade.startsWith('S')) return PISO_LABEL['S'];
+    if (unidade.startsWith('T')) return PISO_LABEL['T'];
     return '-';
   }
 

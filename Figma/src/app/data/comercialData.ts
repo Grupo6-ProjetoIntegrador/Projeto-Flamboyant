@@ -196,11 +196,11 @@ export interface Proposta {
 // LOJAS CHAVE COM DADOS COMPLETOS (50 lojas)
 // ============================================================
 const keyStores: UnidadeInfo[] = [
-  // ──── L1 CORREDOR A — MODA ÂNCORA ────
+  // ──── P CORREDOR A — MODA ÂNCORA ────
   {
-    id: 'L1-001', nome: 'Renner', cnpj: '92.754.738/0001-62', segmento: 'Moda',
+    id: 'P-001', nome: 'Renner', cnpj: '92.754.738/0001-62', segmento: 'Moda',
     responsavel: 'Marcela Fontana', email: 'marcela.fontana@renner.com.br', telefone: '(62) 3344-5566',
-    unidade: 'L1-001', piso: 'P', corredor: 'A', area: 800,
+    unidade: 'P-001', piso: 'P', corredor: 'A', area: 800,
     status: 'Ocupado', faturamentoMedio: 1850000,
     propostas: [
       { id: 'PROP-H-001', data: '10/01/2024', tipo: 'Renovação', valor: 72000, status: 'Aceita', observacao: 'Renovação com reajuste de 8% pelo IGPM' },
@@ -208,9 +208,9 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
   {
-    id: 'L1-002', nome: 'C&A', cnpj: '45.242.914/0001-05', segmento: 'Moda',
+    id: 'P-002', nome: 'C&A', cnpj: '45.242.914/0001-05', segmento: 'Moda',
     responsavel: 'Roberto Siqueira', email: 'roberto.siqueira@cea.com.br', telefone: '(62) 3210-9988',
-    unidade: 'L1-002', piso: 'P', corredor: 'A', area: 700,
+    unidade: 'P-002', piso: 'P', corredor: 'A', area: 700,
     status: 'Ocupado', faturamentoMedio: 1420000,
     propostas: [
       { id: 'PROP-H-003', data: '10/04/2026', tipo: 'Renovação', valor: 66000, status: 'Em Negociação', observacao: 'Proposta de renovação com reajuste de 8%' },
@@ -218,45 +218,45 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
   {
-    id: 'L1-003', nome: 'Riachuelo', cnpj: '33.200.056/0001-28', segmento: 'Moda',
+    id: 'P-003', nome: 'Riachuelo', cnpj: '33.200.056/0001-28', segmento: 'Moda',
     responsavel: 'Fernanda Leite', email: 'f.leite@riachuelo.com.br', telefone: '(62) 3344-7788',
-    unidade: 'L1-003', piso: 'P', corredor: 'A', area: 650,
+    unidade: 'P-003', piso: 'P', corredor: 'A', area: 650,
     status: 'Ocupado', faturamentoMedio: 1280000,
     propostas: [
       { id: 'PROP-H-005', data: '15/11/2023', tipo: 'Renovação', valor: 55000, status: 'Aceita', observacao: 'Negociação rápida, sem pendências' },
     ],
   },
   {
-    id: 'L1-004', nome: 'Zara', cnpj: '72.700.786/0001-99', segmento: 'Moda',
+    id: 'P-004', nome: 'Zara', cnpj: '72.700.786/0001-99', segmento: 'Moda',
     responsavel: 'Ana Paula Rocha', email: 'ana.rocha@zara.com.br', telefone: '(62) 3512-3344',
-    unidade: 'L1-004', piso: 'P', corredor: 'A', area: 450,
+    unidade: 'P-004', piso: 'P', corredor: 'A', area: 450,
     status: 'Ocupado', faturamentoMedio: 2100000,
     propostas: [
       { id: 'PROP-H-006', data: '20/01/2025', tipo: 'Nova Proposta', valor: 98000, status: 'Aceita', observacao: 'Nova instalação, ponto premium' },
     ],
   },
   {
-    id: 'L1-005', nome: 'H&M', cnpj: '23.613.404/0001-58', segmento: 'Moda',
+    id: 'P-005', nome: 'H&M', cnpj: '23.613.404/0001-58', segmento: 'Moda',
     responsavel: 'Carlos Matos', email: 'c.matos@hm.com', telefone: '(62) 3212-1100',
-    unidade: 'L1-005', piso: 'P', corredor: 'A', area: 500,
+    unidade: 'P-005', piso: 'P', corredor: 'A', area: 500,
     status: 'Ocupado', faturamentoMedio: 1950000,
     propostas: [
       { id: 'PROP-H-007', data: '01/05/2024', tipo: 'Nova Proposta', valor: 88000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L1-006', nome: 'Arezzo', cnpj: '16.590.234/0001-76', segmento: 'Moda',
+    id: 'P-006', nome: 'Arezzo', cnpj: '16.590.234/0001-76', segmento: 'Moda',
     responsavel: 'Beatriz Cardoso', email: 'beatriz.c@arezzo.com.br', telefone: '(62) 3321-5544',
-    unidade: 'L1-006', piso: 'P', corredor: 'A', area: 180,
+    unidade: 'P-006', piso: 'P', corredor: 'A', area: 180,
     status: 'Ocupado', faturamentoMedio: 780000,
     propostas: [
       { id: 'PROP-H-008', data: '01/07/2023', tipo: 'Renovação', valor: 32000, status: 'Aceita', observacao: 'Reajuste de 7% acordado' },
     ],
   },
   {
-    id: 'L1-007', nome: 'Chilli Beans', cnpj: '04.392.000/0001-22', segmento: 'Moda',
+    id: 'P-007', nome: 'Chilli Beans', cnpj: '04.392.000/0001-22', segmento: 'Moda',
     responsavel: 'Thiago Assunção', email: 'thiago.a@chillibeans.com.br', telefone: '(62) 3301-2200',
-    unidade: 'L1-007', piso: 'P', corredor: 'A', area: 80,
+    unidade: 'P-007', piso: 'P', corredor: 'A', area: 80,
     status: 'Ocupado', faturamentoMedio: 390000,
     propostas: [
       { id: 'PROP-H-009', data: '05/04/2026', tipo: 'Renovação', valor: 20000, status: 'Em Negociação', observacao: 'Reajuste proposto de 11%' },
@@ -264,58 +264,58 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
   {
-    id: 'L1-008', nome: 'Farm', cnpj: '03.799.255/0001-81', segmento: 'Moda',
+    id: 'P-008', nome: 'Farm', cnpj: '03.799.255/0001-81', segmento: 'Moda',
     responsavel: 'Juliana Prado', email: 'j.prado@farm.com.br', telefone: '(62) 3456-7890',
-    unidade: 'L1-008', piso: 'P', corredor: 'A', area: 190,
+    unidade: 'P-008', piso: 'P', corredor: 'A', area: 190,
     status: 'Ocupado', faturamentoMedio: 920000,
     propostas: [
       { id: 'PROP-H-011', data: '10/12/2024', tipo: 'Nova Proposta', valor: 41000, status: 'Aceita', observacao: 'Transferência de outra unidade' },
     ],
   },
 
-  // ──── L1 CORREDOR B — ESPORTES ────
+  // ──── P CORREDOR B — ESPORTES ────
   {
-    id: 'L1-031', nome: 'Decathlon', cnpj: '03.471.761/0001-68', segmento: 'Esportes',
+    id: 'P-031', nome: 'Decathlon', cnpj: '03.471.761/0001-68', segmento: 'Esportes',
     responsavel: 'Pierre Dubois', email: 'pierre.dubois@decathlon.com.br', telefone: '(62) 3600-1200',
-    unidade: 'L1-031', piso: 'P', corredor: 'B', area: 1200,
+    unidade: 'P-031', piso: 'P', corredor: 'B', area: 1200,
     status: 'Ocupado', faturamentoMedio: 3200000,
     propostas: [
       { id: 'PROP-H-012', data: '01/06/2022', tipo: 'Nova Proposta', valor: 95000, status: 'Aceita', observacao: 'Âncora esportiva exclusiva para o piso 1' },
     ],
   },
   {
-    id: 'L1-032', nome: 'Centauro', cnpj: '42.830.506/0001-65', segmento: 'Esportes',
+    id: 'P-032', nome: 'Centauro', cnpj: '42.830.506/0001-65', segmento: 'Esportes',
     responsavel: 'Márcio Silveira', email: 'm.silveira@centauro.com.br', telefone: '(62) 3412-3344',
-    unidade: 'L1-032', piso: 'P', corredor: 'B', area: 400,
+    unidade: 'P-032', piso: 'P', corredor: 'B', area: 400,
     status: 'Ocupado', faturamentoMedio: 1350000,
     propostas: [
       { id: 'PROP-H-013', data: '10/02/2024', tipo: 'Renovação', valor: 52000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L1-033', nome: 'Nike Store', cnpj: '56.998.476/0001-10', segmento: 'Esportes',
+    id: 'P-033', nome: 'Nike Store', cnpj: '56.998.476/0001-10', segmento: 'Esportes',
     responsavel: 'Lucas Andrade', email: 'lucas.a@nike.com', telefone: '(62) 3400-1122',
-    unidade: 'L1-033', piso: 'P', corredor: 'B', area: 250,
+    unidade: 'P-033', piso: 'P', corredor: 'B', area: 250,
     status: 'Ocupado', faturamentoMedio: 1100000,
     propostas: [
       { id: 'PROP-H-014', data: '01/08/2023', tipo: 'Renovação', valor: 68000, status: 'Aceita', observacao: 'Reajuste de 9% negociado' },
     ],
   },
   {
-    id: 'L1-034', nome: 'Adidas', cnpj: '61.088.094/0001-57', segmento: 'Esportes',
+    id: 'P-034', nome: 'Adidas', cnpj: '61.088.094/0001-57', segmento: 'Esportes',
     responsavel: 'Claudia Becker', email: 'claudia.b@adidas.com', telefone: '(62) 3501-4455',
-    unidade: 'L1-034', piso: 'P', corredor: 'B', area: 230,
+    unidade: 'P-034', piso: 'P', corredor: 'B', area: 230,
     status: 'Ocupado', faturamentoMedio: 890000,
     propostas: [
       { id: 'PROP-H-015', data: '15/03/2024', tipo: 'Nova Proposta', valor: 58000, status: 'Aceita' },
     ],
   },
 
-  // ──── L1 CORREDOR C — SERVIÇOS ────
+  // ──── P CORREDOR C — SERVIÇOS ────
   {
-    id: 'L1-061', nome: 'Bradesco', cnpj: '60.746.948/0001-12', segmento: 'Serviços',
+    id: 'P-061', nome: 'Bradesco', cnpj: '60.746.948/0001-12', segmento: 'Serviços',
     responsavel: 'Rafael Monteiro', email: 'rafael.monteiro@bradesco.com.br', telefone: '(62) 3100-5000',
-    unidade: 'L1-061', piso: 'P', corredor: 'C', area: 120,
+    unidade: 'P-061', piso: 'P', corredor: 'C', area: 120,
     status: 'Ocupado', faturamentoMedio: 0,
     propostas: [
       { id: 'PROP-H-016', data: '02/04/2026', tipo: 'Renovação', valor: 31000, status: 'Em Análise', observacao: 'Banco solicita prazo de análise interna de 30 dias' },
@@ -323,18 +323,18 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
   {
-    id: 'L1-062', nome: 'Itaú Uniclass', cnpj: '60.872.504/0001-23', segmento: 'Serviços',
+    id: 'P-062', nome: 'Itaú Uniclass', cnpj: '60.872.504/0001-23', segmento: 'Serviços',
     responsavel: 'Vanessa Torres', email: 'vanessa.torres@itau.com.br', telefone: '(62) 3300-7788',
-    unidade: 'L1-062', piso: 'P', corredor: 'C', area: 100,
+    unidade: 'P-062', piso: 'P', corredor: 'C', area: 100,
     status: 'Ocupado', faturamentoMedio: 0,
     propostas: [
       { id: 'PROP-H-018', data: '01/06/2024', tipo: 'Renovação', valor: 26000, status: 'Aceita', observacao: 'Renovação antecipada com ajuste' },
     ],
   },
   {
-    id: 'L1-063', nome: 'Claro', cnpj: '40.432.544/0001-47', segmento: 'Serviços',
+    id: 'P-063', nome: 'Claro', cnpj: '40.432.544/0001-47', segmento: 'Serviços',
     responsavel: 'Diego Nascimento', email: 'd.nascimento@claro.com.br', telefone: '(62) 3400-2020',
-    unidade: 'L1-063', piso: 'P', corredor: 'C', area: 70,
+    unidade: 'P-063', piso: 'P', corredor: 'C', area: 70,
     status: 'Ocupado', faturamentoMedio: 420000,
     propostas: [
       { id: 'PROP-H-019', data: '05/04/2026', tipo: 'Renovação', valor: 20500, status: 'Pendente', observacao: 'Aguardando aprovação interna da operadora' },
@@ -342,67 +342,67 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
 
-  // ──── L2 CORREDOR A — ELETRÔNICOS ────
+  // ──── S CORREDOR A — ELETRÔNICOS ────
   {
-    id: 'L2-001', nome: 'Fast Shop', cnpj: '61.797.924/0001-67', segmento: 'Eletrônicos',
+    id: 'S-001', nome: 'Fast Shop', cnpj: '61.797.924/0001-67', segmento: 'Eletrônicos',
     responsavel: 'Marcus Ribeiro', email: 'marcus.ribeiro@fastshop.com.br', telefone: '(62) 3600-3344',
-    unidade: 'L2-001', piso: 'S', corredor: 'A', area: 350,
+    unidade: 'S-001', piso: 'S', corredor: 'A', area: 350,
     status: 'Ocupado', faturamentoMedio: 2800000,
     propostas: [
       { id: 'PROP-H-021', data: '01/04/2024', tipo: 'Renovação', valor: 75000, status: 'Aceita', observacao: 'Fidelização de lojista âncora' },
     ],
   },
   {
-    id: 'L2-002', nome: 'Apple Store', cnpj: '00.015.477/0001-00', segmento: 'Eletrônicos',
+    id: 'S-002', nome: 'Apple Store', cnpj: '00.015.477/0001-00', segmento: 'Eletrônicos',
     responsavel: 'Jennifer Kim', email: 'jennifer.kim@apple.com', telefone: '(62) 3700-7777',
-    unidade: 'L2-002', piso: 'S', corredor: 'A', area: 280,
+    unidade: 'S-002', piso: 'S', corredor: 'A', area: 280,
     status: 'Ocupado', faturamentoMedio: 5500000,
     propostas: [
       { id: 'PROP-H-022', data: '20/06/2023', tipo: 'Nova Proposta', valor: 150000, status: 'Aceita', observacao: 'Negociação estratégica com selo de loja certificada Apple' },
     ],
   },
   {
-    id: 'L2-003', nome: 'Samsung Experience', cnpj: '17.901.255/0001-49', segmento: 'Eletrônicos',
+    id: 'S-003', nome: 'Samsung Experience', cnpj: '17.901.255/0001-49', segmento: 'Eletrônicos',
     responsavel: 'Min Jun Park', email: 'minjun.park@samsung.com', telefone: '(62) 3500-5500',
-    unidade: 'L2-003', piso: 'S', corredor: 'A', area: 200,
+    unidade: 'S-003', piso: 'S', corredor: 'A', area: 200,
     status: 'Ocupado', faturamentoMedio: 2200000,
     propostas: [
       { id: 'PROP-H-023', data: '01/11/2024', tipo: 'Nova Proposta', valor: 82000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L2-004', nome: 'Magazine Luiza', cnpj: '47.960.950/0001-21', segmento: 'Eletrônicos',
+    id: 'S-004', nome: 'Magazine Luiza', cnpj: '47.960.950/0001-21', segmento: 'Eletrônicos',
     responsavel: 'Priscila Madureira', email: 'p.madureira@magazineluiza.com.br', telefone: '(62) 3800-1234',
-    unidade: 'L2-004', piso: 'S', corredor: 'A', area: 500,
+    unidade: 'S-004', piso: 'S', corredor: 'A', area: 500,
     status: 'Ocupado', faturamentoMedio: 3100000,
     propostas: [
       { id: 'PROP-H-024', data: '01/11/2021', tipo: 'Nova Proposta', valor: 68000, status: 'Aceita' },
     ],
   },
 
-  // ──── L2 CORREDOR B — BELEZA / MODA ────
+  // ──── S CORREDOR B — BELEZA / MODA ────
   {
-    id: 'L2-031', nome: 'O Boticário', cnpj: '75.659.658/0001-83', segmento: 'Outros',
+    id: 'S-031', nome: 'O Boticário', cnpj: '75.659.658/0001-83', segmento: 'Outros',
     responsavel: 'Ana Lima', email: 'ana.lima@boticario.com.br', telefone: '(62) 3233-4455',
-    unidade: 'L2-031', piso: 'S', corredor: 'B', area: 150,
+    unidade: 'S-031', piso: 'S', corredor: 'B', area: 150,
     status: 'Ocupado', faturamentoMedio: 680000,
     propostas: [
       { id: 'PROP-H-025', data: '10/01/2024', tipo: 'Renovação', valor: 34000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L2-032', nome: 'Natura', cnpj: '71.673.990/0001-77', segmento: 'Outros',
+    id: 'S-032', nome: 'Natura', cnpj: '71.673.990/0001-77', segmento: 'Outros',
     responsavel: 'Carla Soares', email: 'carla.soares@natura.net', telefone: '(62) 3301-4488',
-    unidade: 'L2-032', piso: 'S', corredor: 'B', area: 140,
+    unidade: 'S-032', piso: 'S', corredor: 'B', area: 140,
     status: 'Ocupado', faturamentoMedio: 620000,
     propostas: [
       { id: 'PROP-H-026', data: '01/04/2025', tipo: 'Renovação', valor: 31000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L2-033', nome: 'Starbucks Reserve', cnpj: '08.164.083/0001-48', segmento: 'Alimentação',
+    id: 'S-033', nome: 'Starbucks Reserve', cnpj: '08.164.083/0001-48', segmento: 'Alimentação',
     responsavel: 'Rodrigo Campos', email: 'r.campos@starbucks.com.br', telefone: '(62) 3441-2200',
-    unidade: 'L2-033', piso: 'S', corredor: 'B', area: 200,
+    unidade: 'S-033', piso: 'S', corredor: 'B', area: 200,
     status: 'Ocupado', faturamentoMedio: 1100000,
     propostas: [
       { id: 'PROP-H-027', data: '10/04/2026', tipo: 'Readequação', valor: 48000, status: 'Em Negociação', observacao: 'Proposta de aumento de área com novo contrato' },
@@ -410,49 +410,49 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
   {
-    id: 'L2-034', nome: 'Uniqlo', cnpj: '32.521.444/0001-39', segmento: 'Moda',
+    id: 'S-034', nome: 'Uniqlo', cnpj: '32.521.444/0001-39', segmento: 'Moda',
     responsavel: 'Yuki Tanaka', email: 'y.tanaka@uniqlo.com', telefone: '(62) 3600-4400',
-    unidade: 'L2-034', piso: 'S', corredor: 'B', area: 600,
+    unidade: 'S-034', piso: 'S', corredor: 'B', area: 600,
     status: 'Ocupado', faturamentoMedio: 2800000,
     propostas: [
       { id: 'PROP-H-029', data: '01/12/2024', tipo: 'Nova Proposta', valor: 110000, status: 'Aceita', observacao: 'Primeira loja em Goiânia — exclusividade por 5 anos' },
     ],
   },
 
-  // ──── L2 CORREDOR C — SERVIÇOS / ENTRETENIMENTO ────
+  // ──── S CORREDOR C — SERVIÇOS / ENTRETENIMENTO ────
   {
-    id: 'L2-061', nome: 'Smart Fit', cnpj: '21.386.077/0001-27', segmento: 'Serviços',
+    id: 'S-061', nome: 'Smart Fit', cnpj: '21.386.077/0001-27', segmento: 'Serviços',
     responsavel: 'Felipe Gomes', email: 'felipe.gomes@smartfit.com.br', telefone: '(62) 3800-9900',
-    unidade: 'L2-061', piso: 'S', corredor: 'C', area: 800,
+    unidade: 'S-061', piso: 'S', corredor: 'C', area: 800,
     status: 'Ocupado', faturamentoMedio: 580000,
     propostas: [
       { id: 'PROP-H-030', data: '01/04/2023', tipo: 'Nova Proposta', valor: 48000, status: 'Aceita', observacao: 'Contrato longo prazo 5 anos com reajuste anual IGPM' },
     ],
   },
   {
-    id: 'L2-063', nome: 'Cinemark', cnpj: '62.578.458/0001-60', segmento: 'Entretenimento',
+    id: 'S-063', nome: 'Cinemark', cnpj: '62.578.458/0001-60', segmento: 'Entretenimento',
     responsavel: 'Sandra Almeida', email: 's.almeida@cinemark.com.br', telefone: '(62) 3900-1100',
-    unidade: 'L2-063', piso: 'S', corredor: 'C', area: 2500,
+    unidade: 'S-063', piso: 'S', corredor: 'C', area: 2500,
     status: 'Ocupado', faturamentoMedio: 4200000,
     propostas: [
       { id: 'PROP-H-031', data: '01/10/2018', tipo: 'Nova Proposta', valor: 180000, status: 'Aceita', observacao: 'Contrato âncora de entretenimento 10 anos' },
     ],
   },
 
-  // ──── L3 CORREDOR A — PRAÇA DE ALIMENTAÇÃO ────
+  // ──── T CORREDOR A — PRAÇA DE ALIMENTAÇÃO ────
   {
-    id: 'L3-001', nome: "McDonald's", cnpj: '47.079.633/0001-01', segmento: 'Alimentação',
+    id: 'T-001', nome: "McDonald's", cnpj: '47.079.633/0001-01', segmento: 'Alimentação',
     responsavel: 'Renata Freitas', email: 'renata.freitas@mcdonalds.com.br', telefone: '(62) 3312-5500',
-    unidade: 'L3-001', piso: 'T', corredor: 'A', area: 320,
+    unidade: 'T-001', piso: 'T', corredor: 'A', area: 320,
     status: 'Ocupado', faturamentoMedio: 2900000,
     propostas: [
       { id: 'PROP-H-032', data: '01/02/2022', tipo: 'Renovação', valor: 90000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L3-002', nome: 'Outback Steakhouse', cnpj: '15.110.258/0001-45', segmento: 'Alimentação',
+    id: 'T-002', nome: 'Outback Steakhouse', cnpj: '15.110.258/0001-45', segmento: 'Alimentação',
     responsavel: 'George Mitchell', email: 'george.mitchell@outback.com.br', telefone: '(62) 3500-2200',
-    unidade: 'L3-002', piso: 'T', corredor: 'A', area: 400,
+    unidade: 'T-002', piso: 'T', corredor: 'A', area: 400,
     status: 'Ocupado', faturamentoMedio: 3500000,
     propostas: [
       { id: 'PROP-H-033', data: '01/06/2024', tipo: 'Renovação', valor: 105000, status: 'Aceita', observacao: 'Expansão de área de 350 para 400m²' },
@@ -460,18 +460,18 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
   {
-    id: 'L3-003', nome: 'Subway', cnpj: '11.080.473/0001-35', segmento: 'Alimentação',
+    id: 'T-003', nome: 'Subway', cnpj: '11.080.473/0001-35', segmento: 'Alimentação',
     responsavel: 'Carlos Junior', email: 'carlosjr@subway.com.br', telefone: '(62) 3212-8899',
-    unidade: 'L3-003', piso: 'T', corredor: 'A', area: 120,
+    unidade: 'T-003', piso: 'T', corredor: 'A', area: 120,
     status: 'Ocupado', faturamentoMedio: 480000,
     propostas: [
       { id: 'PROP-H-035', data: '20/11/2023', tipo: 'Nova Proposta', valor: 22000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L3-004', nome: 'Burger King', cnpj: '13.574.594/0001-96', segmento: 'Alimentação',
+    id: 'T-004', nome: 'Burger King', cnpj: '13.574.594/0001-96', segmento: 'Alimentação',
     responsavel: 'Marcos Tavares', email: 'marcos.tavares@burgerking.com.br', telefone: '(62) 3444-5566',
-    unidade: 'L3-004', piso: 'T', corredor: 'A', area: 280,
+    unidade: 'T-004', piso: 'T', corredor: 'A', area: 280,
     status: 'Ocupado', faturamentoMedio: 1800000,
     propostas: [
       { id: 'PROP-H-036', data: '08/04/2026', tipo: 'Renovação', valor: 82000, status: 'Em Negociação', observacao: 'Negociação com pedido de desconto pela inflação do setor' },
@@ -479,76 +479,76 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
   {
-    id: 'L3-005', nome: 'Fogo de Chão', cnpj: '09.386.049/0001-27', segmento: 'Alimentação',
+    id: 'T-005', nome: 'Fogo de Chão', cnpj: '09.386.049/0001-27', segmento: 'Alimentação',
     responsavel: 'Alessandro Moura', email: 'a.moura@fogodechao.com.br', telefone: '(62) 3600-8800',
-    unidade: 'L3-005', piso: 'T', corredor: 'A', area: 500,
+    unidade: 'T-005', piso: 'T', corredor: 'A', area: 500,
     status: 'Ocupado', faturamentoMedio: 4800000,
     propostas: [
       { id: 'PROP-H-038', data: '01/09/2023', tipo: 'Nova Proposta', valor: 135000, status: 'Aceita', observacao: 'Âncora premium da praça de alimentação' },
     ],
   },
   {
-    id: 'L3-006', nome: "Bob's", cnpj: '14.982.647/0001-52', segmento: 'Alimentação',
+    id: 'T-006', nome: "Bob's", cnpj: '14.982.647/0001-52', segmento: 'Alimentação',
     responsavel: 'Samir Couto', email: 'samir.couto@bobs.com.br', telefone: '(62) 3200-9900',
-    unidade: 'L3-006', piso: 'T', corredor: 'A', area: 140,
+    unidade: 'T-006', piso: 'T', corredor: 'A', area: 140,
     status: 'Ocupado', faturamentoMedio: 560000,
     propostas: [
       { id: 'PROP-H-039', data: '01/12/2024', tipo: 'Renovação', valor: 26000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L3-007', nome: 'Giraffas', cnpj: '52.148.007/0001-73', segmento: 'Alimentação',
+    id: 'T-007', nome: 'Giraffas', cnpj: '52.148.007/0001-73', segmento: 'Alimentação',
     responsavel: 'Vanessa Rezende', email: 'v.rezende@giraffas.com.br', telefone: '(62) 3400-7711',
-    unidade: 'L3-007', piso: 'T', corredor: 'A', area: 160,
+    unidade: 'T-007', piso: 'T', corredor: 'A', area: 160,
     status: 'Ocupado', faturamentoMedio: 490000,
     propostas: [
       { id: 'PROP-H-040', data: '01/02/2023', tipo: 'Nova Proposta', valor: 20000, status: 'Aceita' },
     ],
   },
 
-  // ──── L3 CORREDOR B — ALIMENTAÇÃO / VARIEDADES ────
+  // ──── T CORREDOR B — ALIMENTAÇÃO / VARIEDADES ────
   {
-    id: 'L3-028', nome: 'Pizza Hut', cnpj: '10.490.715/0001-01', segmento: 'Alimentação',
+    id: 'T-028', nome: 'Pizza Hut', cnpj: '10.490.715/0001-01', segmento: 'Alimentação',
     responsavel: 'Paulo Mendes', email: 'paulo.mendes@pizzahut.com.br', telefone: '(62) 3512-9900',
-    unidade: 'L3-028', piso: 'T', corredor: 'B', area: 200,
+    unidade: 'T-028', piso: 'T', corredor: 'B', area: 200,
     status: 'Ocupado', faturamentoMedio: 820000,
     propostas: [
       { id: 'PROP-H-041', data: '01/03/2024', tipo: 'Nova Proposta', valor: 38000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L3-029', nome: 'KFC', cnpj: '17.311.723/0001-92', segmento: 'Alimentação',
+    id: 'T-029', nome: 'KFC', cnpj: '17.311.723/0001-92', segmento: 'Alimentação',
     responsavel: 'Anderson Rocha', email: 'anderson.rocha@kfc.com.br', telefone: '(62) 3312-4455',
-    unidade: 'L3-029', piso: 'T', corredor: 'B', area: 180,
+    unidade: 'T-029', piso: 'T', corredor: 'B', area: 180,
     status: 'Ocupado', faturamentoMedio: 750000,
     propostas: [
       { id: 'PROP-H-042', data: '01/11/2024', tipo: 'Nova Proposta', valor: 35000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L3-030', nome: 'Spoleto', cnpj: '05.351.939/0001-18', segmento: 'Alimentação',
+    id: 'T-030', nome: 'Spoleto', cnpj: '05.351.939/0001-18', segmento: 'Alimentação',
     responsavel: 'Rita Cardoso', email: 'rita.cardoso@spoleto.com.br', telefone: '(62) 3400-5544',
-    unidade: 'L3-030', piso: 'T', corredor: 'B', area: 130,
+    unidade: 'T-030', piso: 'T', corredor: 'B', area: 130,
     status: 'Ocupado', faturamentoMedio: 540000,
     propostas: [
       { id: 'PROP-H-043', data: '01/05/2024', tipo: 'Renovação', valor: 24000, status: 'Aceita' },
     ],
   },
 
-  // ──── L3 CORREDOR C — VAREJO DIVERSO ────
+  // ──── T CORREDOR C — VAREJO DIVERSO ────
   {
-    id: 'L3-055', nome: 'Tok&Stok', cnpj: '07.620.072/0001-61', segmento: 'Outros',
+    id: 'T-055', nome: 'Tok&Stok', cnpj: '07.620.072/0001-61', segmento: 'Outros',
     responsavel: 'Isabella Ferreira', email: 'isabella.ferreira@tokstok.com.br', telefone: '(62) 3600-7766',
-    unidade: 'L3-055', piso: 'T', corredor: 'C', area: 400,
+    unidade: 'T-055', piso: 'T', corredor: 'C', area: 400,
     status: 'Ocupado', faturamentoMedio: 980000,
     propostas: [
       { id: 'PROP-H-044', data: '01/02/2024', tipo: 'Nova Proposta', valor: 42000, status: 'Aceita' },
     ],
   },
   {
-    id: 'L3-056', nome: 'Livraria Cultura', cnpj: '60.665.981/0001-93', segmento: 'Outros',
+    id: 'T-056', nome: 'Livraria Cultura', cnpj: '60.665.981/0001-93', segmento: 'Outros',
     responsavel: 'Eduardo Braga', email: 'e.braga@livrariacultura.com.br', telefone: '(62) 3301-9988',
-    unidade: 'L3-056', piso: 'T', corredor: 'C', area: 350,
+    unidade: 'T-056', piso: 'T', corredor: 'C', area: 350,
     status: 'Ocupado', faturamentoMedio: 620000,
     propostas: [
       { id: 'PROP-H-045', data: '05/04/2026', tipo: 'Renovação', valor: 29000, status: 'Pendente', observacao: 'Aguardando definição interna sobre fechamento de filiais' },
@@ -556,9 +556,9 @@ const keyStores: UnidadeInfo[] = [
     ],
   },
   {
-    id: 'L3-057', nome: 'CVC Viagens', cnpj: '10.760.260/0001-19', segmento: 'Serviços',
+    id: 'T-057', nome: 'CVC Viagens', cnpj: '10.760.260/0001-19', segmento: 'Serviços',
     responsavel: 'Tatiane Moreira', email: 'tatiane.moreira@cvc.com.br', telefone: '(62) 3312-3344',
-    unidade: 'L3-057', piso: 'T', corredor: 'C', area: 80,
+    unidade: 'T-057', piso: 'T', corredor: 'C', area: 80,
     status: 'Ocupado', faturamentoMedio: 350000,
     propostas: [
       { id: 'PROP-H-047', data: '01/01/2025', tipo: 'Renovação', valor: 16000, status: 'Aceita' },
@@ -567,62 +567,62 @@ const keyStores: UnidadeInfo[] = [
 
   // UNIDADES DISPONÍVEIS
   {
-    id: 'L1-023', nome: '', cnpj: '', segmento: 'Moda', responsavel: '', email: '', telefone: '',
-    unidade: 'L1-023', piso: 'P', corredor: 'A', area: 85,
+    id: 'P-023', nome: '', cnpj: '', segmento: 'Moda', responsavel: '', email: '', telefone: '',
+    unidade: 'P-023', piso: 'P', corredor: 'A', area: 85,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L1-047', nome: '', cnpj: '', segmento: 'Esportes', responsavel: '', email: '', telefone: '',
-    unidade: 'L1-047', piso: 'P', corredor: 'B', area: 120,
+    id: 'P-047', nome: '', cnpj: '', segmento: 'Esportes', responsavel: '', email: '', telefone: '',
+    unidade: 'P-047', piso: 'P', corredor: 'B', area: 120,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L1-068', nome: '', cnpj: '', segmento: 'Serviços', responsavel: '', email: '', telefone: '',
-    unidade: 'L1-068', piso: 'P', corredor: 'C', area: 70,
+    id: 'P-068', nome: '', cnpj: '', segmento: 'Serviços', responsavel: '', email: '', telefone: '',
+    unidade: 'P-068', piso: 'P', corredor: 'C', area: 70,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L2-015', nome: '', cnpj: '', segmento: 'Eletrônicos', responsavel: '', email: '', telefone: '',
-    unidade: 'L2-015', piso: 'S', corredor: 'A', area: 100,
+    id: 'S-015', nome: '', cnpj: '', segmento: 'Eletrônicos', responsavel: '', email: '', telefone: '',
+    unidade: 'S-015', piso: 'S', corredor: 'A', area: 100,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L2-039', nome: '', cnpj: '', segmento: 'Outros', responsavel: '', email: '', telefone: '',
-    unidade: 'L2-039', piso: 'S', corredor: 'B', area: 90,
+    id: 'S-039', nome: '', cnpj: '', segmento: 'Outros', responsavel: '', email: '', telefone: '',
+    unidade: 'S-039', piso: 'S', corredor: 'B', area: 90,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L2-062', nome: '', cnpj: '', segmento: 'Serviços', responsavel: '', email: '', telefone: '',
-    unidade: 'L2-062', piso: 'S', corredor: 'C', area: 95,
+    id: 'S-062', nome: '', cnpj: '', segmento: 'Serviços', responsavel: '', email: '', telefone: '',
+    unidade: 'S-062', piso: 'S', corredor: 'C', area: 95,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L3-008', nome: '', cnpj: '', segmento: 'Alimentação', responsavel: '', email: '', telefone: '',
-    unidade: 'L3-008', piso: 'T', corredor: 'A', area: 100,
+    id: 'T-008', nome: '', cnpj: '', segmento: 'Alimentação', responsavel: '', email: '', telefone: '',
+    unidade: 'T-008', piso: 'T', corredor: 'A', area: 100,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L3-031', nome: '', cnpj: '', segmento: 'Alimentação', responsavel: '', email: '', telefone: '',
-    unidade: 'L3-031', piso: 'T', corredor: 'B', area: 90,
+    id: 'T-031', nome: '', cnpj: '', segmento: 'Alimentação', responsavel: '', email: '', telefone: '',
+    unidade: 'T-031', piso: 'T', corredor: 'B', area: 90,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L3-054', nome: '', cnpj: '', segmento: 'Alimentação', responsavel: '', email: '', telefone: '',
-    unidade: 'L3-054', piso: 'T', corredor: 'B', area: 80,
+    id: 'T-054', nome: '', cnpj: '', segmento: 'Alimentação', responsavel: '', email: '', telefone: '',
+    unidade: 'T-054', piso: 'T', corredor: 'B', area: 80,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
   {
-    id: 'L3-072', nome: '', cnpj: '', segmento: 'Outros', responsavel: '', email: '', telefone: '',
-    unidade: 'L3-072', piso: 'T', corredor: 'C', area: 85,
+    id: 'T-072', nome: '', cnpj: '', segmento: 'Outros', responsavel: '', email: '', telefone: '',
+    unidade: 'T-072', piso: 'T', corredor: 'C', area: 85,
     status: 'Disponível', faturamentoMedio: 0,
     propostas: [],
   },
@@ -717,24 +717,24 @@ export const allUnidadesInfo: UnidadeInfo[] = [...keyStores, ...generatedStores]
 // PROPOSTAS ATIVAS (para aba Propostas)
 // ============================================================
 export const propostasAtivas: Proposta[] = [
-  { id: 'PROP-2026-001', lojistaId: 'L1-002', lojista: 'C&A', unidade: 'L1-002', segmento: 'Moda', tipo: 'Renovação', valorProposto: 66000, area: 700, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '10/04/2026', dataVencimento: '30/05/2026', observacoes: 'Proposta de renovação com reajuste de 8% sobre IPCA. Lojista solicita menor percentual de faturamento.' },
-  { id: 'PROP-2026-002', lojistaId: undefined, lojista: 'Zara Home (Novo)', unidade: 'L2-039', segmento: 'Outros', tipo: 'Nova Instalação', valorProposto: 38000, area: 90, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '08/04/2026', dataVencimento: '15/05/2026', observacoes: 'Grupo Inditex propõe inaugurar Zara Home na unidade disponível L2-039.' },
-  { id: 'PROP-2026-003', lojistaId: 'L3-004', lojista: 'Burger King', unidade: 'L3-004', segmento: 'Alimentação', tipo: 'Renovação', valorProposto: 82000, area: 280, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '08/04/2026', dataVencimento: '05/06/2026', observacoes: 'BK solicita desconto de 5% alegando retração do setor de fast food.' },
-  { id: 'PROP-2026-004', lojistaId: undefined, lojista: 'Espaço Gourmet Premium', unidade: 'L3-008', segmento: 'Alimentação', tipo: 'Nova Instalação', valorProposto: 45000, area: 100, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '07/04/2026', dataVencimento: '22/05/2026', observacoes: 'Novo conceito de restaurante premium. Aguardando documentação do licitante.' },
-  { id: 'PROP-2026-005', lojistaId: 'L2-033', lojista: 'Starbucks Reserve', unidade: 'L2-033', segmento: 'Alimentação', tipo: 'Readequação', valorProposto: 48000, area: 220, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '05/04/2026', dataVencimento: '25/05/2026', observacoes: 'Proposta de expansão de 200 para 220m² com novo layout de balcão.' },
-  { id: 'PROP-2026-006', lojistaId: undefined, lojista: 'Tech World', unidade: 'L2-015', segmento: 'Eletrônicos', tipo: 'Nova Instalação', valorProposto: 52000, area: 100, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '04/04/2026', dataVencimento: '20/05/2026', observacoes: 'Franquia nacional de acessórios e dispositivos tech.' },
-  { id: 'PROP-2026-007', lojistaId: 'L1-007', lojista: 'Chilli Beans', unidade: 'L1-007', segmento: 'Moda', tipo: 'Renovação', valorProposto: 20000, area: 80, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '01/04/2026', dataVencimento: '15/05/2026', observacoes: 'Reajuste de 11% proposto. Lojista contrapropôs 7%.' },
-  { id: 'PROP-2026-008', lojistaId: undefined, lojista: 'Academia Forma Perfeita', unidade: 'L2-062', segmento: 'Serviços', tipo: 'Nova Instalação', valorProposto: 35000, area: 95, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '01/04/2026', dataVencimento: '10/05/2026', observacoes: 'Proposta de academia boutique para complementar Smart Fit.' },
-  { id: 'PROP-2026-009', lojistaId: 'L1-061', lojista: 'Bradesco', unidade: 'L1-061', segmento: 'Serviços', tipo: 'Renovação', valorProposto: 31000, area: 120, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '02/04/2026', dataVencimento: '20/05/2026', observacoes: 'Banco pede 30 dias para análise interna.' },
-  { id: 'PROP-2026-010', lojistaId: 'L3-056', lojista: 'Livraria Cultura', unidade: 'L3-056', segmento: 'Outros', tipo: 'Renovação', valorProposto: 29000, area: 350, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '30/03/2026', dataVencimento: '10/05/2026', observacoes: 'Lojista avalia fechamento de unidades. Decisão pendente.' },
-  { id: 'PROP-2026-011', lojistaId: undefined, lojista: 'Studio Z', unidade: 'L1-023', segmento: 'Moda', tipo: 'Nova Instalação', valorProposto: 24000, area: 85, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '28/03/2026', dataVencimento: '12/05/2026', observacoes: 'Rede jovem de moda street wear.' },
-  { id: 'PROP-2026-012', lojistaId: undefined, lojista: 'Healthy Bowl', unidade: 'L3-031', segmento: 'Alimentação', tipo: 'Nova Instalação', valorProposto: 28000, area: 90, status: 'Aprovado', responsavel: 'Gerência Comercial', dataCriacao: '20/03/2026', dataVencimento: '20/04/2026', observacoes: 'Aceite confirmado. Obras autorizadas para início em 25/04.' },
-  { id: 'PROP-2026-013', lojistaId: 'L1-063', lojista: 'Claro', unidade: 'L1-063', segmento: 'Serviços', tipo: 'Renovação', valorProposto: 20500, area: 70, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '15/03/2026', dataVencimento: '01/05/2026', observacoes: 'Aguardando retorno da operadora após envio de proposta.' },
-  { id: 'PROP-2026-014', lojistaId: undefined, lojista: 'Grão Expresso', unidade: 'L3-054', segmento: 'Alimentação', tipo: 'Nova Instalação', valorProposto: 22000, area: 80, status: 'Aprovado', responsavel: 'Gerência Comercial', dataCriacao: '10/03/2026', dataVencimento: '10/04/2026', observacoes: 'Cafeteria artesanal. Contrato assinado em 15/03.' },
-  { id: 'PROP-2026-015', lojistaId: 'L3-002', lojista: 'Outback Steakhouse', unidade: 'L3-002', segmento: 'Alimentação', tipo: 'Readequação', valorProposto: 115000, area: 420, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '15/04/2026', dataVencimento: '15/05/2026', observacoes: 'Proposta de expansão para 420m² incluindo nova cozinha industrial.' },
-  { id: 'PROP-2026-016', lojistaId: undefined, lojista: 'Havaianas Flagship', unidade: 'L1-047', segmento: 'Moda', tipo: 'Nova Instalação', valorProposto: 32000, area: 120, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '12/04/2026', dataVencimento: '25/05/2026', observacoes: 'Proposta de loja flagship premium. Havaianas avaliando layout.' },
-  { id: 'PROP-2026-017', lojistaId: undefined, lojista: 'Mundo Digital', unidade: 'L3-072', segmento: 'Outros', tipo: 'Nova Instalação', valorProposto: 18000, area: 85, status: 'Reprovado', responsavel: 'Gerência Comercial', dataCriacao: '01/03/2026', dataVencimento: '01/04/2026', observacoes: 'Perfil comercial inadequado para o posicionamento do mall.' },
-  { id: 'PROP-2026-018', lojistaId: 'L1-002', lojista: 'C&A (Readequação)', unidade: 'L1-002', segmento: 'Moda', tipo: 'Readequação', valorProposto: 58000, area: 600, status: 'Cancelado', responsavel: 'Gerência Comercial', dataCriacao: '01/01/2026', dataVencimento: '01/03/2026', observacoes: 'Proposta de redução de área não aceita dentro do prazo.' },
+  { id: 'PROP-2026-001', lojistaId: 'P-002', lojista: 'C&A', unidade: 'P-002', segmento: 'Moda', tipo: 'Renovação', valorProposto: 66000, area: 700, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '10/04/2026', dataVencimento: '30/05/2026', observacoes: 'Proposta de renovação com reajuste de 8% sobre IPCA. Lojista solicita menor percentual de faturamento.' },
+  { id: 'PROP-2026-002', lojistaId: undefined, lojista: 'Zara Home (Novo)', unidade: 'S-039', segmento: 'Outros', tipo: 'Nova Instalação', valorProposto: 38000, area: 90, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '08/04/2026', dataVencimento: '15/05/2026', observacoes: 'Grupo Inditex propõe inaugurar Zara Home na unidade disponível L2-039.' },
+  { id: 'PROP-2026-003', lojistaId: 'T-004', lojista: 'Burger King', unidade: 'T-004', segmento: 'Alimentação', tipo: 'Renovação', valorProposto: 82000, area: 280, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '08/04/2026', dataVencimento: '05/06/2026', observacoes: 'BK solicita desconto de 5% alegando retração do setor de fast food.' },
+  { id: 'PROP-2026-004', lojistaId: undefined, lojista: 'Espaço Gourmet Premium', unidade: 'T-008', segmento: 'Alimentação', tipo: 'Nova Instalação', valorProposto: 45000, area: 100, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '07/04/2026', dataVencimento: '22/05/2026', observacoes: 'Novo conceito de restaurante premium. Aguardando documentação do licitante.' },
+  { id: 'PROP-2026-005', lojistaId: 'S-033', lojista: 'Starbucks Reserve', unidade: 'S-033', segmento: 'Alimentação', tipo: 'Readequação', valorProposto: 48000, area: 220, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '05/04/2026', dataVencimento: '25/05/2026', observacoes: 'Proposta de expansão de 200 para 220m² com novo layout de balcão.' },
+  { id: 'PROP-2026-006', lojistaId: undefined, lojista: 'Tech World', unidade: 'S-015', segmento: 'Eletrônicos', tipo: 'Nova Instalação', valorProposto: 52000, area: 100, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '04/04/2026', dataVencimento: '20/05/2026', observacoes: 'Franquia nacional de acessórios e dispositivos tech.' },
+  { id: 'PROP-2026-007', lojistaId: 'P-007', lojista: 'Chilli Beans', unidade: 'P-007', segmento: 'Moda', tipo: 'Renovação', valorProposto: 20000, area: 80, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '01/04/2026', dataVencimento: '15/05/2026', observacoes: 'Reajuste de 11% proposto. Lojista contrapropôs 7%.' },
+  { id: 'PROP-2026-008', lojistaId: undefined, lojista: 'Academia Forma Perfeita', unidade: 'S-062', segmento: 'Serviços', tipo: 'Nova Instalação', valorProposto: 35000, area: 95, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '01/04/2026', dataVencimento: '10/05/2026', observacoes: 'Proposta de academia boutique para complementar Smart Fit.' },
+  { id: 'PROP-2026-009', lojistaId: 'P-061', lojista: 'Bradesco', unidade: 'P-061', segmento: 'Serviços', tipo: 'Renovação', valorProposto: 31000, area: 120, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '02/04/2026', dataVencimento: '20/05/2026', observacoes: 'Banco pede 30 dias para análise interna.' },
+  { id: 'PROP-2026-010', lojistaId: 'T-056', lojista: 'Livraria Cultura', unidade: 'T-056', segmento: 'Outros', tipo: 'Renovação', valorProposto: 29000, area: 350, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '30/03/2026', dataVencimento: '10/05/2026', observacoes: 'Lojista avalia fechamento de unidades. Decisão pendente.' },
+  { id: 'PROP-2026-011', lojistaId: undefined, lojista: 'Studio Z', unidade: 'P-023', segmento: 'Moda', tipo: 'Nova Instalação', valorProposto: 24000, area: 85, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '28/03/2026', dataVencimento: '12/05/2026', observacoes: 'Rede jovem de moda street wear.' },
+  { id: 'PROP-2026-012', lojistaId: undefined, lojista: 'Healthy Bowl', unidade: 'T-031', segmento: 'Alimentação', tipo: 'Nova Instalação', valorProposto: 28000, area: 90, status: 'Aprovado', responsavel: 'Gerência Comercial', dataCriacao: '20/03/2026', dataVencimento: '20/04/2026', observacoes: 'Aceite confirmado. Obras autorizadas para início em 25/04.' },
+  { id: 'PROP-2026-013', lojistaId: 'P-063', lojista: 'Claro', unidade: 'P-063', segmento: 'Serviços', tipo: 'Renovação', valorProposto: 20500, area: 70, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '15/03/2026', dataVencimento: '01/05/2026', observacoes: 'Aguardando retorno da operadora após envio de proposta.' },
+  { id: 'PROP-2026-014', lojistaId: undefined, lojista: 'Grão Expresso', unidade: 'T-054', segmento: 'Alimentação', tipo: 'Nova Instalação', valorProposto: 22000, area: 80, status: 'Aprovado', responsavel: 'Gerência Comercial', dataCriacao: '10/03/2026', dataVencimento: '10/04/2026', observacoes: 'Cafeteria artesanal. Contrato assinado em 15/03.' },
+  { id: 'PROP-2026-015', lojistaId: 'T-002', lojista: 'Outback Steakhouse', unidade: 'T-002', segmento: 'Alimentação', tipo: 'Readequação', valorProposto: 115000, area: 420, status: 'Aguardando análise do comitê', responsavel: 'Gerência Comercial', dataCriacao: '15/04/2026', dataVencimento: '15/05/2026', observacoes: 'Proposta de expansão para 420m² incluindo nova cozinha industrial.' },
+  { id: 'PROP-2026-016', lojistaId: undefined, lojista: 'Havaianas Flagship', unidade: 'P-047', segmento: 'Moda', tipo: 'Nova Instalação', valorProposto: 32000, area: 120, status: 'Aguardando análise financeira', responsavel: 'Gerência Comercial', dataCriacao: '12/04/2026', dataVencimento: '25/05/2026', observacoes: 'Proposta de loja flagship premium. Havaianas avaliando layout.' },
+  { id: 'PROP-2026-017', lojistaId: undefined, lojista: 'Mundo Digital', unidade: 'T-072', segmento: 'Outros', tipo: 'Nova Instalação', valorProposto: 18000, area: 85, status: 'Reprovado', responsavel: 'Gerência Comercial', dataCriacao: '01/03/2026', dataVencimento: '01/04/2026', observacoes: 'Perfil comercial inadequado para o posicionamento do mall.' },
+  { id: 'PROP-2026-018', lojistaId: 'P-002', lojista: 'C&A (Readequação)', unidade: 'P-002', segmento: 'Moda', tipo: 'Readequação', valorProposto: 58000, area: 600, status: 'Cancelado', responsavel: 'Gerência Comercial', dataCriacao: '01/01/2026', dataVencimento: '01/03/2026', observacoes: 'Proposta de redução de área não aceita dentro do prazo.' },
 ];
 
 // ============================================================
