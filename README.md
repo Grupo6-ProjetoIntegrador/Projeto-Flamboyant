@@ -1,261 +1,114 @@
-# Projeto-Flamboyant 🏬
+# Projeto-Flamboyant — Como rodar (guia rápido)
 
-O projeto tem como objetivo a concepção de uma plataforma integrada de gestão de lojistas, capaz de consolidar informações provenientes de diferentes áreas do shopping, permitindo rastreabilidade, análise estratégica e apoio à tomada de decisão.
+Este README reúne instruções práticas para executar o projeto localmente em Windows, Linux e macOS. Ele resume e amplia as instruções originais contidas em [COMO_RODAR_O_PROJETO.txt](COMO_RODAR_O_PROJETO.txt#L1-L200).
 
-## 📋 Sumário
+**Visão geral:** o repositório contém uma API em Go (pasta `API/`) e um frontend em React/Vite (pasta `Figma/`). A API cria automaticamente o banco de dados e dados iniciais na primeira execução.
 
-- [🚀 Começando](#-começando)
-  - [📋 Pré-requisitos](#-pré-requisitos)
-  - [🔧 Instalação do frontend](#-instalação-do-frontend)
-- [⚙️ Executando a API](#️-executando-a-api)
-  - [📋 Pré-requisitos da API](#-pré-requisitos-da-api)
-  - [🔧 Configuração e execução](#-configuração-e-execução)
-- [🧪 Testando com Postman](#-testando-com-postman)
-  - [📥 Importando a coleção](#-importando-a-coleção)
-  - [🌐 Configurando o ambiente](#-configurando-o-ambiente)
-- [🗂️ Estrutura do Projeto](#️-estrutura-do-projeto)
-- [🛠️ Construído com](#️-construído-com)
-- [✒️ Autores](#️-autores)
+**Arquivos úteis:** [API/.env.example](API/.env.example), [start.ps1](start.ps1), [debug.ps1](debug.ps1), [COMO_USAR_DEBUG.txt](COMO_USAR_DEBUG.txt).
 
----
+**Sumário rápido**
+- Requisitos
+- Configuração (clonar, .env)
+- Execução por sistema operacional (Windows / Linux / macOS)
+- Problemas comuns
 
-> [!IMPORTANT]
-> **Atenção ao diretório de execução!**
-> Todos os comandos descritos neste guia devem ser executados dentro do diretório correto de cada parte do projeto. Executar um comando no diretório errado causará erros. Fique atento ao `cd` indicado antes de cada bloco de comandos.
+**Pré-requisitos (todos OS)**
+- Go 1.21+ — `go version`
+- Node.js 18+ (vem com npm) — `node --version`
+- PostgreSQL (local) — confirme que o serviço está rodando
 
-> [!WARNING]
-> **Não faça alterações diretamente na branch `main`!**
->
-> Sempre crie uma branch separada antes de começar qualquer desenvolvimento.
->
-> **Via terminal:**
-> ```bash
-> git checkout main
-> git pull
-> git checkout -b feature/nome-da-sua-funcionalidade
-> ```
->
-> **Via GitHub Desktop:**
-> 1. Certifique-se de estar na branch `main` no seletor do topo
-> 2. Clique em **Fetch origin** para garantir que está atualizado
-> 3. Vá em **Branch → New Branch** (`Ctrl+Shift+N`)
-> 4. Digite o nome no padrão `feature/nome-da-funcionalidade` e clique em **Create Branch**
-> 5. A nova branch já estará selecionada e pronta para receber suas alterações
->
-> **Por que isso é importante?**
->
-> A `main` representa o estado estável e funcional do projeto — o código que todos os membros da equipe tomam como base. Commitar diretamente nela traz riscos sérios:
->
-> - **Instabilidade para o time:** se um trabalho incompleto ou com bug for enviado à `main`, qualquer outro desenvolvedor que atualizar seu repositório receberá código quebrado, travando o progresso de toda a equipe.
-> - **Conflitos difíceis de resolver:** com múltiplos desenvolvedores enviando código simultaneamente para o mesmo branch, conflitos de merge se tornam frequentes e difíceis de rastrear.
-> - **Impossibilidade de code review:** trabalhar em branches separadas permite abrir Pull Requests, onde o código pode ser revisado antes de entrar na base principal — prática essencial para a qualidade do software.
-> - **Dificuldade em reverter erros:** sem o isolamento por branches, identificar e desfazer um bug introduzido na `main` exige muito mais esforço do que simplesmente fechar ou reverter uma branch isolada.
->
-> Essa prática é um dos pilares do **Git Flow**, workflow criado por Vincent Driessen e adotado amplamente pela indústria de software, que define a `main` como exclusiva para código em produção — estável, revisado e validado.
->
-> **Fontes:**
-> - ABREU, Almerindo. *Gitflow: O modelo de trabalho orientado à branches*. 2021. Disponível em: https://almerindoabreu.netlify.app/boas-práticas-git-flow/
-> - PRESUMIDO, Victor. *Git: Melhores práticas*. Disponível em: https://blog.victorpre.com/git-melhores-praticas/
-> - GitLab. *Version Control Best Practices*. Disponível em: https://about.gitlab.com/topics/version-control/version-control-best-practices/
+Se ainda não tiver, instale conforme o site oficial de cada ferramenta.
 
----
-
-## 🚀 Começando
-
-Essas instruções permitirão que você obtenha uma cópia do projeto em operação na sua máquina local para fins de desenvolvimento e teste.
-
-### 📋 Pré-requisitos
-
-Antes de começar, você vai precisar ter instalado na sua máquina:
-
-- [Node.js](https://nodejs.org) v18 ou superior (recomendado: 20 LTS)
-- [pnpm](https://pnpm.io) (recomendado) ou npm/yarn
-
-Verifique se o Node.js está instalado:
+1) Clonar o repositório
 
 ```bash
-node --version
+git clone <URL-do-repositório>
+cd Projeto-Flamboyant
 ```
 
-Instale o pnpm globalmente (caso ainda não tenha):
+2) Configurar o arquivo de ambiente da API
+
+Copie o exemplo e edite os valores:
+
+PowerShell (Windows):
+
+```powershell
+Copy-Item API\.env.example API\.env
+```
+
+Linux/macOS:
 
 ```bash
-npm install -g pnpm
+cp API/.env.example API/.env
 ```
 
-### 🔧 Instalação do frontend
+Abra `API/.env` e preencha `DB_USER`, `DB_PASSWORD` e `JWT_SECRET`. `DB_NAME` padrão é `jp-mall`.
 
-**1. Clone o repositório:**
+3) Banco de dados
 
-```bash
-git clone https://github.com/seu-usuario/projeto-flamboyant.git
+Certifique-se de que o PostgreSQL está rodando. A API cria o banco `jp-mall`, as tabelas e seeds automaticamente na primeira execução — não é necessário criar manualmente.
+
+4) Executar o projeto
+
+Windows (recomendado — script automático):
+
+```powershell
+.\start.ps1
 ```
 
-**2. Acesse a pasta do frontend:**
+O `start.ps1` verifica dependências, instala pacotes e abre duas janelas: API (porta 8080) e frontend (porta 5173).
 
-```bash
-cd Figma
-```
+Linux / macOS (manual):
 
-**3. Instale as dependências do projeto:**
-
-```bash
-npm install
-```
-
-**4. Instale o `react` e `react-dom` manualmente:**
-
-> `react` e `react-dom` estão declarados como `peerDependencies` opcionais no `package.json`, o que significa que alguns gerenciadores de pacotes podem não instalá-los automaticamente. Execute este segundo comando para garantir que estejam presentes:
-
-```bash
-npm install react@18.3.1 react-dom@18.3.1
-```
-
-**5. Inicie o servidor de desenvolvimento:**
-
-```bash
-npm run dev
-```
-
-Acesse em: [http://localhost:5173](http://localhost:5173)
-
----
-
-## ⚙️ Executando a API
-
-### 📋 Pré-requisitos da API
-
-Antes de começar, você vai precisar ter instalado:
-
-- [Go](https://go.dev/dl/) v1.21 ou superior
-- [Visual Studio Code](https://code.visualstudio.com/) com a extensão [Go](https://marketplace.visualstudio.com/items?itemName=golang.Go) instalada
-
-Verifique se o Go está instalado:
-
-```bash
-go version
-```
-
-Para instalar a extensão no VS Code:
-
-1. Abra o VS Code
-2. Acesse a aba **Extensions** (`Ctrl+Shift+X`)
-3. Pesquise por `Go` e instale a extensão oficial da **Go Team at Google**
-
-### 🔧 Configuração e execução
-
-**1. Abra a pasta da API no VS Code:**
+API (em um terminal):
 
 ```bash
 cd API
-```
-
-**2. Instale as dependências Go:**
-
-```bash
 go mod tidy
-```
-
-**3. Execute a API:**
-
-```bash
 go run cmd/main.go
 ```
 
-A API estará disponível em: [http://localhost:8080](http://localhost:8080)
+Frontend (em outro terminal):
 
-Para verificar se está no ar, acesse no navegador ou dispare pelo Postman:
-
-- **Método:** `GET`
-- **URL:** `http://localhost:8080/ping`
-- **Resposta esperada:** `200 OK` → `{ "message": "pong" }`
-
----
-
-## 🧪 Testando com Postman
-
-### 📥 Importando a coleção
-
-1. Abra o Postman
-2. Clique em **Import** no canto superior esquerdo
-3. Selecione a pasta `postman/collections/` deste repositório
-4. O Postman detectará os arquivos `.yaml` e importará a coleção automaticamente
-
-### 🌐 Configurando o ambiente
-
-1. No Postman, vá em **Environments** → **Create Environment**
-2. Adicione as seguintes variáveis:
-
-| Variável | Valor | Descrição |
-|---|---|---|
-| `base_url` | `http://localhost:8080` | URL base da API |
-
-3. Selecione o ambiente criado no seletor do canto superior direito
-
-> **Atenção:** os arquivos de `environments/` e `globals/` estão no `.gitignore` pois podem conter credenciais. Cada membro da equipe deve criar o seu ambiente local conforme a tabela acima.
-
----
-
-## 🗂️ Estrutura do Projeto
-
-```
-Projeto-Flamboyant/
-├── API/                        → API REST em Go (Gin)
-│   ├── cmd/
-│   │   └── main.go             → Ponto de entrada da API
-│   ├── go.mod
-│   └── go.sum
-├── Figma/                      → Frontend React/Vite
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── components/     → Layout, modais, componentes UI
-│   │   │   ├── data/           → Dados mockados e store
-│   │   │   ├── pages/          → Páginas por seção (sinistros, comercial…)
-│   │   │   ├── App.tsx         → Raiz da aplicação
-│   │   │   ├── routes.tsx      → Definição de rotas
-│   │   │   └── store.ts        → Tipos e dados dos sinistros
-│   │   ├── assets/
-│   │   ├── styles/
-│   │   └── main.tsx
-│   ├── index.html
-│   ├── vite.config.ts
-│   └── package.json
-├── GO/
-│   └── models.go               → Structs Go das entidades do projeto
-├── postman/
-│   ├── collections/            → Coleções de requisições por recurso
-│   ├── specs/                  → Especificações OpenAPI/YAML da API
-│   ├── flows/                  → Fluxos de teste encadeados
-│   └── mocks/                  → Servidores mock para testes sem API real
-└── README.md
+```bash
+cd Figma
+npm install   # ou pnpm install
+npm run dev
 ```
 
+Observação: o frontend usa `Figma/.env` para apontar a URL da API. Se necessário, crie `Figma/.env` com `VITE_API_URL=http://localhost:8080`.
+
+5) Acessar a aplicação
+
+- Frontend: http://localhost:5173
+- API: http://localhost:8080 (ex.: `GET /ping` retorna `{ "message": "pong" }`)
+
+6) Debug (opcional)
+
+No Windows há um script de debug:
+
+```powershell
+.\debug.ps1
+```
+
+Consulte [COMO_USAR_DEBUG.txt](COMO_USAR_DEBUG.txt#L1-L200) para instruções detalhadas.
+
+Parar a aplicação: feche os terminais ou janelas abertas pelo `start.ps1`.
+
+Problemas comuns
+- Erro `dial tcp: connect: connection refused`: PostgreSQL não está rodando ou credenciais em `API/.env` incorretas.
+- `go: command not found`: instale Go e reinicie o terminal.
+- `npm: command not found`: instale Node.js e reinicie o terminal.
+- Porta em uso (8080 ou 5173): encerre o processo que usa a porta ou altere `SERVER_PORT` em `API/.env` e `VITE_API_URL` em `Figma/.env`.
+
+Ajuda adicional
+- Guia original com detalhes de execução e troubleshooting: [COMO_RODAR_O_PROJETO.txt](COMO_RODAR_O_PROJETO.txt#L1-L200)
+- Instruções de debug: [COMO_USAR_DEBUG.txt](COMO_USAR_DEBUG.txt#L1-L200)
+
+Se quiser, eu posso também:
+- executar um teste local (rodar `go run` / `npm run dev`) aqui no workspace,
+- ou gerar um arquivo de checklist com os comandos exatos para cada SO.
+
 ---
 
-## 🛠️ Construído com
-
-- [React](https://react.dev) `18.3.1` — Framework principal do frontend
-- [Vite](https://vitejs.dev) `6.3.5` — Bundler e servidor de desenvolvimento
-- [TypeScript](https://www.typescriptlang.org) — Tipagem estática
-- [Tailwind CSS](https://tailwindcss.com) `4.1.12` — Estilização
-- [shadcn/ui](https://ui.shadcn.com) + [Radix UI](https://www.radix-ui.com) — Componentes de interface
-- [React Router](https://reactrouter.com) `7.13.0` — Roteamento
-- [Recharts](https://recharts.org) — Gráficos e visualizações
-- [React Hook Form](https://react-hook-form.com) — Gerenciamento de formulários
-- [Go](https://go.dev) `1.21+` — Linguagem da API
-- [Gin](https://gin-gonic.com) — Framework web para a API
-- [Postman](https://www.postman.com) — Testes e documentação da API
-
----
-
-## ✒️ Autores
-
-- **DanielNovaiz** — [github.com/DanielNovaiz](https://github.com/DanielNovaiz)
-- **Felipe Fernandes** — [github.com/FELIIPE505](https://github.com/FELIIPE505)
-- **Herlison Silva Assunção** — [github.com/herli-son-ufg](https://github.com/herli-son-ufg)
-- **Matheus-slvmr** — [github.com/Matheus-slvmr](https://github.com/Matheus-slvmr)
-- **militao-discente** — [github.com/militao-discente](https://github.com/militao-discente)
-
----
-
-⌨️ com ❤️ pela equipe do Projeto-Flamboyant 😊
+⌨️ com ❤️ pela equipe do Projeto-Flamboyant
