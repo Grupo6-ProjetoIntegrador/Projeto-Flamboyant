@@ -14,6 +14,7 @@ O projeto tem como objetivo a concepção de uma plataforma integrada de gestão
   - [🌐 Configurando o ambiente](#-configurando-o-ambiente)
 - [🗂️ Estrutura do Projeto](#️-estrutura-do-projeto)
 - [🛠️ Construído com](#️-construído-com)
+- [📖 Wiki](#-wiki)
 - [✒️ Autores](#️-autores)
 
 ---
@@ -252,6 +253,12 @@ Projeto-Flamboyant/
 - [Gin](https://gin-gonic.com) — Framework web para a API
 - [PostgreSQL](https://www.postgresql.org) `14+` — Banco de dados relacional
 - [Postman](https://www.postman.com) — Testes e documentação da API
+
+---
+
+## 📖 Wiki
+
+Documentação completa: [acessar wiki](https://github.com/Grupo6-ProjetoIntegrador/Projeto-Flamboyant/blob/herlison/index.html)
 
 ---
 
