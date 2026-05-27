@@ -31,7 +31,6 @@ import {
   WifiOff,
 } from "lucide-react";
 import logoFlamboyant from "../../assets/isotipo_flamboyant.webp";
-import { getUserSession } from "../data/comercialStore";
 import { useAuth } from "../AuthContext";
 import { useApiHealth } from "../data/useApiHealth";
 
@@ -241,7 +240,7 @@ function Sidebar({
   sidebarOpen: boolean;
   onClose: () => void;
   pathname: string;
-  userSession: ReturnType<typeof getUserSession>;
+  userSession: { name?: string; email?: string } | null;
   apiStatus: ReturnType<typeof useApiHealth>;
   onLogout: () => void;
 }) {
@@ -287,11 +286,11 @@ function Sidebar({
         )}
         <div className="flex items-center gap-3 px-1">
           <div className="w-8 h-8 rounded-full bg-[#C8A882] text-[#8B1A1A] font-bold flex items-center justify-center text-xs flex-shrink-0">
-            {getInitials(userSession.name || 'JP Mall')}
+            {getInitials(userSession?.name || 'JP Mall')}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate">{userSession.name || 'Gerente JP Mall'}</p>
-            <p className="text-xs text-white/50 truncate">{userSession.email || 'gerente@jpmall.com.br'}</p>
+            <p className="text-xs font-semibold text-white truncate">{userSession?.name || 'Gerente JP Mall'}</p>
+            <p className="text-xs text-white/50 truncate">{userSession?.email || 'gerente@jpmall.com.br'}</p>
           </div>
         </div>
         <button
@@ -407,15 +406,11 @@ export function Layout() {
     const saved = localStorage.getItem("jp-mall-dark-mode");
     return saved === "true";
   });
-  const [userSession, setUserSession] = useState(getUserSession());
   const apiStatus = useApiHealth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
-
-  useEffect(() => {
-    setUserSession(getUserSession());
-  }, [location.pathname]);
+  const { logout, usuario } = useAuth();
+  const userSession = usuario ? { name: usuario.nome, email: usuario.email } : null;
 
   useEffect(() => {
     if (darkMode) {

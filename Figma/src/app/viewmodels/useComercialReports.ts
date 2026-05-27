@@ -29,8 +29,7 @@ import { useApi } from '../data/useApi';
 import { UnidadesService } from '../services/unidades.service';
 import { PropostasService } from '../services/propostas.service';
 import { usePersistedState } from '../shared/hooks/usePersistedState';
-import { getEdicoesByProposal } from '../data/comercialStore';
-import type { StatusProposta, Piso } from '../data/comercialData';
+import type { StatusProposta, Piso } from '../enums';
 import { STATUS_OCUPADO, STATUS_APROVADO } from '../enums';
 import { fmtCurrency } from '../utils/manutencao';
 import * as XLSX from 'xlsx';
@@ -207,7 +206,7 @@ export function useComercialReports() {
 
       const props = allPropostas.filter(p => p.codigoUnidade === l.unidade);
       props.forEach(p => {
-        const edicoes = histFields.length > 0 ? getEdicoesByProposal(p.id) : [];
+        const edicoes: any[] = [];
         const propRow: Record<string, string> = {};
         dispFields.forEach(f => { propRow[f.label] = ''; });
         propFields.forEach(f => {

@@ -18,7 +18,7 @@ export function useComercialAvailability() {
   const todasPropostas = useMemo(() => todasPropostasData || [], [todasPropostasData]);
 
   // Adapter: nome e segmento calculados via join com Proposta aprovada
-  const allLojistas = useMemo<Unidade[]>(() => {
+  const allUnidades = useMemo<Unidade[]>(() => {
     if (!todasUnidades) return [];
     return todasUnidades.map(un => ({
       ...un,
@@ -55,12 +55,12 @@ export function useComercialAvailability() {
 
   // ── Dados derivados ──────────────────────────────────────
   const filtered = useMemo<Unidade[]>(() => {
-    return allLojistas.filter(l => {
+    return allUnidades.filter(l => {
       const matchPiso     = filterPisos.length === 0      || filterPisos.includes(l.piso as Piso);
       const matchCorredor = filterCorredores.length === 0 || filterCorredores.includes(l.corredor as Corredor);
       return matchPiso && matchCorredor;
     });
-  }, [allLojistas, filterPisos, filterCorredores]);
+  }, [allUnidades, filterPisos, filterCorredores]);
 
   const mapaData = useMemo(() => {
     const result: Record<Piso, Record<Corredor, Unidade[]>> = {
@@ -82,7 +82,7 @@ export function useComercialAvailability() {
   const refetch = () => { refetchUnidades(); refetchPropostas(); };
 
   return {
-    allLojistas, filtered, mapaData, tableRows: filtered, todasPropostas,
+    allUnidades, filtered, mapaData, tableRows: filtered, todasPropostas,
     loadingUnidades,
     filterPisos, setFilterPisos,
     filterCorredores, setFilterCorredores,
