@@ -37,10 +37,10 @@
  */
 import React from "react";
 import {
-  Download, Filter, Calendar, CheckSquare,
-  FileText, Check, ChevronRight, ChevronDown, X, BarChart2
+  Download, CheckSquare,
+  FileText, Check, ChevronDown, X, BarChart2
 } from "lucide-react";
-import { DatePickerInput } from "../../components/DatePickerInput";
+import { PageShell, FilterBar, FilterSeparator, FilterDateRange } from "../../components/PageShared";
 import { MobileCarousel } from "../../components/MobileCarousel";
 import type { StatusProposta } from "../../data/comercialData";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
@@ -52,48 +52,9 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from "recharts";
 
-const CHART_COLORS = ['#D93030', '#C8A882', '#8B1A1A', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
+import { ChartTooltip } from "../../components/ChartTooltip";
 
-function ChartTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const isBar = label !== undefined;
-  return (
-    <div style={{
-      backgroundColor: 'var(--color-background-primary)',
-      border: '1px solid var(--color-border-secondary)',
-      borderRadius: '10px',
-      padding: '10px 12px',
-      fontSize: '11px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-      minWidth: '120px',
-    }}>
-      {isBar && (
-        <p style={{
-          fontWeight: 600,
-          marginBottom: '6px',
-          paddingBottom: '6px',
-          borderBottom: '1px solid var(--color-border-tertiary)',
-          color: '#C8A882',
-        }}>{label}</p>
-      )}
-      {payload.map((entry: any, i: number) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{
-              width: '8px', height: '8px', borderRadius: '50%',
-              backgroundColor: entry.payload?.fill ?? entry.color ?? '#D93030',
-              flexShrink: 0,
-            }} />
-            <span style={{ color: 'var(--color-text-secondary)' }}>{entry.name ?? entry.payload?.name}</span>
-          </div>
-          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-            {entry.value} {entry.value === 1 ? 'loja' : 'lojas'}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+const CHART_COLORS = ['#D93030', '#C8A882', '#8B1A1A', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
 
 // Ordem de renderização das categorias
 const CATEGORY_ORDER = ['Disponibilidade', 'Proposta', 'Dados da Loja', 'Histórico'] as const;
@@ -154,13 +115,10 @@ export function ComercialReports() {
   const handleExportPDF  = () => { const prev = exportFormat; setExportFormat('pdf');  handleExport(); setExportFormat(prev); };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden gap-4 p-6">
+    <PageShell>
 
       {/* Header */}
       <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Relatórios Comerciais</h1>
-        </div>
         <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
           <div className="flex border border-gray-200 dark:border-[#2E3447] rounded-xl overflow-hidden">
             {(['xlsx', 'pdf'] as const).map(f => (
@@ -181,47 +139,9 @@ export function ComercialReports() {
         </div>
       </div>
 
-      {/* Filtros — desktop: inline | mobile: região expansível independente */}
-
-      {/* Cabeçalho da região — mobile only */}
-      <button
-        onClick={() => setShowMobileFilters(f => !f)}
-        className="sm:hidden flex-shrink-0 w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]"
-      >
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-[#D93030]" />
-          <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Filtros</span>
-          {/* Indicador de filtros ativos */}
-          {(dateFrom || dateTo || filterPisos.length > 0 || filterStatuses.length > 0 || filterSegmentos.length > 0) && (
-            <span className="w-2 h-2 rounded-full bg-[#D93030]" />
-          )}
-        </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showMobileFilters ? '' : '-rotate-90'}`} />
-      </button>
-
-      {/* Conteúdo dos filtros */}
-      {/* Desktop: sempre visível | Mobile: só quando expandido */}
-      <div className={`flex-shrink-0 flex-col sm:flex-row sm:items-stretch sm:justify-start gap-0
-        ${showMobileFilters ? 'flex' : 'hidden sm:flex'}
-        bg-white dark:bg-[#242938] sm:bg-transparent sm:dark:bg-transparent
-        rounded-xl sm:rounded-none
-        border border-gray-100 dark:border-[#2E3447] sm:border-0
-        p-3 sm:p-0`}>
-
-        {/* Data de criação */}
-        <div className="flex flex-col gap-1 w-full sm:w-auto sm:pr-6 pb-2 sm:pb-0">
-          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Data de criação da proposta</span>
-          <div className="flex items-center gap-1.5 h-9">
-            <DatePickerInput value={dateFrom} onChange={setDateFrom} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
-            <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap flex-shrink-0">até</span>
-            <DatePickerInput value={dateTo} onChange={setDateTo} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
-          </div>
-        </div>
-
-        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
-        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
-
-        {/* Piso */}
+      <FilterBar isOpen={showMobileFilters} onToggle={() => setShowMobileFilters(f => !f)} hasActiveFilters={!!(dateFrom || dateTo || filterPisos.length > 0 || filterStatuses.length > 0 || filterSegmentos.length > 0)}>
+        <FilterDateRange label="Data de criação da proposta" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
+        <FilterSeparator />
         <EnumCheckboxFilter
           label="Piso"
           options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
@@ -231,11 +151,7 @@ export function ComercialReports() {
           )}
           mobileGrid="grid-cols-3"
         />
-
-        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
-        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
-
-        {/* Status da unidade */}
+        <FilterSeparator />
         <EnumCheckboxFilter
           label="Status da unidade"
           options={STATUS_LOJA}
@@ -244,11 +160,7 @@ export function ComercialReports() {
             prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
           )}
         />
-
-        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
-        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
-
-        {/* Segmento */}
+        <FilterSeparator />
         <EnumCheckboxFilter
           label="Segmento"
           options={SEGMENTOS}
@@ -257,8 +169,7 @@ export function ComercialReports() {
             prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
           )}
         />
-
-      </div>
+      </FilterBar>
 
       {/* Área principal — flex-1 com scroll */}
       <div className="flex-1 overflow-hidden flex flex-col gap-4">
@@ -882,6 +793,6 @@ export function ComercialReports() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

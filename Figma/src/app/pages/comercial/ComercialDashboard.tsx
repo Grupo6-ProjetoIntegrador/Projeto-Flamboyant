@@ -4,16 +4,17 @@ import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
 import { SEGMENTOS, PISOS, STATUS_APROVADO, STATUS_VENCIDA } from "../../enums";
 import {
   Store, FileText, AlertCircle, Percent,
-  ChevronRight, ChevronLeft, ChevronDown, BarChart2, RefreshCw, Calendar, Info, Filter
+  ChevronRight, ChevronDown, BarChart2, Info
 } from "lucide-react";
-import { DatePickerInput } from "../../components/DatePickerInput";
+import { PageShell, FilterBar, FilterSeparator, FilterDateRange } from "../../components/PageShared";
 import { DataTable } from "../../components/DataTable";
 import { MobileCarousel } from "../../components/MobileCarousel";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from "recharts";
-import { unidades, propostas } from "../../data/apiClient";
+import { fmtCurrency, matchColFilter } from "../../utils/manutencao";
+import { ChartTooltip } from "../../components/ChartTooltip";
 
 const DS = {
   primary: "#D93030",
@@ -29,69 +30,6 @@ const PIE_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "
 const CHART_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "#8B5CF6"];
 
 const PISO_LABELS: Record<string, string> = { P: "Primeiro Piso", S: "Segundo Piso", T: "Terceiro Piso" };
-
-const TODAY = new Date();
-
-function fmt(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
-}
-
-function matchColFilter(cellValue: string, pattern: string): boolean {
-  if (!pattern) return true;
-  const val = cellValue.toLowerCase();
-  const p = pattern.toLowerCase();
-  if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
-    const inner = p.slice(1, -1);
-    const idx = val.indexOf(inner);
-    return idx > 0 && idx < val.length - inner.length;
-  }
-  if (p.startsWith('*') && p.length > 1) return val.endsWith(p.slice(1));
-  if (p.endsWith('*') && p.length > 1) return val.startsWith(p.slice(0, -1));
-  return val.includes(p);
-}
-
-function ChartTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  const isBar = label !== undefined;
-  return (
-    <div style={{
-      backgroundColor: 'var(--color-background-primary)',
-      border: '1px solid var(--color-border-secondary)',
-      borderRadius: '10px',
-      padding: '10px 12px',
-      fontSize: '11px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-      minWidth: '120px',
-    }}>
-      {isBar && (
-        <p style={{
-          fontWeight: 600,
-          marginBottom: '6px',
-          paddingBottom: '6px',
-          borderBottom: '1px solid var(--color-border-tertiary)',
-          color: '#C8A882',
-        }}>{label}</p>
-      )}
-      {payload.map((entry: any, i: number) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{
-              width: '8px', height: '8px', borderRadius: '50%',
-              backgroundColor: entry.payload?.fill ?? entry.color ?? '#D93030',
-              flexShrink: 0,
-            }} />
-            <span style={{ color: 'var(--color-text-secondary)' }}>{entry.name ?? entry.payload?.name}</span>
-          </div>
-          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-            {entry.value} {entry.value === 1 ? 'loja' : 'lojas'}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-
 
 function getDiasRestantes(fimContrato: string | undefined): number | null {
   if (!fimContrato) return null;
@@ -174,54 +112,15 @@ export function ComercialDashboard() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden gap-4 p-6">
+    <PageShell>
 
-      {/* Header + Filtros — flex-shrink-0 */}
-      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Dashboard Comercial</h1>
-      </div>
-
-      {/* Filtros — desktop: inline | mobile: região expansível independente */}
-
-      {/* Cabeçalho da região — mobile only */}
-      <button
-        onClick={() => setShowMobileFilters(prev => !prev)}
-        className="sm:hidden flex-shrink-0 w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]"
+      <FilterBar
+        isOpen={showMobileFilters}
+        onToggle={() => setShowMobileFilters(prev => !prev)}
+        hasActiveFilters={!!(dateFrom || dateTo || filterSegmentos.length > 0 || filterPisos.length > 0)}
       >
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-[#D93030]" />
-          <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Filtros</span>
-          {/* Indicador de filtros ativos */}
-          {(dateFrom || dateTo || filterSegmentos.length > 0 || filterPisos.length > 0) && (
-            <span className="w-2 h-2 rounded-full bg-[#D93030]" />
-          )}
-        </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showMobileFilters ? '' : '-rotate-90'}`} />
-      </button>
-
-      {/* Conteúdo dos filtros */}
-      {/* Desktop: sempre visível | Mobile: só quando expandido */}
-      <div className={`flex-shrink-0 flex-col sm:flex-row sm:items-stretch sm:justify-start gap-0
-        ${showMobileFilters ? 'flex' : 'hidden sm:flex'}
-        bg-white dark:bg-[#242938] sm:bg-transparent sm:dark:bg-transparent
-        rounded-xl sm:rounded-none
-        border border-gray-100 dark:border-[#2E3447] sm:border-0
-        p-3 sm:p-0`}>
-
-        {/* Data de criação da proposta */}
-        <div className="flex flex-col gap-1 w-full sm:w-auto sm:pr-6 pb-2 sm:pb-0">
-          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Data de criação</span>
-          <div className="flex items-center gap-1.5 h-9">
-            <DatePickerInput value={dateFrom} onChange={setDateFrom} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
-            <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap flex-shrink-0">até</span>
-            <DatePickerInput value={dateTo} onChange={setDateTo} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
-          </div>
-        </div>
-
-        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
-        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
-
-        {/* Segmento */}
+        <FilterDateRange label="Data de criação" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
+        <FilterSeparator />
         <EnumCheckboxFilter
           label="Segmento"
           options={SEGMENTOS}
@@ -230,11 +129,7 @@ export function ComercialDashboard() {
             prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
           )}
         />
-
-        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
-        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
-
-        {/* Piso */}
+        <FilterSeparator />
         <EnumCheckboxFilter
           label="Piso"
           options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
@@ -244,8 +139,7 @@ export function ComercialDashboard() {
           )}
           mobileGrid="grid-cols-3"
         />
-
-      </div>
+      </FilterBar>
 
       {/* KPI Cards */}
       {/* Desktop */}
@@ -452,7 +346,7 @@ export function ComercialDashboard() {
               unidade:      p.codigoUnidade,
               tipo:         p.tipoOperacao,
               criacao:      p.dataCriacao,
-              valor:        fmt(p.valorProposto),
+              valor:        fmtCurrency(p.valorProposto),
               status:       p.status,
             }))}
             columnConfig={{
@@ -789,7 +683,7 @@ export function ComercialDashboard() {
                   <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-[#64748B]">
                     <span>{p.tipoOperacao}</span>
                     <span className="text-gray-300 dark:text-[#2E3447]">·</span>
-                    <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">{fmt(p.valorProposto)}</span>
+                    <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">{fmtCurrency(p.valorProposto)}</span>
                   </div>
                 </div>
               ))}
@@ -858,6 +752,6 @@ export function ComercialDashboard() {
       {/* FIM LAYOUT MOBILE                      */}
       {/* ═══════════════════════════════════════ */}
       {/* Fim da área com scroll interno */}
-    </div>
+    </PageShell>
   );
 }

@@ -20,12 +20,34 @@
 //               cessaoDireitos, taxaTransferencia, parecerComite, historico
 //  documentos — listar, upload (multipart), remover
 //
-// Tipos exportados usados pelas views:
-//  PropostaResumo  — dados resumidos de uma proposta (lista)
-//  PropostaDetalhe — todos os campos de uma proposta (modal de edição)
-//  Unidade         — unidade física do mall
-//  Documento       — arquivo vinculado a uma proposta
+// Tipos exportados:
+//  Derivam diretamente das entidades em ../entities.
+//  Unidade e PropostaResumo estendem a entidade com campos
+//  calculados/joined que a API adiciona à resposta.
 // ============================================================
+
+import type {
+  Proposta        as PropostaEntity,
+  Unidade         as UnidadeEntity,
+  PropostaDocumento,
+  PropostaHistorico,
+  PropostaLojaAnterior,
+  PropostaNecessidadesTecnicas,
+  PropostaCessaoDireitos,
+  PropostaTaxaTransferencia,
+  PropostaParecerComite,
+  Usuario,
+} from '../entities';
+
+// Re-exporta tipos de sub-tabelas para uso direto pelos componentes
+export type {
+  PropostaLojaAnterior,
+  PropostaNecessidadesTecnicas,
+  PropostaCessaoDireitos,
+  PropostaTaxaTransferencia,
+  PropostaParecerComite,
+  PropostaHistorico,
+};
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -83,12 +105,7 @@ export interface LoginPayload {
 
 export interface LoginResponse {
   token: string;
-  usuario: {
-    id: string;
-    nome: string;
-    email: string;
-    setor: string;
-  };
+  usuario: Omit<Usuario, 'senhaHash'>;
 }
 
 export const auth = {
@@ -102,19 +119,18 @@ export const auth = {
     request<void>('/auth/logout', { method: 'POST' }),
 
   me: () =>
-    request<LoginResponse['usuario']>('/auth/me'),
+    request<Omit<Usuario, 'senhaHash'>>('/auth/me'),
 };
 
 // ── Unidades ─────────────────────────────────────────────────
 
-export interface Unidade {
-  id: string;
-  codigo: string;
-  piso: 'P' | 'S' | 'T';
-  corredor: string;
-  area: number;
+/** Entidade Unidade com campos adicionados pela API. */
+export interface Unidade extends UnidadeEntity {
   status: 'Disponível' | 'Ocupado';
-  criadoEm: string;
+  /** nomeFantasia da proposta aprovada vinculada, ou status se disponível */
+  nome: string;
+  /** segmento da proposta aprovada vinculada */
+  segmento: string;
 }
 
 export interface UnidadesFiltros {
@@ -126,9 +142,9 @@ export interface UnidadesFiltros {
 export const unidades = {
   listar: (filtros?: UnidadesFiltros) => {
     const params = new URLSearchParams();
-    if (filtros?.piso) params.set('piso', filtros.piso);
-    if (filtros?.corredor) params.set('corredor', filtros.corredor);
-    if (filtros?.status) params.set('status', filtros.status);
+    if (filtros?.piso)      params.set('piso', filtros.piso);
+    if (filtros?.corredor)  params.set('corredor', filtros.corredor);
+    if (filtros?.status)    params.set('status', filtros.status);
     const qs = params.toString();
     return request<Unidade[]>(`/unidades${qs ? '?' + qs : ''}`);
   },
@@ -146,55 +162,47 @@ export interface PropostaFiltros {
   dateTo?: string;
 }
 
-export interface PropostaResumo {
-  id: string;
-  idUnidade: string;
+/**
+ * Proposta com campos joined da Unidade adicionados pela API.
+ * Estende a entidade `Proposta` com:
+ *  - codigoUnidade / unidade (alias): código da unidade física
+ *  - piso / corredor: da tabela Unidade
+ *  - responsavel: nome resolvido de idUsuarioResponsavel
+ *  - tipo: alias de tipoOperacao (compatibilidade legada)
+ */
+export interface PropostaResumo extends PropostaEntity {
   codigoUnidade: string;
   /** @alias codigoUnidade — compatibilidade com páginas legadas */
   unidade: string;
   piso: string;
   corredor: string;
-  segmento: string;
-  tipoOperacao: string;
+  /** Nome resolvido de idUsuarioResponsavel */
+  responsavel?: string;
   /** @alias tipoOperacao — compatibilidade com páginas legadas */
   tipo: string;
-  valorProposto: number;
-  area: number;
-  abl?: number;
-  status: string;
-  responsavel?: string;
-  nomeFantasia?: string;
-  dataCriacao: string;
-  dataVencimento?: string;
-  fimContrato?: string;
-  atualizadoEm: string;
 }
 
-export interface PropostaDetalhe extends PropostaResumo {
-  aluguelPercent?: number;
-  prazoLocacaoMeses?: number;
-  aluguelPorM2?: number;
-  condominioAprox?: number;
-  fppAprox?: number;
-  inicioContrato?: string;
-  dataInauguracao?: string;
-  observacoes?: string;
-}
+/** Alias de PropostaResumo — a entidade Proposta já contém todos os campos de detalhe. */
+export type PropostaDetalhe = PropostaResumo;
+
+/** Alias de PropostaDocumento — mantido para compatibilidade com imports existentes. */
+export type Documento = PropostaDocumento;
 
 export const propostas = {
   listar: (filtros?: PropostaFiltros) => {
     const params = new URLSearchParams();
     if (filtros?.idUnidade) params.set('id_unidade', filtros.idUnidade);
-    if (filtros?.status) params.set('status', filtros.status);
-    if (filtros?.segmento) params.set('segmento', filtros.segmento);
-    if (filtros?.piso) params.set('piso', filtros.piso);
-    if (filtros?.dataFrom) params.set('data_from', filtros.dataFrom);
-    if (filtros?.dateTo) params.set('data_to', filtros.dateTo);
+    if (filtros?.status)    params.set('status', filtros.status);
+    if (filtros?.segmento)  params.set('segmento', filtros.segmento);
+    if (filtros?.piso)      params.set('piso', filtros.piso);
+    if (filtros?.dataFrom)  params.set('data_from', filtros.dataFrom);
+    if (filtros?.dateTo)    params.set('data_to', filtros.dateTo);
     const qs = params.toString();
     return request<PropostaResumo[]>(`/propostas${qs ? '?' + qs : ''}`);
   },
 
-  detalhe: (id: string) => request<PropostaDetalhe>(`/propostas/${id}`),
+  detalhe: (id: string) =>
+    request<PropostaDetalhe>(`/propostas/${id}`),
 
   criar: (payload: Partial<PropostaDetalhe>) =>
     request<PropostaDetalhe>('/propostas', {
@@ -218,53 +226,57 @@ export const propostas = {
     request<void>('/propostas/check-vencidas', { method: 'POST' }),
 
   lojaAnterior: {
-    detalhe: (id: string) => request<any>(`/propostas/${id}/loja-anterior`),
-    salvar: (id: string, payload: any) =>
-      request<any>(`/propostas/${id}/loja-anterior`, { method: 'PUT', body: JSON.stringify(payload) }),
+    detalhe: (id: string) =>
+      request<PropostaLojaAnterior>(`/propostas/${id}/loja-anterior`),
+    salvar: (id: string, payload: Partial<PropostaLojaAnterior>) =>
+      request<PropostaLojaAnterior>(`/propostas/${id}/loja-anterior`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
   },
 
   necessidadesTecnicas: {
-    detalhe: (id: string) => request<any>(`/propostas/${id}/necessidades-tecnicas`),
-    salvar: (id: string, payload: any) =>
-      request<any>(`/propostas/${id}/necessidades-tecnicas`, { method: 'PUT', body: JSON.stringify(payload) }),
+    detalhe: (id: string) =>
+      request<PropostaNecessidadesTecnicas>(`/propostas/${id}/necessidades-tecnicas`),
+    salvar: (id: string, payload: Partial<PropostaNecessidadesTecnicas>) =>
+      request<PropostaNecessidadesTecnicas>(`/propostas/${id}/necessidades-tecnicas`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
   },
 
   cessaoDireitos: {
-    detalhe: (id: string) => request<any>(`/propostas/${id}/cessao-direitos`),
-    salvar: (id: string, payload: any) =>
-      request<any>(`/propostas/${id}/cessao-direitos`, { method: 'PUT', body: JSON.stringify(payload) }),
+    detalhe: (id: string) =>
+      request<PropostaCessaoDireitos>(`/propostas/${id}/cessao-direitos`),
+    salvar: (id: string, payload: Partial<PropostaCessaoDireitos>) =>
+      request<PropostaCessaoDireitos>(`/propostas/${id}/cessao-direitos`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
   },
 
   taxaTransferencia: {
-    detalhe: (id: string) => request<any>(`/propostas/${id}/taxa-transferencia`),
-    salvar: (id: string, payload: any) =>
-      request<any>(`/propostas/${id}/taxa-transferencia`, { method: 'PUT', body: JSON.stringify(payload) }),
+    detalhe: (id: string) =>
+      request<PropostaTaxaTransferencia>(`/propostas/${id}/taxa-transferencia`),
+    salvar: (id: string, payload: Partial<PropostaTaxaTransferencia>) =>
+      request<PropostaTaxaTransferencia>(`/propostas/${id}/taxa-transferencia`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
   },
 
   parecerComite: {
-    detalhe: (id: string) => request<any>(`/propostas/${id}/parecer-comite`),
-    salvar: (id: string, payload: any) =>
-      request<any>(`/propostas/${id}/parecer-comite`, { method: 'PUT', body: JSON.stringify(payload) }),
+    detalhe: (id: string) =>
+      request<PropostaParecerComite>(`/propostas/${id}/parecer-comite`),
+    salvar: (id: string, payload: Partial<PropostaParecerComite>) =>
+      request<PropostaParecerComite>(`/propostas/${id}/parecer-comite`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
   },
 
   historico: {
-    listar: (id: string) => request<any[]>(`/propostas/${id}/historico`),
+    listar: (id: string) =>
+      request<PropostaHistorico[]>(`/propostas/${id}/historico`),
   },
 };
 
 // ── Documentos ───────────────────────────────────────────────
-
-export interface Documento {
-  id: string;
-  idProposta: string;
-  idUsuario: string;
-  codigo: string;
-  nomeOriginal: string;
-  tipo: string;
-  tamanho: string;
-  urlStorage?: string;
-  dataUpload: string;
-}
 
 export const documentos = {
   listar: (idProposta: string) =>

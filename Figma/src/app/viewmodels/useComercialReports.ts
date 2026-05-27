@@ -32,6 +32,7 @@ import { usePersistedState } from '../shared/hooks/usePersistedState';
 import { getEdicoesByProposal } from '../data/comercialStore';
 import type { StatusProposta, Piso } from '../data/comercialData';
 import { STATUS_OCUPADO, STATUS_APROVADO } from '../enums';
+import { fmtCurrency } from '../utils/manutencao';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -63,10 +64,6 @@ export const DEFAULT_FIELDS: ReportField[] = [
   { id: 'histStatusAnt',  label: 'Status Anterior',    category: 'Histórico',       selected: false },
   { id: 'histStatusNovo', label: 'Status Novo',        category: 'Histórico',       selected: false },
 ];
-
-function fmtCurrency(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
-}
 
 export function useComercialReports() {
   // ── Model ────────────────────────────────────────────────
