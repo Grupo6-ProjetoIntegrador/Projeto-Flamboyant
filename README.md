@@ -1,66 +1,126 @@
-# Projeto-Flamboyant — Como rodar (guia rápido)
+# Projeto-Flamboyant — Guia de execução com Docker
 
-Este README reúne instruções práticas para executar o projeto localmente em Windows, Linux e macOS. Ele resume e amplia as instruções originais contidas em [COMO_RODAR_O_PROJETO.txt](COMO_RODAR_O_PROJETO.txt#L1-L200).
+Este repositório contém:
+- `API/`: backend em Go
+- `Figma/`: frontend React/Vite
+- `docker-compose.yml`: orquestração Docker para PostgreSQL, API e frontend
 
-**Visão geral:** o repositório contém uma API em Go (pasta `API/`) e um frontend em React/Vite (pasta `Figma/`). A API cria automaticamente o banco de dados e dados iniciais na primeira execução.
+## Visão geral
 
-**Arquivos úteis:** [API/.env.example](API/.env.example), [start.ps1](start.ps1), [debug.ps1](debug.ps1), [COMO_USAR_DEBUG.txt](COMO_USAR_DEBUG.txt).
+A forma recomendada de executar o projeto é usando Docker e Docker Compose. O compose já define:
+- um banco PostgreSQL em `postgres:16-alpine`
+- a API Go em `API/Dockerfile`
+- o frontend estático servido por nginx a partir de `Figma/Dockerfile`
 
-**Sumário rápido**
-- Requisitos
-- Configuração (clonar, .env)
-- Execução por sistema operacional (Windows / Linux / macOS)
-- Problemas comuns
+## Requisitos
 
-**Pré-requisitos (todos OS)**
-- Go 1.21+ — `go version`
-- Node.js 18+ (vem com npm) — `node --version`
-- PostgreSQL (local) — confirme que o serviço está rodando
+- Docker instalado
+- Docker Compose disponível (`docker compose` ou `docker-compose`)
+- Git instalado
 
-Se ainda não tiver, instale conforme o site oficial de cada ferramenta.
+> Não é necessário ter Go, Node ou PostgreSQL instalados localmente para rodar o projeto via Docker.
 
-1) Clonar o repositório
+## Passo 1 — Clonar o repositório
 
 ```bash
 git clone <URL-do-repositório>
 cd Projeto-Flamboyant
 ```
 
-2) Configurar o arquivo de ambiente da API
+## Passo 2 — Configurar variáveis de ambiente
 
-Copie o exemplo e edite os valores:
+O compose usa variáveis de ambiente do shell. As principais são:
 
-PowerShell (Windows):
+- `DB_USER` (padrão: `postgres`)
+- `DB_PASSWORD` (padrão: `postgres`)
+- `DB_NAME` (padrão: `jp-mall`)
+- `JWT_SECRET` (obrigatório para a API)
+- `SERVER_PORT` (padrão: `8080`)
+- `VITE_API_URL` (padrão: `http://localhost:8080/api/v1`)
 
-```powershell
-Copy-Item API\.env.example API\.env
+### Exemplo de arquivo `.env`
+
+Crie um arquivo `.env` na raiz do projeto com:
+
+```env
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=jp-mall
+JWT_SECRET=uma-chave-secreta
+SERVER_PORT=8080
+VITE_API_URL=http://localhost:8080/api/v1
 ```
 
-Linux/macOS:
+> Se não houver arquivo `.env`, o compose usará os valores padrão para `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `SERVER_PORT` e `VITE_API_URL`, mas `JWT_SECRET` deverá estar definido no ambiente ou no `.env`.
+
+## Passo 3 — Executar com Docker Compose
+
+No terminal, na pasta raiz do repositório:
 
 ```bash
-cp API/.env.example API/.env
+docker compose up --build
 ```
 
-Abra `API/.env` e preencha `DB_USER`, `DB_PASSWORD` e `JWT_SECRET`. `DB_NAME` padrão é `jp-mall`.
+Isso fará:
+- criar/atualizar a imagem do backend Go
+- criar/atualizar a imagem do frontend React/Vite
+- subir o banco PostgreSQL, o backend e o frontend
 
-3) Banco de dados
+## Passo 4 — Verificar se os containers subiram
 
-Certifique-se de que o PostgreSQL está rodando. A API cria o banco `jp-mall`, as tabelas e seeds automaticamente na primeira execução — não é necessário criar manualmente.
+Os serviços disponíveis são:
+- `postgres` → banco de dados PostgreSQL
+- `api` → backend Go na porta `8080`
+- `frontend` → site na porta `80`
 
-4) Executar o projeto
+Use este comando para ver o status:
 
-Windows (recomendado — script automático):
-
-```powershell
-.\start.ps1
+```bash
+docker compose ps
 ```
 
-O `start.ps1` verifica dependências, instala pacotes e abre duas janelas: API (porta 8080) e frontend (porta 5173).
+## Passo 5 — Acessar a aplicação
 
-Linux / macOS (manual):
+- Frontend: `http://localhost`
+- API: `http://localhost:8080`
 
-API (em um terminal):
+### Rotas úteis
+
+- `http://localhost/` — interface React
+- `http://localhost:8080/health` — healthcheck da API
+- `http://localhost:8080/api/v1` — prefixo da API
+
+## Passo 6 — Parar e remover os containers
+
+Para interromper sem remover volumes:
+
+```bash
+docker compose stop
+```
+
+Para interromper e remover containers, redes e volumes anônimos:
+
+```bash
+docker compose down
+```
+
+Para remover também os volumes persistidos do PostgreSQL:
+
+```bash
+docker compose down -v
+```
+
+## Observações úteis
+
+- A API depende do serviço `postgres` e aguarda o banco estar pronto antes de iniciar.
+- O frontend é servido por nginx na porta `80`.
+- O compose expõe o PostgreSQL na porta `5432` para acesso local, mas isso não é necessário para o funcionamento da aplicação.
+
+## Debug e desenvolvimento local (opcional)
+
+Se quiser rodar sem Docker, o projeto também pode ser executado localmente:
+
+### Backend local
 
 ```bash
 cd API
@@ -68,46 +128,26 @@ go mod tidy
 go run cmd/main.go
 ```
 
-Frontend (em outro terminal):
+### Frontend local
 
 ```bash
 cd Figma
-npm install   # ou pnpm install
+npm install
 npm run dev
 ```
 
-Observação: o frontend usa `Figma/.env` para apontar a URL da API. Se necessário, crie `Figma/.env` com `VITE_API_URL=http://localhost:8080`.
+## Problemas comuns
 
-5) Acessar a aplicação
+- `docker compose` não encontrado: instale Docker Desktop ou Docker Engine com Compose.
+- `JWT_SECRET` não definido: defina no `.env` ou no ambiente do Docker.
+- Porta `80` em uso: pare o serviço local que usa porta 80 ou altere o bind port em `docker-compose.yml`.
+- Erro de conexão com PostgreSQL: confira `DB_USER`, `DB_PASSWORD` e `DB_NAME` no `.env`.
 
-- Frontend: http://localhost:5173
-- API: http://localhost:8080 (ex.: `GET /ping` retorna `{ "message": "pong" }`)
+## Mais informações
 
-6) Debug (opcional)
-
-No Windows há um script de debug:
-
-```powershell
-.\debug.ps1
-```
-
-Consulte [COMO_USAR_DEBUG.txt](COMO_USAR_DEBUG.txt#L1-L200) para instruções detalhadas.
-
-Parar a aplicação: feche os terminais ou janelas abertas pelo `start.ps1`.
-
-Problemas comuns
-- Erro `dial tcp: connect: connection refused`: PostgreSQL não está rodando ou credenciais em `API/.env` incorretas.
-- `go: command not found`: instale Go e reinicie o terminal.
-- `npm: command not found`: instale Node.js e reinicie o terminal.
-- Porta em uso (8080 ou 5173): encerre o processo que usa a porta ou altere `SERVER_PORT` em `API/.env` e `VITE_API_URL` em `Figma/.env`.
-
-Ajuda adicional
-- Guia original com detalhes de execução e troubleshooting: [COMO_RODAR_O_PROJETO.txt](COMO_RODAR_O_PROJETO.txt#L1-L200)
-- Instruções de debug: [COMO_USAR_DEBUG.txt](COMO_USAR_DEBUG.txt#L1-L200)
-
-Se quiser, eu posso também:
-- executar um teste local (rodar `go run` / `npm run dev`) aqui no workspace,
-- ou gerar um arquivo de checklist com os comandos exatos para cada SO.
+- `docker-compose.yml` configura os serviços `postgres`, `api` e `frontend`
+- `API/Dockerfile` constrói o backend Go
+- `Figma/Dockerfile` constrói o frontend React e serve via nginx
 
 ---
 
