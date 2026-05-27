@@ -106,3 +106,23 @@ desktop.ini
 *~
 \#*\#
 
+# ============================================================
+# .env — Variáveis de ambiente do Docker Compose
+# Copie este arquivo para .env e preencha os valores
+# NÃO commite o .env no git
+# ============================================================
+
+# ── Servidor ─────────────────────────────────────────────────
+SERVER_PORT=8080
+GIN_MODE=release
+
+
+# ── JWT — TROQUE por uma string longa e aleatória ─────────────
+JWT_SECRET=chavelonga
+
+# ── Banco de Dados ────────────────────────────────────────────
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=jp-mall
+DB_SSLMODE=disable
+
