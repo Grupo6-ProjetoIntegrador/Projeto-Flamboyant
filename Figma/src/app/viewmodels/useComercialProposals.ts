@@ -30,7 +30,7 @@ import { PropostasService } from '../services/propostas.service';
 import { usePersistedState } from '../shared/hooks/usePersistedState';
 import { matchColFilter, ptBRToISO } from '../shared/utils/filters';
 import type { PropostaResumo } from '../services/propostas.service';
-import type { StatusProposta } from '../data/comercialData';
+import type { StatusProposta } from '../enums';
 import { ViewMode } from '../enums';
 
 const NS = 'propostas';

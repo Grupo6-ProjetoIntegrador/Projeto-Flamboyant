@@ -26,32 +26,30 @@
  * uma única célula do mapa. Recebe unidade e todasPropostas para
  * calcular localmente o vencimento sem precisar voltar ao ViewModel.
  */
-import type { UnidadeInfo } from "../../data/comercialData";
+import type { Unidade } from "../../data/apiClient";
 import { useComercialAvailability } from "../../viewmodels/useComercialAvailability";
 import {
   MapPin, Layers
 } from "lucide-react";
-import { PageShell, FilterBar, FilterSeparator, FilterDateRange, ViewModeToggle } from "../../components/PageShared";
+import { PageShell, FilterBar, FilterSeparator, ViewModeToggle } from "../../components/PageShared";
 import { DataTable } from "../../components/DataTable";
 import { DisponibilidadeManutencaoModal } from "../../components/DisponibilidadeManutencaoModal";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
 import { PISOS, CORREDORES, CORREDOR_LABEL, STATUS_OCUPADO, STATUS_DISPONIVEL, STATUS_APROVADO, STATUS_VENCIDA, ViewMode } from "../../enums";
-import type { Piso } from "../../enums";
-import { matchColFilter } from "../../utils/manutencao";
-
+import type { Piso, Corredor } from "../../enums";
 function UnitBlock({
   unidade,
   onSelect,
   todasPropostas,
 }: {
-  unidade: UnidadeInfo;
-  onSelect: (l: UnidadeInfo) => void;
+  unidade: Unidade;
+  onSelect: (l: Unidade) => void;
   todasPropostas: any[];
 }) {
   const isDisponivel = unidade.status === "Disponível";
   // Buscar proposta aprovada vinculada para obter fim do contrato
   const propostaAprovada = todasPropostas?.find(p =>
-    p.codigoUnidade === unidade.unidade && (p.status === STATUS_APROVADO || p.status === STATUS_VENCIDA)
+    p.codigoUnidade === unidade.codigo && (p.status === STATUS_APROVADO || p.status === STATUS_VENCIDA)
   );
   const diasRestantes = propostaAprovada ? getDiasRestantes(propostaAprovada.fimContrato) : null;
   const isVencendoBreve = diasRestantes !== null && diasRestantes < 60;
@@ -79,13 +77,13 @@ function UnitBlock({
           {isDisponivel ? (
             <>
               <p className="text-xs font-bold text-[#D93030]">DISPONÍVEL</p>
-              <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">{unidade.unidade}</p>
+              <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">{unidade.codigo}</p>
               <p className="text-xs text-gray-400 dark:text-[#475569]">{unidade.area} m²</p>
             </>
           ) : (
             <>
-              <p className="text-xs font-bold text-[#8B1A1A] dark:text-[#F87171] truncate leading-tight">{unidade.nome || unidade.unidade}</p>
-              <p className="text-xs text-gray-500 dark:text-[#94A3B8] mt-0.5">{unidade.unidade}</p>
+              <p className="text-xs font-bold text-[#8B1A1A] dark:text-[#F87171] truncate leading-tight">{unidade.nome || unidade.codigo}</p>
+              <p className="text-xs text-gray-500 dark:text-[#94A3B8] mt-0.5">{unidade.codigo}</p>
               <p className="text-xs text-gray-400 dark:text-[#475569]">{unidade.area} m²</p>
             </>
           )}
@@ -117,61 +115,17 @@ function getDiasRestantes(fimContrato: string | undefined): number | null {
 export function ComercialAvailability() {
   const {
     allLojistas, filtered, mapaData, tableRows, todasPropostas,
-    loadingUnidades,
-    filterStatuses, setFilterStatuses,
     filterPisos, setFilterPisos,
-    dateFrom, setDateFrom, dateTo, setDateTo,
-    filterVencendo, setFilterVencendo,
-    colFilters, setColFilters,
-    sortCol, sortDir, toggleSort,
+    filterCorredores, setFilterCorredores,
     viewMode, setViewMode,
     showMobileFilters, setShowMobileFilters,
     manutencaoLojista, setManutencaoLojista,
-    getDiasRestantes, getPropostaAtual, refetch,
+    refetch,
   } = useComercialAvailability();
 
   return (
     <PageShell>
-      <FilterBar isOpen={showMobileFilters} onToggle={() => setShowMobileFilters(f => !f)} hasActiveFilters={!!(dateFrom || dateTo || filterStatuses.length > 0 || filterPisos.length > 0 || filterVencendo)}>
-        <FilterDateRange label="Fim do contrato" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
-        <FilterSeparator />
-        <div className="flex flex-col gap-1 w-full sm:w-auto sm:px-6 pb-2 sm:pb-0">
-          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Status</span>
-          <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-x-4 gap-y-2 sm:gap-4 sm:flex-wrap">
-              {(['Disponível', 'Ocupado'] as const).map(s => (
-                <label key={s} className="flex items-center gap-1.5 cursor-pointer select-none">
-                  <div
-                    onClick={() => setFilterStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
-                    className={`w-4 h-4 border border-gray-400 dark:border-[#64748B] flex items-center justify-center text-xs font-bold cursor-pointer flex-shrink-0
-                      ${filterStatuses.includes(s) ? 'bg-white dark:bg-[#1A1F2E] text-gray-900 dark:text-[#F1F5F9]' : 'bg-white dark:bg-[#1A1F2E]'}`}
-                  >
-                    {filterStatuses.includes(s) && 'X'}
-                  </div>
-                  <span className="text-xs text-gray-700 dark:text-[#CBD5E1] leading-tight">
-                    {s} ({allLojistas.filter(l => l.status === s).length})
-                  </span>
-                </label>
-              ))}
-            </div>
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
-              <div
-                onClick={() => setFilterVencendo(prev => !prev)}
-                className={`w-4 h-4 border flex items-center justify-center text-xs font-bold cursor-pointer flex-shrink-0
-                  ${filterVencendo
-                    ? 'border-orange-400 bg-white dark:bg-[#1A1F2E] text-orange-500'
-                    : 'border-gray-400 dark:border-[#64748B] bg-white dark:bg-[#1A1F2E]'}`}
-              >
-                {filterVencendo && 'X'}
-              </div>
-              <span className="text-xs text-gray-700 dark:text-[#CBD5E1] leading-tight flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
-                Próximo do vencimento (&lt;60 dias)
-              </span>
-            </label>
-          </div>
-        </div>
-        <FilterSeparator />
+      <FilterBar isOpen={showMobileFilters} onToggle={() => setShowMobileFilters(f => !f)} hasActiveFilters={filterPisos.length > 0 || filterCorredores.length > 0}>
         <EnumCheckboxFilter
           label="Piso"
           options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
@@ -180,6 +134,17 @@ export function ComercialAvailability() {
             prev.includes(p as Piso) ? prev.filter(x => x !== p) : [...prev, p as Piso]
           )}
           getCount={p => allLojistas.filter(l => l.piso === p).length}
+          mobileGrid="grid-cols-3"
+        />
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Corredor"
+          options={CORREDORES.map(c => ({ value: c.value, label: c.label }))}
+          selected={filterCorredores}
+          onToggle={c => setFilterCorredores(prev =>
+            prev.includes(c as Corredor) ? prev.filter(x => x !== c) : [...prev, c as Corredor]
+          )}
+          getCount={c => allLojistas.filter(l => l.corredor === c).length}
           mobileGrid="grid-cols-3"
         />
       </FilterBar>
@@ -199,7 +164,8 @@ export function ComercialAvailability() {
         {viewMode === ViewMode.Cards && (
           <div className="flex-1 overflow-y-auto p-5 space-y-6">
             {PISOS.map(({ value: piso, label: pisoLabel }) => {
-              const hasUnits = Object.values(mapaData[piso]).some(arr => arr.length > 0);
+              const pisoUnidades: Unidade[][] = Object.values(mapaData[piso]);
+              const hasUnits = pisoUnidades.some(arr => arr.length > 0);
               if (!hasUnits) return null;
               return (
                 <div key={piso}>
@@ -210,15 +176,15 @@ export function ComercialAvailability() {
                     <div>
                       <h2 className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{pisoLabel}</h2>
                       <p className="text-xs text-gray-500 dark:text-[#64748B]">
-                        {Object.values(mapaData[piso]).flat().filter(l => l.status === STATUS_OCUPADO).length} ocupadas ·{' '}
-                        {Object.values(mapaData[piso]).flat().filter(l => l.status === STATUS_DISPONIVEL).length} disponíveis
+                        {pisoUnidades.flat().filter(l => l.status === STATUS_OCUPADO).length} ocupadas ·{' '}
+                        {pisoUnidades.flat().filter(l => l.status === STATUS_DISPONIVEL).length} disponíveis
                       </p>
                     </div>
                   </div>
                   {CORREDORES.map(({ value: corredor }) => {
                     const units = mapaData[piso][corredor];
                     if (units.length === 0) return null;
-                    const expiring = units.filter(l => { const p = todasPropostas.find(pp => pp.unidade === l.unidade && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA)); return p ? (getDiasRestantes(p.fimContrato) ?? Infinity) < 60 : false; }).length;
+                    const expiring = units.filter(l => { const p = todasPropostas.find(pp => pp.codigoUnidade === l.codigo && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA)); return p ? (getDiasRestantes(p.fimContrato) ?? Infinity) < 60 : false; }).length;
                     return (
                       <div key={corredor} className="mb-5">
                         <div className="flex items-center gap-2 mb-3">
@@ -260,47 +226,21 @@ export function ComercialAvailability() {
         {viewMode === ViewMode.Tabela && (
           <div className="overflow-auto flex-1">
             <DataTable
-              data={tableRows.map(l => {
-                const propAprov = todasPropostas.find(pp => pp.codigoUnidade === l.unidade && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA));
-                const dias = propAprov ? getDiasRestantes(propAprov.fimContrato) : null;
-                const vencendo = dias !== null && dias < 60;
-                return {
-                  unidade:       l.unidade,
-                  piso:          l.piso === 'P' ? 'Primeiro Piso' : l.piso === 'S' ? 'Segundo Piso' : 'Terceiro Piso',
-                  corredor:      l.corredor,
-                  area:          l.area,
-                  segmento:      l.segmento,
-                  status:        l.status,
-                  nomeFantasia:  l.nome || '—',
-                  fimContrato:   propAprov?.fimContrato || '—',
-                  diasRestantes: dias,
-                  _vencendo:     vencendo,
-                  _raw:          l,
-                };
-              })}
+              data={tableRows}
               columnConfig={{
-                unidade:       { label: 'Unidade', render: (row, v) => (
-                  <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-gray-900 dark:text-[#F1F5F9]">
-                    {row._vencendo && <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />}
-                    {v}
-                  </div>
-                )},
-                piso:          { label: 'Piso', _allowFilter: false },
-                corredor:      { label: 'Corredor' },
-                area:          { label: 'Área (m²)', render: (_, v) => `${v} m²` },
-                segmento:      { label: 'Segmento' },
-                status:        { label: 'Status', render: (_, v) => (
+                id:       { _specified: false },
+                criadoEm: { _specified: false },
+                codigo:   { label: 'Unidade' },
+                piso:     { label: 'Piso', _allowFilter: false },
+                corredor: { label: 'Corredor' },
+                area:     { label: 'Área (m²)', _allowFilter: false, render: (_, v) => `${v} m²` },
+                segmento: { label: 'Segmento' },
+                nome:     { label: 'Nome Fantasia' },
+                status:   { label: 'Status', _allowFilter: false, render: (_, v) => (
                   <span className={`px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap ${v === 'Disponível' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300' : 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300'}`}>{v}</span>
                 )},
-                nomeFantasia:  { label: 'Nome Fantasia' },
-                fimContrato:   { label: 'Fim Contrato' },
-                diasRestantes: { label: 'Dias Rest.', _allowFilter: false, render: (row, v) => v !== null ? (
-                  <span className={`text-xs font-semibold ${row._vencendo ? 'text-orange-500' : 'text-gray-600 dark:text-[#94A3B8]'}`}>{row._vencendo && '⚠ '}{v} dias</span>
-                ) : '—'},
-                _vencendo:     { _specified: false },
-                _raw:          { _specified: false },
-              }}
-              onRowClick={row => setManutencaoLojista(row._raw)}
+              } as any}
+              onRowClick={setManutencaoLojista}
               emptyMessage="Nenhuma unidade encontrada"
             />
           </div>
