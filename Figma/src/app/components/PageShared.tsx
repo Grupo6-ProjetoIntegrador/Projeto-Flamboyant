@@ -76,6 +76,32 @@ export function TableLayoutItem({
   );
 }
 
+// ── DesktopRender / MobileRender ───────────────────────────
+
+type DisplayValue = 'block' | 'flex' | 'inline-flex' | 'grid' | 'inline';
+
+const SM_DISPLAY: Record<DisplayValue, string> = {
+  block:        'sm:block',
+  flex:         'sm:flex',
+  'inline-flex':'sm:inline-flex',
+  grid:         'sm:grid',
+  inline:       'sm:inline',
+};
+
+interface ResponsiveRenderProps {
+  children: ReactNode;
+  className?: string;
+  display?: DisplayValue;
+}
+
+export function DesktopRender({ children, className = '', display = 'block' }: ResponsiveRenderProps) {
+  return <div className={`hidden ${SM_DISPLAY[display]} ${className}`}>{children}</div>;
+}
+
+export function MobileRender({ children, className = '' }: Omit<ResponsiveRenderProps, 'display'>) {
+  return <div className={`sm:hidden ${className}`}>{children}</div>;
+}
+
 // ── PageShell ──────────────────────────────────────────────
 export function PageShell({ children }: { children: ReactNode }) {
   return (

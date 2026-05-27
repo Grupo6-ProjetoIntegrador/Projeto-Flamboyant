@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
-import type { PropostaResumo } from "../../data/apiClient";
 import { fmtCurrency, matchColFilter } from "../../utils/manutencao";
 import { DataCard } from "../DataCard";
 import { TableProposta } from "../TableProposta";
+import { DesktopRender, MobileRender } from "../PageShared";
+import { Proposta } from "../../entities";
 
 interface Props {
-  propostasVinculadas: PropostaResumo[];
-  onAbrirProposta: (p: PropostaResumo) => void;
+  propostasVinculadas: Proposta[];
+  onAbrirProposta: (p: Proposta) => void;
 }
 
 export function PropostasVinculadasTab({ propostasVinculadas, onAbrirProposta }: Props) {
@@ -15,7 +16,7 @@ export function PropostasVinculadasTab({ propostasVinculadas, onAbrirProposta }:
   const filtradas = useMemo(() =>
     propostasVinculadas.filter(p =>
       matchColFilter(p.nomeFantasia || '', colFilters['nomeFantasia']     || '') &&
-      matchColFilter(p.codigoUnidade,     colFilters['codigoUnidade']    || '') &&
+      matchColFilter(p.idUnidade,     colFilters['codigoUnidade']    || '') &&
       matchColFilter(p.segmento,          colFilters['segmento']         || '') &&
       matchColFilter(p.tipoOperacao,      colFilters['tipoOperacao']     || '') &&
       matchColFilter(p.id,                colFilters['id']               || '') &&
@@ -44,8 +45,7 @@ export function PropostasVinculadasTab({ propostasVinculadas, onAbrirProposta }:
 
   return (
     <>
-      {/* Cards — mobile */}
-      <div className="flex flex-col gap-3 sm:hidden">
+      <MobileRender className="flex flex-col gap-3">
         {filtradas.map(p => (
           <DataCard
             key={p.id}
@@ -53,7 +53,7 @@ export function PropostasVinculadasTab({ propostasVinculadas, onAbrirProposta }:
             fieldMap={{
               title:       { field: 'nomeFantasia', format: (v: string) => v || '—' },
               titleBadge:  'tipoOperacao',
-              subtitle:    ['id', 'codigoUnidade', 'segmento'],
+              subtitle:    ['id', 'idUnidade', 'segmento'],
               value:       { field: 'valorProposto', format: (v: number) => fmtCurrency(v) },
               valueSub:    { field: 'area', format: (v: number) => `${v} m²` },
               statusBadge: 'status',
@@ -62,16 +62,15 @@ export function PropostasVinculadasTab({ propostasVinculadas, onAbrirProposta }:
             onClick={row => onAbrirProposta(row)}
           />
         ))}
-      </div>
+      </MobileRender>
 
-      {/* Tabela — desktop */}
-      <div className="hidden sm:block overflow-x-auto">
+      <DesktopRender className="overflow-x-auto">
         <TableProposta
           data={filtradas}
           onRowClick={row => onAbrirProposta(row)}
           emptyMessage="Nenhuma proposta vinculada"
         />
-      </div>
+      </DesktopRender>
     </>
   );
 }

@@ -14,11 +14,11 @@
  */
 import { useComercialProposals } from "../../viewmodels/useComercialProposals";
 import { Plus } from "lucide-react";
-import { PageShell, FilterBar, FilterSeparator, FilterDateRange, ViewModeToggle } from "../../components/PageShared";
+import { PageShell, FilterBar, FilterSeparator, FilterDateRange, ViewModeToggle, DesktopRender } from "../../components/PageShared";
 import { ViewMode, STATUS_PROPOSTA } from "../../enums";
 import type { StatusProposta } from "../../enums";
 import { PropostaManutencaoModal } from "../../components/PropostaManutencaoModal";
-import { DataCard } from "../../components/DataCard";
+import { DataCardContainer } from "../../components/DataCardContainer";
 import { TableProposta } from "../../components/TableProposta";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
 import { fmtCurrency } from "../../utils/manutencao";
@@ -38,10 +38,12 @@ export function ComercialProposals() {
     <PageShell>
       {/* Header — altura fixa */}
       <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <button onClick={abrirNovaProposta}
-          className="hidden sm:inline-flex items-center gap-2 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-5 py-2.5 text-sm font-medium transition-colors shadow-sm">
-          <Plus className="w-4 h-4" /> Nova Proposta
-        </button>
+        <DesktopRender>
+          <button onClick={abrirNovaProposta}
+            className="flex items-center gap-2 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-5 py-2.5 text-sm font-medium transition-colors shadow-sm">
+            <Plus className="w-4 h-4" /> Nova Proposta
+          </button>
+        </DesktopRender>
       </div>
 
       <FilterBar
@@ -66,7 +68,7 @@ export function ComercialProposals() {
       </FilterBar>
 
       {/* Área de listagem — cresce para preencher o restante, scroll interno */}
-      <div className="flex-1 overflow-hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]">
+      <div className="flex-1 overflow-hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col">
         <div className="px-5 py-3.5 border-b border-gray-100 dark:border-[#2E3447] bg-gray-50/50 dark:bg-[#1A1F2E] flex-shrink-0 flex items-center justify-between">
           <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
             {viewMode === ViewMode.Cards ? filtered.length : tableRows.length} proposta{(viewMode === ViewMode.Cards ? filtered.length : tableRows.length) !== 1 ? 's' : ''}
@@ -76,36 +78,22 @@ export function ComercialProposals() {
 
         {/* Modo Card */}
         {viewMode === ViewMode.Cards && (
-          <div
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 p-3 overflow-y-auto pb-4 sm:pb-0"
-            style={{
-              maxHeight: window.innerWidth < 640
-                ? 'calc(100vh - 280px - 64px)'  // desconta bottom nav
-                : 'calc(100vh - 280px)'
-            }}>
-            {filtered.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-gray-400 dark:text-[#64748B]">
-                <p className="text-sm">Nenhuma proposta encontrada</p>
-              </div>
-            ) : (
-              filtered.map(p => (
-                <DataCard
-                  key={p.id}
-                  data={p}
-                  fieldMap={{
-                    title:       { field: 'nomeFantasia', format: (v, row) => v || row.id },
-                    titleBadge:  'tipoOperacao',
-                    subtitle:    ['id', 'codigoUnidade', 'segmento'],
-                    value:       { field: 'valorProposto', format: v => fmtCurrency(v) },
-                    valueSub:    { field: 'area', format: v => `${v} m²` },
-                    statusBadge: 'status',
-                    footer:      'dataVencimento',
-                  }}
-                  onClick={row => setModalPropostaAberta(row)}
-                />
-              ))
-            )}
-          </div>
+          <DataCardContainer
+            cols={4}
+            data={filtered}
+            keyField="id"
+            fieldMap={{
+              title:       { field: 'nomeFantasia', format: (v: any, row: any) => v || row.id },
+              titleBadge:  'tipoOperacao',
+              subtitle:    ['id', 'codigoUnidade', 'segmento'],
+              value:       { field: 'valorProposto', format: (v: any) => fmtCurrency(v) },
+              valueSub:    { field: 'area', format: (v: any) => `${v} m²` },
+              statusBadge: 'status',
+              footer:      'dataVencimento',
+            }}
+            onClick={row => setModalPropostaAberta(row)}
+            emptyMessage="Nenhuma proposta encontrada"
+          />
         )}
 
         {/* Modo Tabela */}

@@ -1,22 +1,16 @@
 import { useComercialDashboard } from "../../viewmodels/useComercialDashboard";
-import { useNavigate } from "react-router";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
-import { SEGMENTOS, PISOS, STATUS_APROVADO, STATUS_VENCIDA } from "../../enums";
-import {
-  Store, FileText, AlertCircle, Percent,
-  ChevronRight, BarChart2, Info
-} from "lucide-react";
+import { SEGMENTOS, PISOS, PISO_LABEL, STATUS_APROVADO, STATUS_VENCIDA } from "../../enums";
+import { Store, FileText, AlertCircle, Percent, BarChart2, Info } from "lucide-react";
 import { PageShell, FilterBar, FilterSeparator, FilterDateRange, MobileExpandableSection, TableLayoutContainer, TableLayoutItem } from "../../components/PageShared";
 import { KpiContainer } from "../../components/KpiContainer";
 import { ChartsContainer } from "../../components/ChartsContainer";
 import type { ChartStats } from "../../components/ChartsContainer";
-import { DataTable } from "../../components/DataTable";
 import { MobileCarousel } from "../../components/MobileCarousel";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from "recharts";
-import { fmtCurrency, matchColFilter } from "../../utils/manutencao";
 import { ChartTooltip } from "../../components/ChartTooltip";
 
 const DS = {
@@ -32,36 +26,16 @@ const DS = {
 const PIE_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "#8B5CF6"];
 const CHART_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "#8B5CF6"];
 
-const PISO_LABELS: Record<string, string> = { P: "Primeiro Piso", S: "Segundo Piso", T: "Terceiro Piso" };
-
-function getDiasRestantes(fimContrato: string | undefined): number | null {
-  if (!fimContrato) return null;
-  let date: Date;
-  if (fimContrato.includes('/')) {
-    const [d, m, y] = fimContrato.split('/');
-    date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-  } else {
-    date = new Date(fimContrato);
-  }
-  if (isNaN(date.getTime())) return null;
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  return Math.ceil((date.getTime() - hoje.getTime()) / 86400000);
-}
 
 export function ComercialDashboard() {
-  const navigate = useNavigate();
   const {
-    allUnidades, proposals, filteredProposals, kpis, chartSegmentos, chartStatus,
+    allUnidades, proposals, kpis, chartSegmentos, chartStatus,
     filterSegmentos, setFilterSegmentos, toggleSegmento,
-    filterPisos, setFilterPisos, togglePiso,
-    dateFrom, setDateFrom, dateTo, setDateTo, clearFilters,
+    filterPisos, setFilterPisos,
+    dateFrom, setDateFrom, dateTo, setDateTo,
     showMobileFilters, setShowMobileFilters,
-    propColFilters, setPropColFilters,
-    ctrColFilters, setCtrColFilters,
-    kpiIndex, setKpiIndex,
     chartIndex, setChartIndex,
-    mobileSection, setMobileSection, toggleSection,
+    mobileSection, toggleSection,
   } = useComercialDashboard();
 
   // ── Aliases e dados derivados locais ──────────────────────
@@ -96,31 +70,10 @@ export function ComercialDashboard() {
   const chartStats: ChartStats = {
     segmentos:       segmentosChart,
     pisos:           PISOS.map(p => ({
-      name:  PISO_LABELS[p.value],
+      name:  PISO_LABEL[p.value],
       value: allLojistas.filter(l => l.piso === p.value && l.status === "Ocupado").length,
     })),
     statusPropostas: proposalStatusChart,
-  };
-
-  const propostasRecentes = [...proposals]
-    .sort((a, b) => b.dataCriacao.localeCompare(a.dataCriacao))
-    .slice(0, 10);
-
-  const contratosVencendo = allLojistas.filter(l => {
-    const p = proposals.find(pp => pp.codigoUnidade === l.unidade && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA));
-    if (!p?.fimContrato) return false;
-    const dias = Math.ceil((new Date(p.fimContrato).getTime() - Date.now()) / 86400000);
-    return dias < 60;
-  });
-
-  const STATUS_BADGE: Record<string, string> = {
-    "Aprovado": "bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-500/40",
-    "Aguardando análise do comitê": "bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/40",
-    "Aguardando análise financeira": "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-500/40",
-    "Reprovado": "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/40",
-    "Cancelado": "bg-gray-100 dark:bg-gray-500/20 text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-500/40",
-    "Vencida": "bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-500/40",
-    "Finalizado": "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/40",
   };
 
   return (
@@ -310,7 +263,7 @@ export function ComercialDashboard() {
                           <PieChart>
                             <Pie
                               data={PISOS.map(p => ({
-                                name: PISO_LABELS[p.value],
+                                name: PISO_LABEL[p.value],
                                 value: allLojistas.filter(l =>
                                   l.piso === p.value && l.status === "Ocupado"
                                 ).length,
@@ -334,7 +287,7 @@ export function ComercialDashboard() {
                               <div key={p.value} className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5">
                                   <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
-                                  <span className="text-[10px] text-gray-500 dark:text-[#94A3B8]">{PISO_LABELS[p.value]}</span>
+                                  <span className="text-[10px] text-gray-500 dark:text-[#94A3B8]">{PISO_LABEL[p.value]}</span>
                                 </div>
                                 <span className="text-[10px] font-bold text-gray-800 dark:text-[#F1F5F9]">{count}</span>
                               </div>

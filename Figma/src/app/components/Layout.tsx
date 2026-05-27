@@ -33,6 +33,7 @@ import {
 import logoFlamboyant from "../../assets/isotipo_flamboyant.webp";
 import { useAuth } from "../AuthContext";
 import { useApiHealth } from "../data/useApiHealth";
+import { MobileRender } from "./PageShared";
 
 interface SubTabDef {
   label: string;
@@ -219,10 +220,12 @@ function SidebarOverlay({
 }) {
   if (!sidebarOpen) return null;
   return (
-    <div
-      className="fixed inset-0 z-[89] bg-black/50 backdrop-blur-sm sm:hidden"
-      onClick={onClose}
-    />
+    <MobileRender>
+      <div
+        className="fixed inset-0 z-[89] bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+    </MobileRender>
   );
 }
 
@@ -384,13 +387,15 @@ function ContentArea({
 // ---------------------------------------------------------------------------
 function BottomNav() {
   return (
-    <nav className="block sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#242938] border-t border-gray-200 dark:border-[#2E3447] flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
-      {navigationItems.flatMap(item => item.subTabs ?? []).map(sub => (
-        sub.icon && (
-          <BottomNavItem key={sub.path} label={sub.label} path={sub.path} icon={sub.icon} />
-        )
-      ))}
-    </nav>
+    <MobileRender>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#242938] border-t border-gray-200 dark:border-[#2E3447] flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
+        {navigationItems.flatMap(item => item.subTabs ?? []).map(sub => (
+          sub.icon && (
+            <BottomNavItem key={sub.path} label={sub.label} path={sub.path} icon={sub.icon} />
+          )
+        ))}
+      </nav>
+    </MobileRender>
   );
 }
 
