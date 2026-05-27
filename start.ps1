@@ -31,6 +31,14 @@ if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
 }
 Log "npm: $(npm --version)"
 
+# ── Verificar / instalar pnpm ─────────────────────────────────
+if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
+    Log "pnpm nao encontrado. Instalando via npm..."
+    npm install -g pnpm
+    if ($LASTEXITCODE -ne 0) { Err "Falha ao instalar pnpm" }
+}
+Log "pnpm: $(pnpm --version)"
+
 Write-Host ""
 
 # ── Dependências da API ──────────────────────────────────────
@@ -46,7 +54,7 @@ Log "Verificando dependencias do Frontend..."
 if (-not (Test-Path "Figma\node_modules")) {
     Log "Instalando dependencias Node..."
     Push-Location Figma
-    npm install
+    pnpm install
     if ($LASTEXITCODE -ne 0) { Err "Falha ao instalar dependencias Node" }
     Pop-Location
 } else {
@@ -66,7 +74,7 @@ Log "Iniciando API na porta 8080..."
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location API; go run ./cmd/main.go" -WindowStyle Normal
 
 Log "Iniciando Frontend na porta 5173..."
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location Figma; npm run dev" -WindowStyle Normal
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location Figma; pnpm run dev" -WindowStyle Normal
 
 Write-Host ""
 Log "----------------------------------------------"
