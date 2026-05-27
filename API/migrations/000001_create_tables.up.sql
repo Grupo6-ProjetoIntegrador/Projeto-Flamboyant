@@ -188,13 +188,37 @@ CREATE TABLE "PropostaDocumento" (
 );
 
 -- ============================================================
--- PropostaHistorico
+-- PropostaHistorico — espelha os campos da tabela Proposta no
+-- momento da edição. Sem FK para Unidade (codigo armazenado como
+-- texto). Vinculado somente à Proposta.
 -- ============================================================
 CREATE TABLE "PropostaHistorico" (
-    id_ph           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_proposta_ph  UUID      NOT NULL REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
-    id_usuario_ph   UUID      NOT NULL REFERENCES "Usuario"(id_u),
-    editado_em_ph   TIMESTAMP NOT NULL DEFAULT NOW()
+    id_ph                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_proposta_ph           UUID          NOT NULL REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
+    id_usuario_ph            UUID          NOT NULL REFERENCES "Usuario"(id_u),
+    editado_em_ph            TIMESTAMP     NOT NULL DEFAULT NOW(),
+
+    -- Mesmos campos de Proposta (codigo_unidade como texto — sem FK)
+    codigo_unidade_ph        VARCHAR(20),
+    segmento_ph              VARCHAR(100),
+    tipo_operacao_ph         VARCHAR(50),
+    valor_proposto_ph        DECIMAL(15,2),
+    area_ph                  DECIMAL(10,2),
+    abl_ph                   DECIMAL(10,2),
+    status_ph                VARCHAR(60),
+    data_criacao_ph          DATE,
+    data_vencimento_ph       DATE,
+    nome_fantasia_ph         VARCHAR(200),
+    aluguel_percent_ph       DECIMAL(10,2),
+    prazo_locacao_meses_ph   INTEGER,
+    aluguel_por_m2_ph        DECIMAL(10,2),
+    condominio_aprox_ph      DECIMAL(10,2),
+    fpp_aprox_ph             DECIMAL(10,2),
+    inicio_contrato_ph       DATE,
+    fim_contrato_ph          DATE,
+    data_inauguracao_ph      DATE,
+    observacoes_ph           TEXT,
+    atualizado_em_snapshot_ph TIMESTAMP
 );
 
 -- ============================================================
@@ -289,18 +313,6 @@ CREATE TABLE "PropostaParecerComiteHistorico" (
     superintendente_data_ppch      DATE,
     in_networking_ppch             BOOLEAN DEFAULT FALSE,
     in_networking_data_ppch        DATE
-);
-
-CREATE TABLE "PropostaDocumentoHistorico" (
-    id_pdh              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_historico_pdh    UUID          NOT NULL REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
-    id_usuario_pdh      UUID          NOT NULL REFERENCES "Usuario"(id_u),
-    codigo_pdh          VARCHAR(50)   NOT NULL,
-    nome_original_pdh   VARCHAR(255)  NOT NULL,
-    tipo_pdh            VARCHAR(10)   NOT NULL,
-    tamanho_pdh         VARCHAR(20)   NOT NULL,
-    url_storage_pdh     VARCHAR(500),
-    data_upload_pdh     TIMESTAMP     NOT NULL DEFAULT NOW()
 );
 
 -- ============================================================

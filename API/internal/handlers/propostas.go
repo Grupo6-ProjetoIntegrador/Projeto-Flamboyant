@@ -214,3 +214,7 @@ func (h *PropostasHandler) Historico(c *gin.Context) {
 func (h *PropostasHandler) PlaceholderOK(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
+
+func (h *PropostasHandler) PlaceholderList(c *gin.Context) {
+	c.JSON(http.StatusOK, []any{})
+}

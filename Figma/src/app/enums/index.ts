@@ -36,6 +36,11 @@ export type Corredor = typeof CORREDORES[number]['value'];
 export const CORREDOR_LABEL: Record<Corredor, string> = Object.fromEntries(CORREDORES.map(c => [c.value, c.label])) as Record<Corredor, string>;
 
 // ---------------------------------------------------------------------------
+// Cores para selects com estilo badge/pill
+// ---------------------------------------------------------------------------
+export interface BadgeColors { bg: string; text: string; border: string; }
+
+// ---------------------------------------------------------------------------
 // Status da Proposta
 // ---------------------------------------------------------------------------
 export const STATUS_PROPOSTA = [
@@ -56,6 +61,16 @@ export const STATUS_REPROVADO         = STATUS_PROPOSTA[3];
 export const STATUS_CANCELADO         = STATUS_PROPOSTA[4];
 export const STATUS_VENCIDA           = STATUS_PROPOSTA[5];
 export const STATUS_FINALIZADO        = STATUS_PROPOSTA[6];
+
+export const STATUS_PROPOSTA_COLORS: Record<StatusProposta, BadgeColors> = {
+  'Aguardando análise financeira': { bg: 'bg-yellow-100 dark:bg-yellow-500/20', text: 'text-yellow-800 dark:text-yellow-300', border: 'border-yellow-300 dark:border-yellow-500/50' },
+  'Aguardando análise do comitê':  { bg: 'bg-purple-100 dark:bg-purple-500/20', text: 'text-purple-800 dark:text-purple-300', border: 'border-purple-300 dark:border-purple-500/50' },
+  Aprovado:   { bg: 'bg-green-100  dark:bg-green-500/20',  text: 'text-green-800  dark:text-green-300',  border: 'border-green-300  dark:border-green-500/50'  },
+  Reprovado:  { bg: 'bg-red-100    dark:bg-red-500/20',    text: 'text-red-800    dark:text-red-300',    border: 'border-red-300    dark:border-red-500/50'    },
+  Cancelado:  { bg: 'bg-gray-100   dark:bg-gray-500/20',   text: 'text-gray-600   dark:text-gray-300',   border: 'border-gray-300   dark:border-gray-500/50'   },
+  Vencida:    { bg: 'bg-orange-100 dark:bg-orange-500/20', text: 'text-orange-800 dark:text-orange-300', border: 'border-orange-300 dark:border-orange-500/50' },
+  Finalizado: { bg: 'bg-blue-100   dark:bg-blue-500/20',   text: 'text-blue-800   dark:text-blue-300',   border: 'border-blue-300   dark:border-blue-500/50'   },
+};
 
 // ---------------------------------------------------------------------------
 // Status da Loja (Unidade)
@@ -89,6 +104,22 @@ export const TIPO_CESSAO        = TIPOS_OPERACAO[1];
 export const TIPO_NOVA_LOCACAO  = TIPOS_OPERACAO[2];
 export const TIPO_RENOVACAO     = TIPOS_OPERACAO[3];
 export const TIPO_READEQUACAO   = TIPOS_OPERACAO[4];
+
+export const TIPOS_OPERACAO_COLORS: Record<TipoOperacao, BadgeColors> = {
+  'Transferência': { bg: 'bg-blue-50   dark:bg-blue-900/20',   text: 'text-blue-700   dark:text-blue-400',   border: 'border-blue-200   dark:border-blue-700/40'   },
+  'Cessão':        { bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-700/40' },
+  'Nova Locação':  { bg: 'bg-indigo-50 dark:bg-indigo-900/20', text: 'text-indigo-700 dark:text-indigo-400', border: 'border-indigo-200 dark:border-indigo-700/40' },
+  'Renovação':     { bg: 'bg-teal-50   dark:bg-teal-900/20',   text: 'text-teal-700   dark:text-teal-400',   border: 'border-teal-200   dark:border-teal-700/40'   },
+  'Readequação':   { bg: 'bg-amber-50  dark:bg-amber-900/20',  text: 'text-amber-700  dark:text-amber-400',  border: 'border-amber-200  dark:border-amber-700/40'  },
+};
+
+// ---------------------------------------------------------------------------
+// Modo de Visualização — compartilhado entre páginas com toggle Cards/Tabela
+// ---------------------------------------------------------------------------
+export enum ViewMode {
+  Cards  = 'cards',
+  Tabela = 'tabela',
+}
 
 // ---------------------------------------------------------------------------
 // Formas de Pagamento

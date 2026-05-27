@@ -126,3 +126,4 @@ DB_PASSWORD=postgres
 DB_NAME=jp-mall
 DB_SSLMODE=disable
 
+.claude/settings.local.json

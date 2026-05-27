@@ -7,7 +7,7 @@
  * O que exibe:
  *  - Contadores: total, disponíveis, ocupadas, vencendo em breve
  *  - Filtros: status, piso, intervalo de fim de contrato, vencendo <60 dias
- *  - Toggle: Mapa visual | Tabela
+ *  - Toggle: Cards visual | Tabela
  *
  * MODO MAPA:
  *  - Grade organizada por Piso (P/S/T) e Corredor (A/B/C)
@@ -26,46 +26,30 @@
  * uma única célula do mapa. Recebe unidade e todasPropostas para
  * calcular localmente o vencimento sem precisar voltar ao ViewModel.
  */
-import type { UnidadeInfo } from "../../data/comercialData";
+import type { Unidade } from "../../data/apiClient";
 import { useComercialAvailability } from "../../viewmodels/useComercialAvailability";
 import {
-  MapPin, Layers, LayoutGrid, Table2, ArrowUp, ArrowDown, Eye, Filter, ChevronDown
+  MapPin, Layers
 } from "lucide-react";
-import { DatePickerInput } from "../../components/DatePickerInput";
+import { PageShell, FilterBar, FilterSeparator, ViewModeToggle } from "../../components/PageShared";
 import { DataTable } from "../../components/DataTable";
 import { DisponibilidadeManutencaoModal } from "../../components/DisponibilidadeManutencaoModal";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
-import { PISOS, CORREDORES, CORREDOR_LABEL, STATUS_OCUPADO, STATUS_DISPONIVEL, STATUS_APROVADO, STATUS_VENCIDA } from "../../enums";
-import type { Piso } from "../../enums";
-
-
-function matchColFilter(cellValue: string, pattern: string): boolean {
-  if (!pattern) return true;
-  const val = cellValue.toLowerCase();
-  const p = pattern.toLowerCase();
-  if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
-    const inner = p.slice(1, -1);
-    const idx = val.indexOf(inner);
-    return idx > 0 && idx < val.length - inner.length;
-  }
-  if (p.startsWith('*') && p.length > 1) return val.endsWith(p.slice(1));
-  if (p.endsWith('*') && p.length > 1) return val.startsWith(p.slice(0, -1));
-  return val.includes(p);
-}
-
+import { PISOS, CORREDORES, CORREDOR_LABEL, STATUS_OCUPADO, STATUS_DISPONIVEL, STATUS_APROVADO, STATUS_VENCIDA, ViewMode } from "../../enums";
+import type { Piso, Corredor } from "../../enums";
 function UnitBlock({
   unidade,
   onSelect,
   todasPropostas,
 }: {
-  unidade: UnidadeInfo;
-  onSelect: (l: UnidadeInfo) => void;
+  unidade: Unidade;
+  onSelect: (l: Unidade) => void;
   todasPropostas: any[];
 }) {
   const isDisponivel = unidade.status === "Disponível";
   // Buscar proposta aprovada vinculada para obter fim do contrato
   const propostaAprovada = todasPropostas?.find(p =>
-    p.codigoUnidade === unidade.unidade && (p.status === STATUS_APROVADO || p.status === STATUS_VENCIDA)
+    p.codigoUnidade === unidade.codigo && (p.status === STATUS_APROVADO || p.status === STATUS_VENCIDA)
   );
   const diasRestantes = propostaAprovada ? getDiasRestantes(propostaAprovada.fimContrato) : null;
   const isVencendoBreve = diasRestantes !== null && diasRestantes < 60;
@@ -93,13 +77,13 @@ function UnitBlock({
           {isDisponivel ? (
             <>
               <p className="text-xs font-bold text-[#D93030]">DISPONÍVEL</p>
-              <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">{unidade.unidade}</p>
+              <p className="text-xs text-gray-500 dark:text-[#64748B] mt-0.5">{unidade.codigo}</p>
               <p className="text-xs text-gray-400 dark:text-[#475569]">{unidade.area} m²</p>
             </>
           ) : (
             <>
-              <p className="text-xs font-bold text-[#8B1A1A] dark:text-[#F87171] truncate leading-tight">{unidade.nome || unidade.unidade}</p>
-              <p className="text-xs text-gray-500 dark:text-[#94A3B8] mt-0.5">{unidade.unidade}</p>
+              <p className="text-xs font-bold text-[#8B1A1A] dark:text-[#F87171] truncate leading-tight">{unidade.nome || unidade.codigo}</p>
+              <p className="text-xs text-gray-500 dark:text-[#94A3B8] mt-0.5">{unidade.codigo}</p>
               <p className="text-xs text-gray-400 dark:text-[#475569]">{unidade.area} m²</p>
             </>
           )}
@@ -130,115 +114,18 @@ function getDiasRestantes(fimContrato: string | undefined): number | null {
 
 export function ComercialAvailability() {
   const {
-    allLojistas, filtered, counts, mapaData, tableRows, todasPropostas,
-    loadingUnidades,
-    filterStatuses, setFilterStatuses,
+    allLojistas, filtered, mapaData, tableRows, todasPropostas,
     filterPisos, setFilterPisos,
-    dateFrom, setDateFrom, dateTo, setDateTo,
-    filterVencendo, setFilterVencendo,
-    colFilters, setColFilters,
-    sortCol, sortDir, toggleSort,
+    filterCorredores, setFilterCorredores,
     viewMode, setViewMode,
     showMobileFilters, setShowMobileFilters,
     manutencaoLojista, setManutencaoLojista,
-    getDiasRestantes, getPropostaAtual, refetch,
+    refetch,
   } = useComercialAvailability();
 
   return (
-    <div className="flex flex-col h-full overflow-hidden gap-4 p-6">
-      {/* Header — altura fixa */}
-      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F1F5F9]">Disponibilidade de Unidades</h1>
-        </div>
-      </div>
-
-      {/* Filtros — desktop: inline | mobile: região expansível independente */}
-
-      {/* Cabeçalho da região — mobile only */}
-      <button
-        onClick={() => setShowMobileFilters(f => !f)}
-        className="sm:hidden flex-shrink-0 w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447]"
-      >
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-[#D93030]" />
-          <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">Filtros</span>
-          {/* Indicador de filtros ativos */}
-          {(dateFrom || dateTo || filterStatuses.length > 0 || filterPisos.length > 0 || filterVencendo) && (
-            <span className="w-2 h-2 rounded-full bg-[#D93030]" />
-          )}
-        </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showMobileFilters ? '' : '-rotate-90'}`} />
-      </button>
-
-      {/* Conteúdo dos filtros */}
-      {/* Desktop: sempre visível | Mobile: só quando expandido */}
-      <div className={`flex-shrink-0 flex-col sm:flex-row sm:items-stretch sm:justify-start gap-0
-        ${showMobileFilters ? 'flex' : 'hidden sm:flex'}
-        bg-white dark:bg-[#242938] sm:bg-transparent sm:dark:bg-transparent
-        rounded-xl sm:rounded-none
-        border border-gray-100 dark:border-[#2E3447] sm:border-0
-        p-3 sm:p-0`}>
-
-        {/* Fim do contrato */}
-        <div className="flex flex-col gap-1 w-full sm:w-auto sm:pr-6 pb-2 sm:pb-0">
-          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Fim do contrato</span>
-          <div className="flex items-center gap-1.5 h-9">
-            <DatePickerInput value={dateFrom} onChange={setDateFrom} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
-            <span className="text-xs text-gray-400 dark:text-[#64748B] whitespace-nowrap flex-shrink-0">até</span>
-            <DatePickerInput value={dateTo} onChange={setDateTo} placeholder="DD/MM/AAAA" className="flex-1 min-w-0" />
-          </div>
-        </div>
-
-        {/* Separador */}
-        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
-        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
-
-        {/* Status */}
-        <div className="flex flex-col gap-1 w-full sm:w-auto sm:px-6 pb-2 sm:pb-0">
-          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Status</span>
-          <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-x-4 gap-y-2 sm:gap-4 sm:flex-wrap">
-              {(['Disponível', 'Ocupado'] as const).map(s => (
-                <label key={s} className="flex items-center gap-1.5 cursor-pointer select-none">
-                  <div
-                    onClick={() => setFilterStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
-                    className={`w-4 h-4 border border-gray-400 dark:border-[#64748B] flex items-center justify-center text-xs font-bold cursor-pointer flex-shrink-0
-                      ${filterStatuses.includes(s) ? 'bg-white dark:bg-[#1A1F2E] text-gray-900 dark:text-[#F1F5F9]' : 'bg-white dark:bg-[#1A1F2E]'}`}
-                  >
-                    {filterStatuses.includes(s) && 'X'}
-                  </div>
-                  <span className="text-xs text-gray-700 dark:text-[#CBD5E1] leading-tight">
-                    {s} ({allLojistas.filter(l => l.status === s).length})
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {/* Checkbox Próximo do vencimento */}
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
-              <div
-                onClick={() => setFilterVencendo(prev => !prev)}
-                className={`w-4 h-4 border flex items-center justify-center text-xs font-bold cursor-pointer flex-shrink-0
-                  ${filterVencendo
-                    ? 'border-orange-400 bg-white dark:bg-[#1A1F2E] text-orange-500'
-                    : 'border-gray-400 dark:border-[#64748B] bg-white dark:bg-[#1A1F2E]'}`}
-              >
-                {filterVencendo && 'X'}
-              </div>
-              <span className="text-xs text-gray-700 dark:text-[#CBD5E1] leading-tight flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
-                Próximo do vencimento (&lt;60 dias)
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Separador */}
-        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
-        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
-
-        {/* Piso */}
+    <PageShell>
+      <FilterBar isOpen={showMobileFilters} onToggle={() => setShowMobileFilters(f => !f)} hasActiveFilters={filterPisos.length > 0 || filterCorredores.length > 0}>
         <EnumCheckboxFilter
           label="Piso"
           options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
@@ -249,28 +136,18 @@ export function ComercialAvailability() {
           getCount={p => allLojistas.filter(l => l.piso === p).length}
           mobileGrid="grid-cols-3"
         />
-
-        {/* Separador */}
-        <div className="hidden sm:block w-px bg-gray-200 dark:bg-[#2E3447] flex-shrink-0" />
-        <div className="block sm:hidden h-px w-full bg-gray-200 dark:bg-[#2E3447] my-2" />
-
-        {/* Visualização — desktop only */}
-        <div className="hidden sm:flex flex-col gap-1 flex-shrink-0 ml-auto sm:pl-6">
-          <span className="text-xs font-medium text-gray-500 dark:text-[#94A3B8]">Visualização</span>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setViewMode('mapa')}
-              className={`h-9 px-3 rounded-l-lg border text-xs font-medium flex items-center gap-1.5 transition-colors
-                ${viewMode === 'mapa' ? 'bg-[#D93030] text-white border-[#D93030]' : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}>
-              <LayoutGrid className="w-3.5 h-3.5" /> Mapa
-            </button>
-            <button onClick={() => setViewMode('tabela')}
-              className={`h-9 px-3 rounded-r-lg border-t border-r border-b text-xs font-medium flex items-center gap-1.5 transition-colors
-                ${viewMode === 'tabela' ? 'bg-[#D93030] text-white border-[#D93030]' : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}>
-              <Table2 className="w-3.5 h-3.5" /> Tabela
-            </button>
-          </div>
-        </div>
-      </div>
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Corredor"
+          options={CORREDORES.map(c => ({ value: c.value, label: c.label }))}
+          selected={filterCorredores}
+          onToggle={c => setFilterCorredores(prev =>
+            prev.includes(c as Corredor) ? prev.filter(x => x !== c) : [...prev, c as Corredor]
+          )}
+          getCount={c => allLojistas.filter(l => l.corredor === c).length}
+          mobileGrid="grid-cols-3"
+        />
+      </FilterBar>
 
       {/* Área de listagem */}
       <div className="flex-1 overflow-hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col">
@@ -280,27 +157,15 @@ export function ComercialAvailability() {
           <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
             {filtered.length} unidade{filtered.length !== 1 ? 's' : ''}
           </span>
-          <div className="hidden sm:flex items-center gap-4 text-xs text-gray-500 dark:text-[#64748B]">
-            <span className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm border-2 border-dashed border-[#D93030]/50" />
-              {counts.disponiveis} disponíveis
-            </span>
-            <span className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm bg-[#D93030]/20 border border-[#D93030]/30" />
-              {counts.ocupadas} ocupadas
-            </span>
-            <span className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-              {counts.vencendoBreve} &lt;60 dias
-            </span>
-          </div>
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
         </div>
 
-        {/* Modo Mapa */}
-        {viewMode === 'mapa' && (
+        {/* Modo Cards */}
+        {viewMode === ViewMode.Cards && (
           <div className="flex-1 overflow-y-auto p-5 space-y-6">
             {PISOS.map(({ value: piso, label: pisoLabel }) => {
-              const hasUnits = Object.values(mapaData[piso]).some(arr => arr.length > 0);
+              const pisoUnidades: Unidade[][] = Object.values(mapaData[piso]);
+              const hasUnits = pisoUnidades.some(arr => arr.length > 0);
               if (!hasUnits) return null;
               return (
                 <div key={piso}>
@@ -311,15 +176,15 @@ export function ComercialAvailability() {
                     <div>
                       <h2 className="text-sm font-bold text-gray-900 dark:text-[#F1F5F9]">{pisoLabel}</h2>
                       <p className="text-xs text-gray-500 dark:text-[#64748B]">
-                        {Object.values(mapaData[piso]).flat().filter(l => l.status === STATUS_OCUPADO).length} ocupadas ·{' '}
-                        {Object.values(mapaData[piso]).flat().filter(l => l.status === STATUS_DISPONIVEL).length} disponíveis
+                        {pisoUnidades.flat().filter(l => l.status === STATUS_OCUPADO).length} ocupadas ·{' '}
+                        {pisoUnidades.flat().filter(l => l.status === STATUS_DISPONIVEL).length} disponíveis
                       </p>
                     </div>
                   </div>
                   {CORREDORES.map(({ value: corredor }) => {
                     const units = mapaData[piso][corredor];
                     if (units.length === 0) return null;
-                    const expiring = units.filter(l => { const p = todasPropostas.find(pp => pp.unidade === l.unidade && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA)); return p ? (getDiasRestantes(p.fimContrato) ?? Infinity) < 60 : false; }).length;
+                    const expiring = units.filter(l => { const p = todasPropostas.find(pp => pp.codigoUnidade === l.codigo && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA)); return p ? (getDiasRestantes(p.fimContrato) ?? Infinity) < 60 : false; }).length;
                     return (
                       <div key={corredor} className="mb-5">
                         <div className="flex items-center gap-2 mb-3">
@@ -358,50 +223,24 @@ export function ComercialAvailability() {
         )}
 
         {/* Modo Tabela */}
-        {viewMode === 'tabela' && (
+        {viewMode === ViewMode.Tabela && (
           <div className="overflow-auto flex-1">
             <DataTable
-              data={tableRows.map(l => {
-                const propAprov = todasPropostas.find(pp => pp.codigoUnidade === l.unidade && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA));
-                const dias = propAprov ? getDiasRestantes(propAprov.fimContrato) : null;
-                const vencendo = dias !== null && dias < 60;
-                return {
-                  unidade:       l.unidade,
-                  piso:          l.piso === 'P' ? 'Primeiro Piso' : l.piso === 'S' ? 'Segundo Piso' : 'Terceiro Piso',
-                  corredor:      l.corredor,
-                  area:          l.area,
-                  segmento:      l.segmento,
-                  status:        l.status,
-                  nomeFantasia:  l.nome || '—',
-                  fimContrato:   propAprov?.fimContrato || '—',
-                  diasRestantes: dias,
-                  _vencendo:     vencendo,
-                  _raw:          l,
-                };
-              })}
+              data={tableRows}
               columnConfig={{
-                unidade:       { label: 'Unidade', render: (row, v) => (
-                  <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-gray-900 dark:text-[#F1F5F9]">
-                    {row._vencendo && <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />}
-                    {v}
-                  </div>
-                )},
-                piso:          { label: 'Piso', _allowFilter: false },
-                corredor:      { label: 'Corredor' },
-                area:          { label: 'Área (m²)', render: (_, v) => `${v} m²` },
-                segmento:      { label: 'Segmento' },
-                status:        { label: 'Status', render: (_, v) => (
+                id:       { _specified: false },
+                criadoEm: { _specified: false },
+                codigo:   { label: 'Unidade' },
+                piso:     { label: 'Piso', _allowFilter: false },
+                corredor: { label: 'Corredor' },
+                area:     { label: 'Área (m²)', _allowFilter: false, render: (_, v) => `${v} m²` },
+                segmento: { label: 'Segmento' },
+                nome:     { label: 'Nome Fantasia' },
+                status:   { label: 'Status', _allowFilter: false, render: (_, v) => (
                   <span className={`px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap ${v === 'Disponível' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300' : 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300'}`}>{v}</span>
                 )},
-                nomeFantasia:  { label: 'Nome Fantasia' },
-                fimContrato:   { label: 'Fim Contrato' },
-                diasRestantes: { label: 'Dias Rest.', _allowFilter: false, render: (row, v) => v !== null ? (
-                  <span className={`text-xs font-semibold ${row._vencendo ? 'text-orange-500' : 'text-gray-600 dark:text-[#94A3B8]'}`}>{row._vencendo && '⚠ '}{v} dias</span>
-                ) : '—'},
-                _vencendo:     { _specified: false },
-                _raw:          { _specified: false },
-              }}
-              onRowClick={row => setManutencaoLojista(row._raw)}
+              } as any}
+              onRowClick={setManutencaoLojista}
               emptyMessage="Nenhuma unidade encontrada"
             />
           </div>
@@ -416,6 +255,6 @@ export function ComercialAvailability() {
           onClose={() => { setManutencaoLojista(null); refetch(); }}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
