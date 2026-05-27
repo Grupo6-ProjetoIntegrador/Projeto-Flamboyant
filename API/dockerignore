@@ -1,0 +1,10 @@
+# API/.dockerignore
+.env
+.env.*
+bin/
+tmp/
+vendor/
+*.exe
+*.test
+coverage.out
+coverage.html
