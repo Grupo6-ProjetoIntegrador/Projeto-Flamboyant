@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wiki — JP Mall Frontend</title>
+<style>
+  :root {
+    --red: #8B1A1A;
+    --red-light: #D93030;
+    --red-muted: rgba(139,26,26,0.08);
+    --bg: #F7F4EF;
+    --bg-card: #fff;
+    --border: #E5E1DA;
+    --text: #1A1410;
+    --text-muted: #6B6660;
+    --text-code: #9B1B1B;
+    --code-bg: #F3EFEB;
+    --accent: #C8A882;
+    --sidebar-w: 280px;
+    --font-sans: 'Spectral', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --font-ui: 'DM Sans', system-ui, sans-serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.75;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--red);
+    color: #fff;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: transform 0.25s ease;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .sidebar-logo {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 4px;
+  }
+  .sidebar-title {
+    font-family: var(--font-ui);
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .sidebar-subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 2px;
+    font-family: var(--font-ui);
+  }
+
+  .sidebar-search {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  .sidebar-search input {
+    width: 100%;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #fff;
+    font-size: 13px;
+    font-family: var(--font-ui);
+    outline: none;
+  }
+  .sidebar-search input::placeholder { color: rgba(255,255,255,0.4); }
+  .sidebar-search input:focus { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+
+  .sidebar-nav { padding: 12px 0 24px; flex: 1; }
+  .nav-section-label {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    padding: 8px 20px 4px;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 20px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.12s;
+    text-decoration: none;
+    line-height: 1.3;
+  }
+  .nav-link:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-link.active { color: #fff; border-left-color: var(--accent); background: rgba(255,255,255,0.12); }
+  .nav-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    flex-shrink: 0;
+  }
+  .nav-link.active .nav-dot { background: var(--accent); }
+
+  /* ── MAIN ── */
+  #main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+  }
+
+  #search-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: var(--sidebar-w); right: 0; bottom: 0;
+    background: rgba(247,244,239,0.95);
+    z-index: 200;
+    overflow-y: auto;
+    padding: 32px 48px;
+  }
+  #search-overlay.active { display: block; }
+  #search-results-title {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .search-result-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.1s;
+  }
+  .search-result-item:hover { border-color: var(--red-light); }
+  .search-result-item h4 {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .search-result-item p {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .search-result-item mark {
+    background: rgba(217,48,48,0.15);
+    color: var(--red);
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* ── SECTIONS ── */
+  .wiki-section {
+    display: none;
+    padding: 48px 64px 80px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .wiki-section.active { display: block; }
+
+  .section-tag {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--red-light);
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--text);
+    line-height: 1.15;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+  .section-desc {
+    font-size: 17px;
+    color: var(--text-muted);
+    font-weight: 300;
+    margin-bottom: 40px;
+    line-height: 1.7;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+  }
+
+  /* Content typography */
+  h2 {
+    font-family: var(--font-ui);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 40px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 8px;
+  }
+  p {
+    font-size: 15.5px;
+    line-height: 1.8;
+    color: #2A2520;
+    margin-bottom: 14px;
+  }
+  ul, ol {
+    margin: 10px 0 18px 20px;
+    font-size: 15px;
+    line-height: 1.8;
+    color: #2A2520;
+  }
+  li { margin-bottom: 4px; }
+  strong { font-weight: 600; color: var(--text); }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--code-bg);
+    color: var(--text-code);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  pre {
+    background: #1C1410;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 16px 0 24px;
+    overflow-x: auto;
+    position: relative;
+  }
+  pre code {
+    background: none;
+    color: #E8DDD0;
+    font-size: 13px;
+    padding: 0;
+    line-height: 1.7;
+  }
+  .code-label {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(232,221,208,0.35);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  /* Syntax highlight colors */
+  .kw { color: #F0916A; } /* keywords */
+  .fn { color: #82CFBB; } /* functions */
+  .str { color: #B5CE88; } /* strings */
+  .cm { color: #7A7068; font-style: italic; } /* comments */
+  .tp { color: #A8CCEA; } /* types */
+  .ct { color: #DDAA6E; } /* constants */
+  .prop { color: #C8A882; } /* properties */
+
+  /* Cards & callouts */
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout-body { flex: 1; }
+  .callout-body strong { display: block; font-family: var(--font-ui); font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .callout-body p { font-size: 14px; margin: 0; line-height: 1.6; }
+  .callout.info { background: rgba(139,26,26,0.06); border: 1px solid rgba(139,26,26,0.15); }
+  .callout.info .callout-icon { color: var(--red); }
+  .callout.tip { background: rgba(200,168,130,0.12); border: 1px solid rgba(200,168,130,0.3); }
+  .callout.tip .callout-icon { color: var(--accent); }
+  .callout.warn { background: rgba(217,156,30,0.08); border: 1px solid rgba(217,156,30,0.2); }
+  .callout.warn .callout-icon { color: #B57D10; }
+
+  /* Props table */
+  .props-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 16px 0 24px;
+    font-family: var(--font-ui);
+  }
+  .props-table th {
+    text-align: left;
+    padding: 8px 14px;
+    background: var(--code-bg);
+    border-bottom: 2px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .props-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .props-table tr:last-child td { border-bottom: none; }
+  .props-table td:first-child { font-family: var(--font-mono); font-size: 12px; color: var(--text-code); }
+  .props-table td:nth-child(2) { color: #555; font-size: 13px; }
+  .props-table td:nth-child(3) { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+  .props-table td:last-child { font-size: 13px; color: var(--text-muted); }
+  .optional { color: var(--text-muted); font-style: italic; }
+  .required { color: var(--red); font-weight: 600; }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    vertical-align: middle;
+  }
+  .badge-red { background: rgba(139,26,26,0.1); color: var(--red); }
+  .badge-green { background: rgba(22,120,60,0.1); color: #16783C; }
+  .badge-gray { background: rgba(100,95,90,0.1); color: var(--text-muted); }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+  }
+  .flow-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    text-align: center;
+    font-weight: 500;
+  }
+  .flow-box.accent { background: var(--red-muted); border-color: rgba(139,26,26,0.25); color: var(--red); }
+  .flow-arrow {
+    color: var(--text-muted);
+    padding: 0 8px;
+    font-size: 18px;
+    font-weight: 300;
+  }
+  .flow-label { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 3px; }
+
+  /* Tabs navigation inside section */
+  .sub-tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 28px; }
+  .sub-tab {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.1s;
+    background: none;
+    border-top: none; border-left: none; border-right: none;
+  }
+  .sub-tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .sub-tab:hover:not(.active) { color: var(--text); }
+  .sub-panel { display: none; }
+  .sub-panel.active { display: block; }
+
+  /* Quick reference cards */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+  }
+  .ref-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    border-left: 3px solid var(--red);
+  }
+  .ref-card h4 {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .ref-card p { font-size: 13px; margin: 0; color: var(--text-muted); line-height: 1.5; font-family: var(--font-ui); }
+
+  /* TOC */
+  .toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 36px;
+  }
+  .toc h4 { font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .toc ol { margin: 0 0 0 16px; }
+  .toc li { font-family: var(--font-ui); font-size: 13px; color: var(--red-light); cursor: pointer; line-height: 1.9; }
+  .toc li:hover { text-decoration: underline; }
+
+  /* Mobile toggle */
+  #menu-btn {
+    display: none;
+    position: fixed;
+    top: 12px; left: 12px;
+    z-index: 300;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 768px) {
+    #sidebar { transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #main { margin-left: 0; }
+    .wiki-section { padding: 24px 20px 60px; }
+    .section-title { font-size: 26px; }
+    #menu-btn { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<button id="menu-btn" onclick="toggleSidebar()">☰</button>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">JP Mall</div>
+    <div class="sidebar-title">Wiki Frontend</div>
+    <div class="sidebar-subtitle">Guia completo de desenvolvimento</div>
+  </div>
+  <div class="sidebar-search">
+    <input type="text" id="search-input" placeholder="Pesquisar na wiki…" oninput="handleSearch(this.value)" />
+  </div>
+  <div class="sidebar-nav" id="nav-links">
+    <div class="nav-section-label">Início</div>
+    <a class="nav-link active" onclick="showSection('visao-geral')"><span class="nav-dot"></span>Visão Geral</a>
+    <a class="nav-link" onclick="showSection('arquitetura')"><span class="nav-dot"></span>Arquitetura & Pastas</a>
+    <a class="nav-link" onclick="showSection('setup')"><span class="nav-dot"></span>Setup & Configuração</a>
+
+    <div class="nav-section-label">Dados & API</div>
+    <a class="nav-link" onclick="showSection('apiClient')"><span class="nav-dot"></span>apiClient.ts</a>
+    <a class="nav-link" onclick="showSection('useApi')"><span class="nav-dot"></span>useApi (hook)</a>
+    <a class="nav-link" onclick="showSection('viewmodels')"><span class="nav-dot"></span>ViewModels</a>
+    <a class="nav-link" onclick="showSection('entities')"><span class="nav-dot"></span>Entidades & Enums</a>
+
+    <div class="nav-section-label">Componentes</div>
+    <a class="nav-link" onclick="showSection('layout')"><span class="nav-dot"></span>Layout</a>
+    <a class="nav-link" onclick="showSection('pageShared')"><span class="nav-dot"></span>PageShared</a>
+    <a class="nav-link" onclick="showSection('dataTable')"><span class="nav-dot"></span>DataTable</a>
+    <a class="nav-link" onclick="showSection('dataCard')"><span class="nav-dot"></span>DataCard</a>
+    <a class="nav-link" onclick="showSection('statusBadge')"><span class="nav-dot"></span>StatusBadge</a>
+    <a class="nav-link" onclick="showSection('kpiContainer')"><span class="nav-dot"></span>KpiContainer</a>
+    <a class="nav-link" onclick="showSection('manutencaoModal')"><span class="nav-dot"></span>PropostaManutencaoModal</a>
+    <a class="nav-link" onclick="showSection('manutencaoShared')"><span class="nav-dot"></span>ManutencaoShared</a>
+    <a class="nav-link" onclick="showSection('confirmModal')"><span class="nav-dot"></span>ConfirmModal</a>
+    <a class="nav-link" onclick="showSection('charts')"><span class="nav-dot"></span>Charts</a>
+    <a class="nav-link" onclick="showSection('datePicker')"><span class="nav-dot"></span>DatePickerInput</a>
+
+    <div class="nav-section-label">Utilitários</div>
+    <a class="nav-link" onclick="showSection('persistedState')"><span class="nav-dot"></span>usePersistedState</a>
+    <a class="nav-link" onclick="showSection('filters')"><span class="nav-dot"></span>Filtros & Wildcards</a>
+    <a class="nav-link" onclick="showSection('enums')"><span class="nav-dot"></span>Enums & Constantes</a>
+    <a class="nav-link" onclick="showSection('autenticacao')"><span class="nav-dot"></span>Autenticação</a>
+
+    <div class="nav-section-label">Guias Práticos</div>
+    <a class="nav-link" onclick="showSection('nova-pagina')"><span class="nav-dot"></span>Criar Nova Página</a>
+    <a class="nav-link" onclick="showSection('novo-modal')"><span class="nav-dot"></span>Criar Modal de Edição</a>
+    <a class="nav-link" onclick="showSection('novo-filtro')"><span class="nav-dot"></span>Adicionar Filtro</a>
+    <a class="nav-link" onclick="showSection('export')"><span class="nav-dot"></span>Exportar PDF/Excel</a>
+    <a class="nav-link" onclick="showSection('dark-mode')"><span class="nav-dot"></span>Dark Mode & Temas</a>
+    <a class="nav-link" onclick="showSection('erros-comuns')"><span class="nav-dot"></span>Erros Comuns</a>
+  </div>
+</nav>
+
+<!-- SEARCH OVERLAY -->
+<div id="search-overlay">
+  <div id="search-results-title">Pesquisando…</div>
+  <div id="search-results"></div>
+</div>
+
+<!-- MAIN -->
+<main id="main">
+
+<!-- ══════════════════════════════════════════
+     VISÃO GERAL
+══════════════════════════════════════════ -->
+<section id="sec-visao-geral" class="wiki-section active">
+  <div class="section-tag">JP Mall · Frontend</div>
+  <h1 class="section-title">Visão Geral do Projeto</h1>
+  <p class="section-desc">Este é um SPA React (Vite + TypeScript) seguindo arquitetura MVVM. Gerencia propostas comerciais de locação, disponibilidade de lojas e relatórios do shopping JP Mall.</p>
+
+  <div class="toc">
+    <h4>Nesta página</h4>
+    <ol>
+      <li onclick="scrollTo('.stack-section')">Stack tecnológica</li>
+      <li>Rotas disponíveis</li>
+      <li>Fluxo de dados</li>
+      <li>Convenções de nomenclatura</li>
+    </ol>
+  </div>
+
+  <h2 class="stack-section">Stack tecnológica</h2>
+  <div class="ref-grid">
+    <div class="ref-card"><h4>⚛️ React 18 + TypeScript</h4><p>Componentes funcionais, hooks. Sem classes.</p></div>
+    <div class="ref-card"><h4>⚡ Vite 6</h4><p>Build tool. Dev server com proxy para API em <code>/api/v1</code>.</p></div>
+    <div class="ref-card"><h4>🎨 Tailwind CSS 4</h4><p>Utility-first. Configuração via <code>postcss.config.mjs</code>.</p></div>
+    <div class="ref-card"><h4>🔀 React Router 7</h4><p>Roteamento. <code>BrowserRouter</code> + nested routes.</p></div>
+    <div class="ref-card"><h4>📊 Recharts</h4><p>Gráficos de barras, pizza e linha nos dashboards.</p></div>
+    <div class="ref-card"><h4>🎯 Radix UI + shadcn</h4><p>Primitivos acessíveis: Dialog, Select, Tabs, etc.</p></div>
+    <div class="ref-card"><h4>📄 jsPDF + xlsx</h4><p>Exportação de relatórios em PDF e Excel.</p></div>
+    <div class="ref-card"><h4>🖼️ Lucide React</h4><p>Ícones SVG. Sempre com <code>strokeWidth={1.5}</code>.</p></div>
+  </div>
+
+  <h2>Rotas disponíveis</h2>
+  <table class="props-table">
+    <thead><tr><th>Caminho</th><th>Componente</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>/</td><td>Login</td><td>Tela de login (pública)</td></tr>
+      <tr><td>/comercial/dashboard</td><td>ComercialDashboard</td><td>KPIs, gráficos de ocupação</td></tr>
+      <tr><td>/comercial/propostas</td><td>ComercialProposals</td><td>Lista de propostas comerciais</td></tr>
+      <tr><td>/comercial/disponibilidade</td><td>ComercialAvailability</td><td>Mapa de lojas disponíveis</td></tr>
+      <tr><td>/comercial/relatorios</td><td>ComercialReports</td><td>Relatórios e exportação</td></tr>
+      <tr><td>/*</td><td>Navigate</td><td>Redireciona para /comercial/dashboard</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Fluxo de dados (MVVM)</h2>
+  <div class="flow">
+    <div><div class="flow-box accent">API REST</div><div class="flow-label">apiClient.ts</div></div>
+    <div class="flow-arrow">→</div>
+    <div><div class="flow-box">useApi()</div><div class="flow-label">Fetch + estado</div></div>
+    <div class="flow-arrow">→</div>
+    <div><div class="flow-box">ViewModel</div><div class="flow-label">useComercial*</div></div>
+    <div class="flow-arrow">→</div>
+    <div><div class="flow-box">Page/View</div><div class="flow-label">React components</div></div>
+  </div>
+  <p>Nunca faça <code>fetch()</code> diretamente em um componente. Todo acesso à API passa pelo <code>apiClient.ts</code> e o estado é gerenciado pelo ViewModel correspondente.</p>
+
+  <h2>Convenções de nomenclatura</h2>
+  <ul>
+    <li><strong>Componentes</strong>: PascalCase (<code>DataCard</code>, <code>KpiContainer</code>)</li>
+    <li><strong>Hooks/ViewModels</strong>: camelCase com prefixo <code>use</code> (<code>useComercialProposals</code>)</li>
+    <li><strong>Serviços</strong>: PascalCase + sufixo <code>Service</code> (<code>PropostasService</code>)</li>
+    <li><strong>Enums de valor</strong>: SCREAMING_SNAKE_CASE (<code>STATUS_APROVADO</code>)</li>
+    <li><strong>Tipos TypeScript</strong>: PascalCase (<code>Proposta</code>, <code>TipoProposta</code>)</li>
+    <li><strong>Chaves sessionStorage</strong>: namespace ponto campo (<code>propostas.filterStatuses</code>)</li>
+  </ul>
+
+  <div class="callout info">
+    <div class="callout-icon">🔑</div>
+    <div class="callout-body">
+      <strong>Modo Protótipo</strong>
+      <p>O sistema roda em modo protótipo: qualquer credencial funciona no login, o token é fixo (<code>'proto-token'</code>) e não há autorização real. Para produção, veja as instruções em <code>AuthContext.tsx</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     ARQUITETURA
+══════════════════════════════════════════ -->
+<section id="sec-arquitetura" class="wiki-section">
+  <div class="section-tag">Estrutura</div>
+  <h1 class="section-title">Arquitetura & Pastas</h1>
+  <p class="section-desc">Organização completa do projeto, responsabilidade de cada pasta e onde criar novos arquivos.</p>
+
+  <pre><code><span class="cm">src/</span>
+├── <span class="fn">app/</span>
+│   ├── <span class="fn">components/</span>         <span class="cm"># Componentes reutilizáveis</span>
+│   │   ├── Layout.tsx          <span class="cm"># Shell: sidebar + header + outlet</span>
+│   │   ├── PageShared.tsx      <span class="cm"># PageShell, FilterBar, TableLayout…</span>
+│   │   ├── DataTable.tsx       <span class="cm"># Tabela genérica com filtros e sort</span>
+│   │   ├── DataCard.tsx        <span class="cm"># Card genérico orientado a objeto</span>
+│   │   ├── StatusBadge.tsx     <span class="cm"># Badges coloridos de status</span>
+│   │   ├── KpiContainer.tsx    <span class="cm"># Cards KPI configuráveis</span>
+│   │   ├── ChartsContainer.tsx <span class="cm"># Gráficos Recharts</span>
+│   │   ├── ConfirmModal.tsx    <span class="cm"># Modal de confirmação</span>
+│   │   ├── DatePickerInput.tsx <span class="cm"># Input de data pt-BR</span>
+│   │   ├── ManutencaoShared.tsx<span class="cm"># Primitivos de modal de edição</span>
+│   │   ├── PropostaManutencaoModal/ <span class="cm"># Modal completo de proposta</span>
+│   │   └── DisponibilidadeManutencaoModal/
+│   │
+│   ├── <span class="fn">data/</span>
+│   │   ├── apiClient.ts        <span class="cm"># Cliente HTTP centralizado</span>
+│   │   ├── useApi.ts           <span class="cm"># Hook genérico de fetch</span>
+│   │   └── useApiHealth.ts     <span class="cm"># Polling de saúde da API</span>
+│   │
+│   ├── <span class="fn">entities/</span>           <span class="cm"># Tipos TypeScript das tabelas do BD</span>
+│   ├── <span class="fn">enums/</span>              <span class="cm"># Constantes e tipos de domínio</span>
+│   ├── <span class="fn">pages/</span>              <span class="cm"># Componentes de página (1 por rota)</span>
+│   │   └── comercial/
+│   ├── <span class="fn">services/</span>           <span class="cm"># Wrappers de apiClient por domínio</span>
+│   ├── <span class="fn">viewmodels/</span>         <span class="cm"># Lógica de estado das páginas</span>
+│   ├── <span class="fn">shared/</span>
+│   │   ├── hooks/              <span class="cm"># usePersistedState</span>
+│   │   └── utils/              <span class="cm"># matchColFilter, ptBRToISO</span>
+│   ├── App.tsx                 <span class="cm"># Roteamento principal</span>
+│   └── AuthContext.tsx         <span class="cm"># Contexto de autenticação</span>
+│
+├── <span class="fn">styles/</span>
+│   ├── theme.css               <span class="cm"># CSS vars e tokens de cor</span>
+│   └── tailwind.css            <span class="cm"># Importa Tailwind</span>
+└── main.tsx                    <span class="cm"># Entry point</span></code></pre>
+
+  <h2>Onde criar cada tipo de arquivo</h2>
+  <table class="props-table">
+    <thead><tr><th>Preciso criar…</th><th>Onde</th></tr></thead>
+    <tbody>
+      <tr><td>Novo componente reutilizável</td><td><code>src/app/components/MeuComponente.tsx</code></td></tr>
+      <tr><td>Nova página (rota)</td><td><code>src/app/pages/comercial/MinhaPage.tsx</code> + registrar em <code>App.tsx</code></td></tr>
+      <tr><td>Lógica de estado da página</td><td><code>src/app/viewmodels/useMinhaPage.ts</code></td></tr>
+      <tr><td>Novo endpoint de API</td><td>Adicionar em <code>src/app/data/apiClient.ts</code></td></tr>
+      <tr><td>Novo tipo de entidade</td><td><code>src/app/entities/minha_entidade.ts</code> + exportar em <code>index.ts</code></td></tr>
+      <tr><td>Nova constante de domínio</td><td><code>src/app/enums/index.ts</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SETUP
+══════════════════════════════════════════ -->
+<section id="sec-setup" class="wiki-section">
+  <div class="section-tag">Configuração</div>
+  <h1 class="section-title">Setup & Configuração</h1>
+  <p class="section-desc">Como instalar, rodar e configurar o projeto localmente.</p>
+
+  <h2>Instalação</h2>
+  <pre><code><span class="cm"># Clonar e instalar</span>
+npm install      <span class="cm"># ou pnpm install</span>
+npm run dev      <span class="cm"># http://localhost:5173</span>
+npm run build    <span class="cm"># build de produção em /dist</span></code></pre>
+
+  <h2>Variáveis de ambiente (.env)</h2>
+  <pre><code><span class="cm"># .env</span>
+VITE_API_URL=<span class="str">/api/v1</span>     <span class="cm"># default — usa o proxy do Vite em dev</span>
+
+<span class="cm"># Para produção com URL direta:</span>
+VITE_API_URL=<span class="str">https://api.jpmall.com.br/v1</span></code></pre>
+
+  <div class="callout tip">
+    <div class="callout-icon">💡</div>
+    <div class="callout-body">
+      <strong>Proxy em desenvolvimento</strong>
+      <p>O Vite está configurado com proxy em <code>vite.config.ts</code>: requisições para <code>/api/v1/*</code> são redirecionadas para <code>http://localhost:8080</code>, evitando problemas de CORS.</p>
+    </div>
+  </div>
+
+  <h2>Estrutura do vite.config.ts</h2>
+  <pre><code><span class="kw">import</span> { defineConfig } <span class="kw">from</span> <span class="str">'vite'</span>
+<span class="kw">import</span> react <span class="kw">from</span> <span class="str">'@vitejs/plugin-react'</span>
+<span class="kw">import</span> tailwindcss <span class="kw">from</span> <span class="str">'@tailwindcss/vite'</span>
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  plugins: [<span class="fn">react</span>(), <span class="fn">tailwindcss</span>()],
+  server: {
+    proxy: {
+      <span class="str">'/api/v1'</span>: <span class="str">'http://localhost:8080'</span>,
+    },
+  },
+})</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     APICLIENT
+══════════════════════════════════════════ -->
+<section id="sec-apiClient" class="wiki-section">
+  <div class="section-tag">Dados</div>
+  <h1 class="section-title">apiClient.ts</h1>
+  <p class="section-desc">Cliente HTTP centralizado. Todo acesso à API passa por aqui — nunca use <code>fetch()</code> diretamente em componentes ou páginas.</p>
+
+  <h2>Grupos de endpoints</h2>
+  <div class="sub-tabs">
+    <button class="sub-tab active" onclick="showSubTab(this, 'api-auth')">auth</button>
+    <button class="sub-tab" onclick="showSubTab(this, 'api-unidades')">unidades</button>
+    <button class="sub-tab" onclick="showSubTab(this, 'api-propostas')">propostas</button>
+    <button class="sub-tab" onclick="showSubTab(this, 'api-docs')">documentos</button>
+  </div>
+
+  <div id="api-auth" class="sub-panel active">
+    <pre><code><span class="kw">import</span> { auth } <span class="kw">from</span> <span class="str">'../data/apiClient'</span>;
+
+<span class="cm">// Login — retorna token + usuário</span>
+<span class="kw">await</span> auth.<span class="fn">login</span>({ email: <span class="str">'gerente@jpmall.com.br'</span>, senha: <span class="str">'...'</span> });
+
+<span class="cm">// Dados do usuário logado</span>
+<span class="kw">await</span> auth.<span class="fn">me</span>();
+
+<span class="cm">// Logout</span>
+<span class="kw">await</span> auth.<span class="fn">logout</span>();</code></pre>
+  </div>
+
+  <div id="api-unidades" class="sub-panel">
+    <pre><code><span class="kw">import</span> { unidades } <span class="kw">from</span> <span class="str">'../data/apiClient'</span>;
+
+<span class="cm">// Listar todas</span>
+<span class="kw">const</span> lojas = <span class="kw">await</span> unidades.<span class="fn">listar</span>();
+
+<span class="cm">// Com filtros</span>
+<span class="kw">const</span> lojasP1 = <span class="kw">await</span> unidades.<span class="fn">listar</span>({ piso: <span class="str">'P'</span>, corredor: <span class="str">'A'</span> });
+
+<span class="cm">// Detalhe</span>
+<span class="kw">const</span> loja = <span class="kw">await</span> unidades.<span class="fn">detalhe</span>(<span class="str">'uuid-da-unidade'</span>);</code></pre>
+  </div>
+
+  <div id="api-propostas" class="sub-panel">
+    <pre><code><span class="kw">import</span> { propostas } <span class="kw">from</span> <span class="str">'../data/apiClient'</span>;
+
+<span class="cm">// Listar</span>
+<span class="kw">await</span> propostas.<span class="fn">listar</span>({ status: <span class="str">'Aprovado'</span>, segmento: <span class="str">'Moda'</span> });
+
+<span class="cm">// CRUD</span>
+<span class="kw">await</span> propostas.<span class="fn">criar</span>(payload);
+<span class="kw">await</span> propostas.<span class="fn">atualizar</span>(id, payload);
+<span class="kw">await</span> propostas.<span class="fn">atualizarStatus</span>(id, <span class="str">'Aprovado'</span>, <span class="str">'Obs opcional'</span>);
+
+<span class="cm">// Sub-recursos</span>
+<span class="kw">await</span> propostas.lojaAnterior.<span class="fn">detalhe</span>(id);
+<span class="kw">await</span> propostas.lojaAnterior.<span class="fn">salvar</span>(id, payload);
+<span class="kw">await</span> propostas.necessidadesTecnicas.<span class="fn">detalhe</span>(id);
+<span class="kw">await</span> propostas.cessaoDireitos.<span class="fn">salvar</span>(id, payload);
+<span class="kw">await</span> propostas.taxaTransferencia.<span class="fn">salvar</span>(id, payload);
+<span class="kw">await</span> propostas.parecerComite.<span class="fn">salvar</span>(id, payload);
+<span class="kw">await</span> propostas.historico.<span class="fn">listar</span>(id);</code></pre>
+  </div>
+
+  <div id="api-docs" class="sub-panel">
+    <pre><code><span class="kw">import</span> { documentos } <span class="kw">from</span> <span class="str">'../data/apiClient'</span>;
+
+<span class="cm">// Listar por proposta</span>
+<span class="kw">await</span> documentos.<span class="fn">listar</span>(idProposta);
+
+<span class="cm">// Upload (multipart)</span>
+<span class="kw">await</span> documentos.<span class="fn">upload</span>(idProposta, file, <span class="str">'CONTRATO'</span>);
+
+<span class="cm">// Remover</span>
+<span class="kw">await</span> documentos.<span class="fn">remover</span>(idDocumento);</code></pre>
+  </div>
+
+  <h2>Tratar erros da API</h2>
+  <pre><code><span class="kw">try</span> {
+  <span class="kw">const</span> resultado = <span class="kw">await</span> propostas.<span class="fn">criar</span>(payload);
+} <span class="kw">catch</span> (err: <span class="kw">any</span>) {
+  <span class="cm">// err.message — texto do erro</span>
+  <span class="cm">// err.status  — código HTTP (400, 404, 500…)</span>
+  <span class="fn">console</span>.<span class="fn">error</span>(err.message, err.status);
+}</code></pre>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body">
+      <strong>204 No Content</strong>
+      <p>Endpoints que retornam 204 (ex: <code>atualizarStatus</code>, <code>remover</code>) retornam <code>undefined</code>. Não tente desestruturar o resultado.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     USEAPI
+══════════════════════════════════════════ -->
+<section id="sec-useApi" class="wiki-section">
+  <div class="section-tag">Dados</div>
+  <h1 class="section-title">useApi (hook)</h1>
+  <p class="section-desc">Hook genérico que gerencia o ciclo de vida de uma requisição: <strong>loading → data | error</strong>, com suporte a refetch e proteção contra race conditions.</p>
+
+  <h2>Assinatura</h2>
+  <pre><code><span class="fn">useApi</span>&lt;<span class="tp">T</span>&gt;(
+  fetcher: () => <span class="tp">Promise</span>&lt;<span class="tp">T</span>&gt;,
+  deps: <span class="kw">any</span>[] = []
+): { data: <span class="tp">T</span> | <span class="kw">null</span>, loading: <span class="tp">boolean</span>, error: <span class="tp">string</span> | <span class="kw">null</span>, refetch: () => <span class="kw">void</span> }</code></pre>
+
+  <h2>Uso básico</h2>
+  <pre><code><span class="kw">import</span> { useApi } <span class="kw">from</span> <span class="str">'../data/useApi'</span>;
+<span class="kw">import</span> { propostas } <span class="kw">from</span> <span class="str">'../data/apiClient'</span>;
+
+<span class="kw">function</span> <span class="fn">MinhaPage</span>() {
+  <span class="kw">const</span> { data, loading, error, refetch } = <span class="fn">useApi</span>(
+    () => propostas.<span class="fn">listar</span>(),
+    []  <span class="cm">// re-executa apenas na montagem</span>
+  );
+
+  <span class="kw">if</span> (loading) <span class="kw">return</span> &lt;Spinner /&gt;;
+  <span class="kw">if</span> (error)   <span class="kw">return</span> &lt;ErroMsg&gt;{error}&lt;/ErroMsg&gt;;
+
+  <span class="kw">return</span> &lt;Lista items={data ?? []} /&gt;;
+}</code></pre>
+
+  <h2>Com deps — rebusca quando muda</h2>
+  <pre><code><span class="kw">const</span> [filtroStatus, setFiltroStatus] = <span class="fn">useState</span>(<span class="str">''</span>);
+
+<span class="kw">const</span> { data } = <span class="fn">useApi</span>(
+  () => propostas.<span class="fn">listar</span>({ status: filtroStatus }),
+  [filtroStatus]  <span class="cm">// re-executa quando filtroStatus muda</span>
+);</code></pre>
+
+  <h2>Forçar refetch manualmente</h2>
+  <pre><code><span class="kw">const</span> { data, refetch } = <span class="fn">useApi</span>(() => propostas.<span class="fn">listar</span>(), []);
+
+<span class="cm">// Após salvar, re-busca a lista</span>
+<span class="kw">const</span> <span class="fn">handleSalvar</span> = <span class="kw">async</span> () => {
+  <span class="kw">await</span> propostas.<span class="fn">atualizar</span>(id, draft);
+  <span class="fn">refetch</span>();  <span class="cm">// ← dispara nova requisição</span>
+};</code></pre>
+
+  <div class="callout info">
+    <div class="callout-icon">🛡️</div>
+    <div class="callout-body">
+      <strong>Proteção contra race condition</strong>
+      <p>O hook usa um contador interno. Se uma nova requisição for disparada antes da anterior terminar, a resposta antiga é descartada. Não é necessário nenhum tratamento extra.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     VIEWMODELS
+══════════════════════════════════════════ -->
+<section id="sec-viewmodels" class="wiki-section">
+  <div class="section-tag">Dados</div>
+  <h1 class="section-title">ViewModels</h1>
+  <p class="section-desc">Camada MVVM entre a API e os componentes. Cada página tem um ViewModel que gerencia: dados, filtros, ordenação, modais e estado de UI.</p>
+
+  <h2>ViewModels existentes</h2>
+  <table class="props-table">
+    <thead><tr><th>Arquivo</th><th>Usado em</th><th>Responsabilidades</th></tr></thead>
+    <tbody>
+      <tr><td>useComercialDashboard</td><td>ComercialDashboard</td><td>KPIs, gráficos, filtros de período</td></tr>
+      <tr><td>useComercialProposals</td><td>ComercialProposals</td><td>Lista de propostas, filtros, modal de edição</td></tr>
+      <tr><td>useComercialAvailability</td><td>ComercialAvailability</td><td>Lojas disponíveis, filtros de piso/corredor</td></tr>
+      <tr><td>useComercialReports</td><td>ComercialReports</td><td>Dados de relatório, exportação PDF/Excel</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Anatomia de um ViewModel</h2>
+  <pre><code><span class="kw">export function</span> <span class="fn">useComercialProposals</span>() {
+  <span class="cm">// 1. DADOS — busca da API</span>
+  <span class="kw">const</span> { data, refetch } = <span class="fn">useApi</span>(() => PropostasService.<span class="fn">listar</span>(), []);
+
+  <span class="cm">// 2. FILTROS — persistidos em sessionStorage</span>
+  <span class="kw">const</span> [filterStatuses, setFilterStatuses] = <span class="fn">usePersistedState</span>(
+    <span class="str">'propostas.filterStatuses'</span>, []
+  );
+
+  <span class="cm">// 3. DADOS DERIVADOS — pipeline de filtro + sort</span>
+  <span class="kw">const</span> filtered = <span class="fn">useMemo</span>(() =>
+    proposals.<span class="fn">filter</span>(p => <span class="fn">matchStatus</span>(p) && <span class="fn">matchDate</span>(p)),
+    [proposals, filterStatuses, dateFrom, dateTo]
+  );
+
+  <span class="cm">// 4. UI — modal aberto</span>
+  <span class="kw">const</span> [modalAberta, setModalAberta] = <span class="fn">useState</span>&lt;<span class="tp">Proposta</span> | <span class="kw">null</span>&gt;(<span class="kw">null</span>);
+
+  <span class="cm">// 5. RETORNO — tudo que a View precisa</span>
+  <span class="kw">return</span> {
+    tableRows: filtered,
+    filterStatuses, setFilterStatuses,
+    modalAberta, setModalAberta,
+    refresh: refetch,
+  };
+}</code></pre>
+
+  <h2>Criar um novo ViewModel</h2>
+  <pre><code><span class="cm">// src/app/viewmodels/useMinhaPagina.ts</span>
+<span class="kw">import</span> { useState, useMemo } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { useApi } <span class="kw">from</span> <span class="str">'../data/useApi'</span>;
+<span class="kw">import</span> { minhaEntidade } <span class="kw">from</span> <span class="str">'../data/apiClient'</span>;
+<span class="kw">import</span> { usePersistedState } <span class="kw">from</span> <span class="str">'../shared/hooks/usePersistedState'</span>;
+
+<span class="kw">const</span> NS = <span class="str">'minha-pagina'</span>; <span class="cm">// namespace para sessionStorage</span>
+
+<span class="kw">export function</span> <span class="fn">useMinhaPagina</span>() {
+  <span class="kw">const</span> { data, refetch } = <span class="fn">useApi</span>(() => minhaEntidade.<span class="fn">listar</span>(), []);
+  <span class="kw">const</span> [filtro, setFiltro] = <span class="fn">usePersistedState</span>(<span class="str">`${NS}.filtro`</span>, <span class="str">''</span>, v => v, v => v);
+  
+  <span class="kw">const</span> items = <span class="fn">useMemo</span>(() =>
+    (data ?? []).<span class="fn">filter</span>(i => !filtro || i.nome.<span class="fn">includes</span>(filtro)),
+    [data, filtro]
+  );
+
+  <span class="kw">return</span> { items, filtro, setFiltro, refresh: refetch };
+}</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     ENTITIES & ENUMS
+══════════════════════════════════════════ -->
+<section id="sec-entities" class="wiki-section">
+  <div class="section-tag">Dados</div>
+  <h1 class="section-title">Entidades & Enums</h1>
+  <p class="section-desc">Tipos TypeScript que espelham as tabelas do banco, e constantes de domínio centralizadas.</p>
+
+  <h2>Entidades principais</h2>
+  <table class="props-table">
+    <thead><tr><th>Entidade</th><th>Campos principais</th></tr></thead>
+    <tbody>
+      <tr><td>Proposta</td><td>id, idUnidade, nomeFantasia, status, tipoOperacao, valorProposto, dataCriacao, dataVencimento, segmento</td></tr>
+      <tr><td>Unidade</td><td>id, codigo, piso, corredor, area, statusLoja</td></tr>
+      <tr><td>Usuario</td><td>id, nome, email, setor</td></tr>
+      <tr><td>PropostaDocumento</td><td>id, idProposta, codigo, nomeArquivo, url</td></tr>
+      <tr><td>PropostaHistorico</td><td>id, idProposta, statusAnterior, statusNovo, observacoes, criadoEm</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Enums de status</h2>
+  <pre><code><span class="kw">import</span> {
+  STATUS_AGUARDANDO_FIN,     <span class="cm">// 'Aguardando análise financeira'</span>
+  STATUS_AGUARDANDO_COMITE,  <span class="cm">// 'Aguardando análise do comitê'</span>
+  STATUS_APROVADO,           <span class="cm">// 'Aprovado'</span>
+  STATUS_REPROVADO,          <span class="cm">// 'Reprovado'</span>
+  STATUS_CANCELADO,          <span class="cm">// 'Cancelado'</span>
+  STATUS_VENCIDA,            <span class="cm">// 'Vencida'</span>
+  STATUS_FINALIZADO,         <span class="cm">// 'Finalizado'</span>
+} <span class="kw">from</span> <span class="str">'../enums'</span>;</code></pre>
+
+  <h2>Enums de tipo de operação</h2>
+  <pre><code><span class="kw">import</span> {
+  TIPO_TRANSFERENCIA,  <span class="cm">// 'Transferência'</span>
+  TIPO_CESSAO,         <span class="cm">// 'Cessão'</span>
+  TIPO_NOVA_LOCACAO,   <span class="cm">// 'Nova Locação'</span>
+  TIPO_RENOVACAO,      <span class="cm">// 'Renovação'</span>
+  TIPO_READEQUACAO,    <span class="cm">// 'Readequação'</span>
+} <span class="kw">from</span> <span class="str">'../enums'</span>;</code></pre>
+
+  <h2>Outros enums</h2>
+  <pre><code><span class="kw">import</span> {
+  SEGMENTOS,          <span class="cm">// ['Moda','Alimentação','Serviços',…]</span>
+  PISOS,              <span class="cm">// [{value:'P', label:'Primeiro Piso', labelShort:'Primeiro'},…]</span>
+  CORREDORES,         <span class="cm">// [{value:'A', label:'Corredor A'},…]</span>
+  PISO_LABEL,         <span class="cm">// {'P':'Primeiro Piso', 'S':'Segundo Piso', 'T':'Terceiro Piso'}</span>
+  CORREDOR_LABEL,     <span class="cm">// {'A':'Corredor A', 'B':'Corredor B', 'C':'Corredor C'}</span>
+  ViewMode,           <span class="cm">// enum: Cards | Tabela</span>
+  toOptionItems,      <span class="cm">// converte array de enum para {value, label}[]</span>
+} <span class="kw">from</span> <span class="str">'../enums'</span>;</code></pre>
+
+  <div class="callout tip">
+    <div class="callout-icon">💡</div>
+    <div class="callout-body">
+      <strong>Adicionar novo valor de enum</strong>
+      <p>Basta adicionar o valor em <code>src/app/enums/index.ts</code>. Filtros e selects que usam o array automaticamente exibirão o novo valor sem necessidade de alterar componentes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     LAYOUT
+══════════════════════════════════════════ -->
+<section id="sec-layout" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">Layout</h1>
+  <p class="section-desc">Shell principal da aplicação autenticada. Renderizado automaticamente para todas as rotas em <code>/comercial/*</code>. Contém sidebar, header, dark mode e bottom nav (mobile).</p>
+
+  <h2>Estrutura visual</h2>
+  <pre><code>┌──────────────────────────────────────────────┐
+│ Sidebar (fixo, bg #8B1A1A)  │  Header         │
+│  - Logo JP Mall             ├──────────────────│
+│  - Nav: Comercial           │  &lt;Outlet /&gt;      │
+│    ├ Dashboard              │  (sua página)    │
+│    ├ Propostas              │                  │
+│    ├ Disponibilidade        │                  │
+│    └ Relatórios             │                  │
+│  - Usuário + Logout         │                  │
+└─────────────────────────────┴──────────────────┘
+[Mobile: BottomNav com 4 ícones substituindo sidebar]</code></pre>
+
+  <h2>Adicionar item ao menu</h2>
+  <pre><code><span class="cm">// Em Layout.tsx, no array navigationItems:</span>
+<span class="kw">const</span> navigationItems: <span class="tp">NavItem</span>[] = [
+  {
+    id: <span class="str">'comercial'</span>,
+    label: <span class="str">'Comercial'</span>,
+    icon: Briefcase,
+    path: <span class="str">'/comercial/dashboard'</span>,
+    subTabs: [
+      <span class="cm">// … itens existentes …</span>
+      { <span class="cm">// ← NOVO ITEM</span>
+        label: <span class="str">'Minha Seção'</span>,
+        path: <span class="str">'/comercial/minha-secao'</span>,
+        icon: MinhaIcone,
+      },
+    ],
+  },
+];</code></pre>
+
+  <h2>Comportamentos automáticos</h2>
+  <ul>
+    <li><strong>Dark mode</strong>: persistido em <code>localStorage</code> (chave <code>'jp-mall-dark-mode'</code>)</li>
+    <li><strong>Estado do sidebar</strong>: persistido em <code>localStorage</code> (chave <code>'sidebar_open'</code>)</li>
+    <li><strong>Título do header</strong>: derivado da rota ativa automaticamente</li>
+    <li><strong>Status da API</strong>: badge "API indisponível" aparece no sidebar se offline</li>
+    <li><strong>Bottom nav</strong>: aparece apenas em mobile (<code>sm:hidden</code>)</li>
+  </ul>
+
+  <h2>Sub-componentes exportados</h2>
+  <p>Todos são internos ao Layout e <strong>não</strong> devem ser importados externamente. Use o <code>&lt;Layout&gt;</code> como wrapper de rota em <code>App.tsx</code>.</p>
+</section>
+
+<!-- ══════════════════════════════════════════
+     PAGESHARED
+══════════════════════════════════════════ -->
+<section id="sec-pageShared" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">PageShared</h1>
+  <p class="section-desc">Conjunto de componentes de layout reutilizáveis para construir páginas com sidebar de filtros, grid de conteúdo e responsividade desktop/mobile.</p>
+
+  <h2>Componentes disponíveis</h2>
+
+  <h3>PageShell</h3>
+  <p>Container raiz de toda página. Adiciona padding padrão e organiza filhos em coluna.</p>
+  <pre><code>&lt;<span class="fn">PageShell</span>&gt;
+  &lt;FilterBar ... /&gt;
+  &lt;<span class="fn">TableLayoutContainer</span> cols={3} rows={2} gap={4}&gt;
+    &lt;<span class="fn">TableLayoutItem</span> colSpan={2}&gt;
+      &lt;<span class="fn">DataTable</span> ... /&gt;
+    &lt;/<span class="fn">TableLayoutItem</span>&gt;
+  &lt;/<span class="fn">TableLayoutContainer</span>&gt;
+&lt;/<span class="fn">PageShell</span>&gt;</code></pre>
+
+  <h3>TableLayoutContainer + TableLayoutItem</h3>
+  <p>Grid responsivo para organizar conteúdo em colunas. Visível apenas em desktop (<code>hidden sm:grid</code>).</p>
+  <table class="props-table">
+    <thead><tr><th>Prop</th><th>Tipo</th><th>Padrão</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>cols</td><td>1–10</td><td>auto</td><td>Número de colunas</td></tr>
+      <tr><td>rows</td><td>1–10</td><td>auto</td><td>Número de linhas</td></tr>
+      <tr><td>gap</td><td>2|3|4|6|8</td><td>4</td><td>Gap entre células (Tailwind)</td></tr>
+      <tr><td>colSpan</td><td>1–10</td><td>1</td><td>(TableLayoutItem) colunas ocupadas</td></tr>
+      <tr><td>rowSpan</td><td>1–10</td><td>1</td><td>(TableLayoutItem) linhas ocupadas</td></tr>
+    </tbody>
+  </table>
+
+  <h3>FilterBar</h3>
+  <p>Barra de filtros que colapsa em mobile (mostra botão "Filtros") e fica horizontal em desktop.</p>
+  <pre><code>&lt;<span class="fn">FilterBar</span>
+  isOpen={showFilters}
+  onToggle={() => setShowFilters(v => !v)}
+  hasActiveFilters={filtros.length > 0}
+&gt;
+  &lt;<span class="cm">{/* seus filtros aqui */}</span>&gt;
+  &lt;<span class="fn">FilterSeparator</span> /&gt;
+  &lt;<span class="fn">FilterDateRange</span>
+    label=<span class="str">"Período"</span>
+    from={dateFrom} to={dateTo}
+    onFromChange={setDateFrom} onToChange={setDateTo}
+  /&gt;
+&lt;/<span class="fn">FilterBar</span>&gt;</code></pre>
+
+  <h3>DesktopRender / MobileRender</h3>
+  <p>Renderiza filhos somente em desktop ou somente em mobile.</p>
+  <pre><code>&lt;<span class="fn">DesktopRender</span>&gt;Só desktop&lt;/<span class="fn">DesktopRender</span>&gt;
+&lt;<span class="fn">MobileRender</span>&gt;Só mobile&lt;/<span class="fn">MobileRender</span>&gt;
+
+<span class="cm">// display padrão é 'block'. Para flex:</span>
+&lt;<span class="fn">DesktopRender</span> display=<span class="str">"flex"</span>&gt;...&lt;/<span class="fn">DesktopRender</span>&gt;</code></pre>
+
+  <h3>ViewModeToggle</h3>
+  <p>Botão Cards / Tabela. Visível apenas em desktop.</p>
+  <pre><code>&lt;<span class="fn">ViewModeToggle</span>
+  value={viewMode}
+  onChange={setViewMode}
+/&gt;</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     DATATABLE
+══════════════════════════════════════════ -->
+<section id="sec-dataTable" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">DataTable</h1>
+  <p class="section-desc">Tabela genérica e auto-configurável. Aceita qualquer array de objetos e infere colunas automaticamente, com filtros por coluna e ordenação embutidos.</p>
+
+  <h2>Props</h2>
+  <table class="props-table">
+    <thead><tr><th>Prop</th><th>Tipo</th><th>Padrão</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>data</td><td><span class="required">T[]</span></td><td>—</td><td>Array de objetos para exibir</td></tr>
+      <tr><td>columnConfig</td><td><span class="optional">ColumnsConfig&lt;T&gt;</span></td><td>—</td><td>Configuração por coluna</td></tr>
+      <tr><td>onRowClick</td><td><span class="optional">(row: T) =&gt; void</span></td><td>—</td><td>Clique em linha</td></tr>
+      <tr><td>emptyMessage</td><td><span class="optional">string</span></td><td>"Nenhum dado"</td><td>Mensagem quando vazio</td></tr>
+      <tr><td>className</td><td><span class="optional">string</span></td><td>—</td><td>Classe extra no wrapper</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Interface ColumnConfig</h2>
+  <table class="props-table">
+    <thead><tr><th>Campo</th><th>Tipo</th><th>Padrão</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>label</td><td>string</td><td>camelCase → "Camel Case"</td><td>Texto do cabeçalho</td></tr>
+      <tr><td>_specified</td><td>boolean</td><td>true</td><td>Exibir coluna</td></tr>
+      <tr><td>_allowFilter</td><td>boolean</td><td>true</td><td>Mostrar input de filtro</td></tr>
+      <tr><td>render</td><td>(row, value) =&gt; ReactNode</td><td>—</td><td>Renderização customizada</td></tr>
+      <tr><td>sortable</td><td>boolean</td><td>true</td><td>Habilitar ordenação</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Exemplos de uso</h2>
+  <pre><code><span class="cm">// Mínimo — exibe todas as colunas</span>
+&lt;<span class="fn">DataTable</span> data={propostas} /&gt;
+
+<span class="cm">// Configuração parcial</span>
+&lt;<span class="fn">DataTable</span>
+  data={propostas}
+  columnConfig={{
+    id:            { label: <span class="str">'Código'</span>, _allowFilter: <span class="kw">false</span> },
+    valorProposto: { label: <span class="str">'Valor'</span>, render: (_, v) =&gt; <span class="fn">fmtCurrency</span>(v) },
+    observacoes:   { _specified: <span class="kw">false</span> },  <span class="cm">// ocultar coluna</span>
+    status: {
+      render: (row) =&gt; &lt;<span class="fn">StatusPropostaBadge</span> status={row.status} /&gt;,
+      sortable: <span class="kw">false</span>,
+    },
+  }}
+  onRowClick={p => <span class="fn">setModalAberta</span>(p)}
+  emptyMessage=<span class="str">"Nenhuma proposta encontrada"</span>
+/&gt;</code></pre>
+
+  <h2>Filtros de coluna — sintaxe wildcard</h2>
+  <p>Os inputs de filtro da tabela suportam wildcards especiais:</p>
+  <table class="props-table">
+    <thead><tr><th>Padrão</th><th>Comportamento</th></tr></thead>
+    <tbody>
+      <tr><td><code>texto</code></td><td>Contém "texto" (qualquer posição)</td></tr>
+      <tr><td><code>texto*</code></td><td>Começa com "texto"</td></tr>
+      <tr><td><code>*texto</code></td><td>Termina com "texto"</td></tr>
+      <tr><td><code>*texto*</code></td><td>Contém "texto" estritamente no meio</td></tr>
+      <tr><td><code>""</code></td><td>Sem filtro, todas as linhas passam</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══════════════════════════════════════════
+     DATACARD
+══════════════════════════════════════════ -->
+<section id="sec-dataCard" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">DataCard</h1>
+  <p class="section-desc">Card genérico orientado a objeto. Mapeia campos de qualquer objeto para slots visuais pré-definidos.</p>
+
+  <h2>Slots disponíveis</h2>
+  <table class="props-table">
+    <thead><tr><th>Slot</th><th>Posição visual</th><th>Aceita</th></tr></thead>
+    <tbody>
+      <tr><td>title</td><td>Linha 1 — destaque</td><td>campo, array de campos, campo+format</td></tr>
+      <tr><td>titleBadge</td><td>Badge ao lado do título</td><td>campo simples</td></tr>
+      <tr><td>subtitle</td><td>Linha 2 — texto muted</td><td>campo, array (une com '·'), campo+format</td></tr>
+      <tr><td>value</td><td>Linha 3 — negrito</td><td>campo simples ou campo+format</td></tr>
+      <tr><td>valueSub</td><td>Complemento do valor</td><td>campo simples ou campo+format</td></tr>
+      <tr><td>statusBadge</td><td>Linha 4, esquerda</td><td>campo com valor de StatusProposta</td></tr>
+      <tr><td>footer</td><td>Linha 4, direita</td><td>campo de data ou info complementar</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Uso completo</h2>
+  <pre><code>&lt;<span class="fn">DataCard</span>
+  data={proposta}
+  fieldMap={{
+    title:       <span class="str">'nomeFantasia'</span>,
+    titleBadge:  <span class="str">'tipoOperacao'</span>,
+    subtitle:    [<span class="str">'id'</span>, <span class="str">'codigoUnidade'</span>, <span class="str">'segmento'</span>],
+    value:       { field: <span class="str">'valorProposto'</span>, format: v => <span class="fn">fmtCurrency</span>(v) },
+    valueSub:    { field: <span class="str">'area'</span>, format: v => <span class="str">`${v} m²`</span> },
+    statusBadge: <span class="str">'status'</span>,
+    footer:      <span class="str">'dataVencimento'</span>,
+  }}
+  onClick={() => <span class="fn">abrirModal</span>(proposta)}
+/&gt;</code></pre>
+
+  <h2>DataCardContainer</h2>
+  <p>Wrapper grid que renderiza uma lista de DataCards:</p>
+  <pre><code>&lt;<span class="fn">DataCardContainer</span>&gt;
+  {propostas.<span class="fn">map</span>(p => (
+    &lt;<span class="fn">DataCard</span>
+      key={p.id}
+      data={p}
+      fieldMap={fieldMap}
+      onClick={() => <span class="fn">abrirModal</span>(p)}
+    /&gt;
+  ))}
+&lt;/<span class="fn">DataCardContainer</span>&gt;</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     STATUS BADGE
+══════════════════════════════════════════ -->
+<section id="sec-statusBadge" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">StatusBadge</h1>
+  <p class="section-desc">Badges coloridos semânticos para status de proposta, status de loja e tipo de operação. Suportam dark mode automaticamente.</p>
+
+  <h2>Componentes</h2>
+  <pre><code><span class="kw">import</span> {
+  StatusPropostaBadge,
+  StatusLojaBadge,
+  TipoOperacaoBadge,
+  getStatusPropostaClasses,  <span class="cm">// classes CSS sem o componente</span>
+  getStatusLojaClasses,
+  getTipoOperacaoClasses,
+} <span class="kw">from</span> <span class="str">'../components/StatusBadge'</span>;
+
+<span class="cm">// Uso</span>
+&lt;<span class="fn">StatusPropostaBadge</span> status=<span class="str">"Aprovado"</span> /&gt;
+&lt;<span class="fn">StatusLojaBadge</span> status=<span class="str">"Disponível"</span> /&gt;
+&lt;<span class="fn">TipoOperacaoBadge</span> tipo=<span class="str">"Nova Locação"</span> /&gt;
+
+<span class="cm">// Usar classes diretamente em outro elemento</span>
+&lt;div className={<span class="fn">getStatusPropostaClasses</span>(proposta.status)}&gt;
+  {proposta.status}
+&lt;/div&gt;</code></pre>
+
+  <h2>Cores por status de proposta</h2>
+  <table class="props-table">
+    <thead><tr><th>Status</th><th>Cor</th></tr></thead>
+    <tbody>
+      <tr><td>Aguardando análise financeira</td><td><span class="badge badge-gray">Amarelo</span></td></tr>
+      <tr><td>Aguardando análise do comitê</td><td><span class="badge badge-gray">Roxo</span></td></tr>
+      <tr><td>Aprovado</td><td><span class="badge badge-green">Verde</span></td></tr>
+      <tr><td>Reprovado</td><td><span class="badge badge-red">Vermelho</span></td></tr>
+      <tr><td>Cancelado</td><td><span class="badge badge-gray">Cinza</span></td></tr>
+      <tr><td>Vencida</td><td><span class="badge badge-gray">Laranja</span></td></tr>
+      <tr><td>Finalizado</td><td><span class="badge badge-gray">Azul</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <div class="callout-icon">💡</div>
+    <div class="callout-body">
+      <strong>Adicionar novo status</strong>
+      <p>Adicione o valor em <code>enums/index.ts</code> e a entrada de cor em <code>StatusBadge.tsx</code> (nos objetos <code>STATUS_PROPOSTA_CLASSES</code>). O fallback já é cinza se o status não for mapeado.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     KPI CONTAINER
+══════════════════════════════════════════ -->
+<section id="sec-kpiContainer" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">KpiContainer</h1>
+  <p class="section-desc">Cards de KPI configuráveis com visibilidade persistida. O usuário pode personalizar quais KPIs são exibidos.</p>
+
+  <h2>KPIs disponíveis (KpiCardId)</h2>
+  <table class="props-table">
+    <thead><tr><th>ID</th><th>Label</th><th>Dados exibidos</th></tr></thead>
+    <tbody>
+      <tr><td>totalLojas</td><td>Total de Lojas</td><td>Ocupadas / total, disponíveis</td></tr>
+      <tr><td>contratosAtivos</td><td>Contratos Ativos</td><td>Quantidade</td></tr>
+      <tr><td>propostasAbertas</td><td>Propostas Abertas</td><td>Quantidade</td></tr>
+      <tr><td>contratosVencendo</td><td>Contratos Vencendo</td><td>Nos próximos 30 dias</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Uso</h2>
+  <pre><code>&lt;<span class="fn">KpiContainer</span>
+  stats={{
+    total: 120,
+    ocupadas: 98,
+    disponiveis: 22,
+    contratoAtivo: 85,
+    propostasAbertas: 13,
+    vencendo: 7,
+  }}
+/&gt;</code></pre>
+
+  <h2>Adicionar novo KPI</h2>
+  <pre><code><span class="cm">// Em KpiContainer.tsx:</span>
+
+<span class="cm">// 1. Adicionar ao enum</span>
+<span class="kw">export enum</span> <span class="tp">KpiCardId</span> {
+  MeuKpi = <span class="str">'meuKpi'</span>,  <span class="cm">// ← novo</span>
+}
+
+<span class="cm">// 2. Registrar no KPI_REGISTRY</span>
+<span class="kw">const</span> KPI_REGISTRY: <span class="tp">Record</span>&lt;<span class="tp">KpiCardId</span>, ...&gt; = {
+  [<span class="tp">KpiCardId</span>.MeuKpi]: {
+    label: <span class="str">'Meu KPI'</span>,
+    resolve: (s) => ({
+      value: s.meuValor,
+      sub: <span class="str">'descrição'</span>,
+      icon: MinhaIcone,
+      <span class="cm">// …demais campos de estilo</span>
+    }),
+  },
+};</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     PROPOSTA MANUTENCAO MODAL
+══════════════════════════════════════════ -->
+<section id="sec-manutencaoModal" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">PropostaManutencaoModal</h1>
+  <p class="section-desc">Modal completo de visualização e edição de proposta, com 8 abas e navegação entre propostas.</p>
+
+  <h2>Props</h2>
+  <table class="props-table">
+    <thead><tr><th>Prop</th><th>Tipo</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>proposta</td><td><span class="required">Proposta | PropostaResumo</span></td><td>Proposta a exibir</td></tr>
+      <tr><td>allPropostas</td><td><span class="required">PropostaInput[]</span></td><td>Lista completa (para navegação ←→)</td></tr>
+      <tr><td>onClose</td><td><span class="required">() =&gt; void</span></td><td>Fechar o modal</td></tr>
+      <tr><td>readOnly</td><td><span class="optional">boolean</span></td><td>Apenas visualização. Padrão: false</td></tr>
+      <tr><td>forceEditMode</td><td><span class="optional">boolean</span></td><td>Abre já em modo de edição. Padrão: false</td></tr>
+      <tr><td>onNavigate</td><td><span class="optional">(p) =&gt; void</span></td><td>Callback ao navegar entre propostas</td></tr>
+      <tr><td>initialIndex</td><td><span class="optional">number</span></td><td>Índice inicial na lista allPropostas</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Abas disponíveis</h2>
+  <ul>
+    <li><strong>Loja Proposta</strong> — dados da proposta e da loja pretendida</li>
+    <li><strong>Loja Anterior</strong> — histórico da loja do proponente</li>
+    <li><strong>Necessidades Técnicas</strong> — elétrica, hidráulica, gás, fachada</li>
+    <li><strong>Cessão de Direitos</strong> — dados de cessão (só para Cessão/Transferência)</li>
+    <li><strong>Taxa de Transferência</strong> — valores financeiros de TT</li>
+    <li><strong>Parecer do Comitê</strong> — aprovação por 5 membros</li>
+    <li><strong>Histórico</strong> — log de mudanças de status</li>
+    <li><strong>Anexos</strong> — upload e download de documentos</li>
+  </ul>
+
+  <h2>Uso</h2>
+  <pre><code>{modalAberta && (
+  &lt;<span class="fn">PropostaManutencaoModal</span>
+    proposta={modalAberta}
+    allPropostas={tableRows}
+    onClose={() => <span class="fn">setModalAberta</span>(<span class="kw">null</span>)}
+    onNavigate={p => <span class="fn">setModalAberta</span>(p)}
+    initialIndex={tableRows.<span class="fn">findIndex</span>(p => p.id === modalAberta.id)}
+  /&gt;
+)}</code></pre>
+
+  <h2>Abrir de outra tela (evento global)</h2>
+  <p>O modal da tela de Propostas escuta o evento <code>'navigate-proposta'</code>. Qualquer componente pode abri-lo sem acoplamento direto:</p>
+  <pre><code><span class="cm">// Em DisponibilidadeManutencaoModal ou qualquer lugar</span>
+window.<span class="fn">dispatchEvent</span>(<span class="kw">new</span> <span class="fn">CustomEvent</span>(<span class="str">'navigate-proposta'</span>, {
+  detail: proposta
+}));</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     MANUTENCAO SHARED
+══════════════════════════════════════════ -->
+<section id="sec-manutencaoShared" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">ManutencaoShared</h1>
+  <p class="section-desc">Primitivos de UI para construir modais de manutenção: toolbar, shell do modal, selects, abas e campos de cabeçalho.</p>
+
+  <h2>Componentes disponíveis</h2>
+
+  <h3>ManutencaoModalShell</h3>
+  <p>Container do modal com overlay e estrutura base.</p>
+  <pre><code>&lt;<span class="fn">ManutencaoModalShell</span> onClose={onClose}&gt;
+  <span class="cm">{/* conteúdo do modal */}</span>
+&lt;/<span class="fn">ManutencaoModalShell</span>&gt;</code></pre>
+
+  <h3>ManutencaoToolbar</h3>
+  <p>Barra de ações no topo do modal.</p>
+  <pre><code>&lt;<span class="fn">ManutencaoToolbar</span>&gt;
+  &lt;<span class="fn">ToolbarBtn</span> icon={<span class="fn">Pencil</span>} label=<span class="str">"Editar"</span> onClick={...} /&gt;
+  &lt;<span class="fn">ToolbarDivider</span> /&gt;
+  &lt;<span class="fn">ToolbarBtn</span> icon={<span class="fn">Save</span>} label=<span class="str">"Salvar"</span> onClick={...} variant=<span class="str">"primary"</span> /&gt;
+&lt;/<span class="fn">ManutencaoToolbar</span>&gt;</code></pre>
+
+  <h3>TabBar</h3>
+  <p>Navegação por abas horizontais.</p>
+  <pre><code><span class="kw">const</span> abas: <span class="tp">TabDef</span>[] = [
+  { id: <span class="str">'dados'</span>, label: <span class="str">'Dados'</span> },
+  { id: <span class="str">'historico'</span>, label: <span class="str">'Histórico'</span>, disabled: <span class="kw">true</span> },
+];
+
+&lt;<span class="fn">TabBar</span>
+  tabs={abas}
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+/&gt;</code></pre>
+
+  <h3>EnumSelect</h3>
+  <p>Select tipado para enums do sistema.</p>
+  <pre><code>&lt;<span class="fn">EnumSelect</span>
+  value={draft.segmento}
+  onChange={v => <span class="fn">setDraft</span>(d => ({...d, segmento: v}))}
+  options={SEGMENTOS}
+  disabled={!editMode}
+/&gt;</code></pre>
+
+  <h3>InfoHeaderBar + HeaderField + HeaderDivider</h3>
+  <p>Campos de informação no cabeçalho do modal.</p>
+  <pre><code>&lt;<span class="fn">InfoHeaderBar</span>&gt;
+  &lt;<span class="fn">HeaderField</span> label=<span class="str">"Status"</span>&gt;
+    &lt;<span class="fn">StatusPropostaBadge</span> status={draft.status} /&gt;
+  &lt;/<span class="fn">HeaderField</span>&gt;
+  &lt;<span class="fn">HeaderDivider</span> /&gt;
+  &lt;<span class="fn">HeaderField</span> label=<span class="str">"Vencimento"</span>&gt;
+    {draft.dataVencimento}
+  &lt;/<span class="fn">HeaderField</span>&gt;
+&lt;/<span class="fn">InfoHeaderBar</span>&gt;</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     CONFIRM MODAL
+══════════════════════════════════════════ -->
+<section id="sec-confirmModal" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">ConfirmModal</h1>
+  <p class="section-desc">Modal de confirmação para ações destrutivas ou irreversíveis.</p>
+
+  <h2>Props</h2>
+  <table class="props-table">
+    <thead><tr><th>Prop</th><th>Tipo</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>isOpen</td><td><span class="required">boolean</span></td><td>Controla visibilidade</td></tr>
+      <tr><td>title</td><td><span class="required">string</span></td><td>Título do modal</td></tr>
+      <tr><td>message</td><td><span class="required">string</span></td><td>Mensagem de confirmação</td></tr>
+      <tr><td>onConfirm</td><td><span class="required">() =&gt; void</span></td><td>Callback ao confirmar</td></tr>
+      <tr><td>onCancel</td><td><span class="required">() =&gt; void</span></td><td>Callback ao cancelar</td></tr>
+      <tr><td>confirmLabel</td><td><span class="optional">string</span></td><td>Texto do botão confirmar. Padrão: "Confirmar"</td></tr>
+      <tr><td>danger</td><td><span class="optional">boolean</span></td><td>Botão confirmar fica vermelho. Padrão: false</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Uso</h2>
+  <pre><code><span class="kw">const</span> [showConfirm, setShowConfirm] = <span class="fn">useState</span>(<span class="kw">false</span>);
+
+&lt;<span class="fn">ConfirmModal</span>
+  isOpen={showConfirm}
+  title=<span class="str">"Cancelar proposta"</span>
+  message=<span class="str">"Esta ação não pode ser desfeita. Deseja continuar?"</span>
+  confirmLabel=<span class="str">"Sim, cancelar"</span>
+  danger
+  onConfirm={async () => {
+    <span class="kw">await</span> propostas.<span class="fn">atualizarStatus</span>(id, STATUS_CANCELADO);
+    <span class="fn">setShowConfirm</span>(<span class="kw">false</span>);
+    <span class="fn">refresh</span>();
+  }}
+  onCancel={() => <span class="fn">setShowConfirm</span>(<span class="kw">false</span>)}
+/&gt;</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     CHARTS
+══════════════════════════════════════════ -->
+<section id="sec-charts" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">Charts (ChartsContainer)</h1>
+  <p class="section-desc">Contêiner de gráficos Recharts. Agrupa gráficos de barra, pizza e linha do dashboard.</p>
+
+  <h2>Tipos de gráfico disponíveis</h2>
+  <ul>
+    <li><strong>BarChart</strong> — ocupação por piso/corredor</li>
+    <li><strong>PieChart</strong> — distribuição por segmento</li>
+    <li><strong>LineChart</strong> — evolução temporal de propostas</li>
+  </ul>
+
+  <h2>ChartTooltip</h2>
+  <p>Tooltip customizado para os gráficos. Aplica formatação consistente de valores.</p>
+
+  <h2>Adicionar gráfico custom</h2>
+  <pre><code><span class="kw">import</span> { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } <span class="kw">from</span> <span class="str">'recharts'</span>;
+
+<span class="kw">function</span> <span class="fn">MeuGrafico</span>({ data }: { data: { nome: <span class="tp">string</span>; valor: <span class="tp">number</span> }[] }) {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">ResponsiveContainer</span> width=<span class="str">"100%"</span> height={300}&gt;
+      &lt;<span class="fn">BarChart</span> data={data}&gt;
+        &lt;<span class="fn">XAxis</span> dataKey=<span class="str">"nome"</span> /&gt;
+        &lt;<span class="fn">YAxis</span> /&gt;
+        &lt;<span class="fn">Tooltip</span> content={&lt;<span class="fn">ChartTooltip</span> /&gt;} /&gt;
+        &lt;<span class="fn">Bar</span> dataKey=<span class="str">"valor"</span> fill=<span class="str">"#8B1A1A"</span> radius={[4,4,0,0]} /&gt;
+      &lt;/<span class="fn">BarChart</span>&gt;
+    &lt;/<span class="fn">ResponsiveContainer</span>&gt;
+  );
+}</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     DATE PICKER
+══════════════════════════════════════════ -->
+<section id="sec-datePicker" class="wiki-section">
+  <div class="section-tag">Componentes</div>
+  <h1 class="section-title">DatePickerInput</h1>
+  <p class="section-desc">Input de data com máscara automática no formato brasileiro (DD/MM/AAAA).</p>
+
+  <h2>Props</h2>
+  <table class="props-table">
+    <thead><tr><th>Prop</th><th>Tipo</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td>value</td><td><span class="required">string</span></td><td>Valor atual em formato DD/MM/AAAA</td></tr>
+      <tr><td>onChange</td><td><span class="required">(v: string) =&gt; void</span></td><td>Callback com novo valor</td></tr>
+      <tr><td>placeholder</td><td><span class="optional">string</span></td><td>Placeholder. Padrão: "DD/MM/AAAA"</td></tr>
+      <tr><td>className</td><td><span class="optional">string</span></td><td>Classe extra</td></tr>
+      <tr><td>disabled</td><td><span class="optional">boolean</span></td><td>Desabilitar</td></tr>
+    </tbody>
+  </table>
+
+  <pre><code>&lt;<span class="fn">DatePickerInput</span>
+  value={dataVencimento}
+  onChange={v => <span class="fn">setDataVencimento</span>(v)}
+  placeholder=<span class="str">"DD/MM/AAAA"</span>
+/&gt;</code></pre>
+
+  <div class="callout info">
+    <div class="callout-icon">📅</div>
+    <div class="callout-body">
+      <strong>Conversão de formato</strong>
+      <p>Para comparar datas com a API (formato ISO), use <code>ptBRToISO()</code> de <code>shared/utils/filters.ts</code>: converte <code>"31/12/2025"</code> para <code>"2025-12-31"</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     PERSISTED STATE
+══════════════════════════════════════════ -->
+<section id="sec-persistedState" class="wiki-section">
+  <div class="section-tag">Utilitários</div>
+  <h1 class="section-title">usePersistedState</h1>
+  <p class="section-desc">Hook que funciona como <code>useState</code>, mas persiste o valor no <code>sessionStorage</code> automaticamente. Usado para manter filtros e preferências de UI entre navegações.</p>
+
+  <h2>Assinatura</h2>
+  <pre><code><span class="fn">usePersistedState</span>&lt;<span class="tp">T</span>&gt;(
+  key: <span class="tp">string</span>,
+  defaultValue: <span class="tp">T</span>,
+  serialize?: (v: <span class="tp">T</span>) => <span class="tp">string</span>,   <span class="cm">// padrão: JSON.stringify</span>
+  deserialize?: (s: <span class="tp">string</span>) => <span class="tp">T</span>  <span class="cm">// padrão: JSON.parse</span>
+): [<span class="tp">T</span>, <span class="tp">Dispatch</span>&lt;<span class="tp">SetStateAction</span>&lt;<span class="tp">T</span>&gt;&gt;]</code></pre>
+
+  <h2>Exemplos</h2>
+  <pre><code><span class="cm">// Array (usa JSON por padrão)</span>
+<span class="kw">const</span> [filtros, setFiltros] = <span class="fn">usePersistedState</span>&lt;<span class="tp">StatusProposta</span>[]&gt;(
+  <span class="str">'propostas.filterStatuses'</span>, []
+);
+
+<span class="cm">// String — use identity para evitar double-encoding</span>
+<span class="kw">const</span> [busca, setBusca] = <span class="fn">usePersistedState</span>&lt;<span class="tp">string</span>&gt;(
+  <span class="str">'propostas.busca'</span>, <span class="str">''</span>,
+  v => v,    <span class="cm">// serialize: string → string</span>
+  v => v     <span class="cm">// deserialize: string → string</span>
+);
+
+<span class="cm">// Enum customizado</span>
+<span class="kw">const</span> [viewMode, setViewMode] = <span class="fn">usePersistedState</span>&lt;<span class="tp">ViewMode</span>&gt;(
+  <span class="str">'propostas.viewMode'</span>, ViewMode.Cards,
+  v => v,
+  v => v <span class="kw">as</span> <span class="tp">ViewMode</span>
+);</code></pre>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body">
+      <strong>Sempre use string identity para strings</strong>
+      <p>Se usar <code>JSON.stringify</code> em uma string, o valor salvo fica com aspas extras (<code>"\"valor\""</code>). Passe <code>v => v</code> como serialize e deserialize para strings simples.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     FILTERS
+══════════════════════════════════════════ -->
+<section id="sec-filters" class="wiki-section">
+  <div class="section-tag">Utilitários</div>
+  <h1 class="section-title">Filtros & Wildcards</h1>
+  <p class="section-desc">Funções puras de filtragem usadas pelos ViewModels e internamente pela DataTable.</p>
+
+  <h2>matchColFilter</h2>
+  <pre><code><span class="kw">import</span> { matchColFilter } <span class="kw">from</span> <span class="str">'../shared/utils/filters'</span>;
+
+<span class="cm">// Filtra pelo valor de uma célula com suporte a wildcards</span>
+<span class="fn">matchColFilter</span>(<span class="str">"JP Mall"</span>,    <span class="str">"mall"</span>)   <span class="cm">// true  — contém</span>
+<span class="fn">matchColFilter</span>(<span class="str">"JP Mall"</span>,    <span class="str">"JP*"</span>)    <span class="cm">// true  — começa com</span>
+<span class="fn">matchColFilter</span>(<span class="str">"JP Mall"</span>,    <span class="str">"*Mall"</span>)  <span class="cm">// true  — termina com</span>
+<span class="fn">matchColFilter</span>(<span class="str">"JP Mall"</span>,    <span class="str">"*P Ma*"</span>) <span class="cm">// true  — no meio</span>
+<span class="fn">matchColFilter</span>(<span class="str">"JP Mall"</span>,    <span class="str">""</span>)       <span class="cm">// true  — sem filtro</span>
+<span class="fn">matchColFilter</span>(<span class="str">"JP Mall"</span>,    <span class="str">"Loja*"</span>)  <span class="cm">// false</span></code></pre>
+
+  <h2>ptBRToISO</h2>
+  <pre><code><span class="kw">import</span> { ptBRToISO } <span class="kw">from</span> <span class="str">'../shared/utils/filters'</span>;
+
+<span class="fn">ptBRToISO</span>(<span class="str">"31/12/2025"</span>)  <span class="cm">// → "2025-12-31"</span>
+<span class="fn">ptBRToISO</span>(<span class="str">"01/01/2024"</span>)  <span class="cm">// → "2024-01-01"</span>
+
+<span class="cm">// Uso típico: comparar com filtro de data</span>
+<span class="kw">const</span> iso = <span class="fn">ptBRToISO</span>(proposta.dataCriacao);
+<span class="kw">if</span> (dateFrom && iso < dateFrom) <span class="kw">return false</span>;</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     ENUMS
+══════════════════════════════════════════ -->
+<section id="sec-enums" class="wiki-section">
+  <div class="section-tag">Utilitários</div>
+  <h1 class="section-title">Enums & Constantes</h1>
+  <p class="section-desc">Toda constante de domínio fica em <code>src/app/enums/index.ts</code>. Nunca repita strings de status ou tipo em componentes — importe sempre daqui.</p>
+
+  <h2>toOptionItems — converter enum para select</h2>
+  <pre><code><span class="kw">import</span> { toOptionItems, SEGMENTOS, PISOS } <span class="kw">from</span> <span class="str">'../enums'</span>;
+
+<span class="cm">// Converte ['Moda', 'Alimentação'] → [{value: 'Moda', label: 'Moda'}, …]</span>
+<span class="kw">const</span> opcoes = <span class="fn">toOptionItems</span>(SEGMENTOS);
+
+<span class="cm">// Já funciona com {value, label} também</span>
+<span class="kw">const</span> opcoesPiso = <span class="fn">toOptionItems</span>(PISOS);
+<span class="cm">// [{value:'P', label:'Primeiro Piso'}, …]</span></code></pre>
+
+  <h2>Mapas auxiliares</h2>
+  <pre><code><span class="kw">import</span> { PISO_LABEL, PISO_LABEL_SHORT, CORREDOR_LABEL } <span class="kw">from</span> <span class="str">'../enums'</span>;
+
+PISO_LABEL[<span class="str">'P'</span>]       <span class="cm">// → 'Primeiro Piso'</span>
+PISO_LABEL_SHORT[<span class="str">'S'</span>] <span class="cm">// → 'Segundo'</span>
+CORREDOR_LABEL[<span class="str">'A'</span>]   <span class="cm">// → 'Corredor A'</span></code></pre>
+
+  <h2>Cores de badge por enum</h2>
+  <pre><code><span class="kw">import</span> { STATUS_PROPOSTA_COLORS, TIPOS_OPERACAO_COLORS } <span class="kw">from</span> <span class="str">'../enums'</span>;
+
+<span class="kw">const</span> { bg, text, border } = STATUS_PROPOSTA_COLORS[<span class="str">'Aprovado'</span>];
+<span class="cm">// bg: 'bg-green-100 dark:bg-green-500/20'</span>
+<span class="cm">// text: 'text-green-800 dark:text-green-300'</span></code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     AUTENTICACAO
+══════════════════════════════════════════ -->
+<section id="sec-autenticacao" class="wiki-section">
+  <div class="section-tag">Utilitários</div>
+  <h1 class="section-title">Autenticação</h1>
+  <p class="section-desc">Contexto de autenticação via React Context. Exporta hook <code>useAuth</code> para consumir dados do usuário logado.</p>
+
+  <h2>useAuth</h2>
+  <pre><code><span class="kw">import</span> { useAuth } <span class="kw">from</span> <span class="str">'../AuthContext'</span>;
+
+<span class="kw">function</span> <span class="fn">MeuComponente</span>() {
+  <span class="kw">const</span> { usuario, isAuthenticated, login, logout } = <span class="fn">useAuth</span>();
+
+  <span class="cm">// usuario: { id, nome, email, setor } | null</span>
+  <span class="cm">// isAuthenticated: boolean</span>
+
+  <span class="kw">return</span> &lt;p&gt;Bem-vindo, {usuario?.nome}&lt;/p&gt;;
+}</code></pre>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body">
+      <strong>Modo Protótipo</strong>
+      <p>O <code>AuthContext</code> aceita qualquer credencial e usa um token fixo. Para produção: chamar <code>apiClient.auth.login()</code>, salvar o JWT real e incluir <code>Authorization: Bearer {token}</code> no header da função <code>request()</code> em <code>apiClient.ts</code>.</p>
+    </div>
+  </div>
+
+  <h2>useApiHealth</h2>
+  <pre><code><span class="kw">import</span> { useApiHealth } <span class="kw">from</span> <span class="str">'../data/useApiHealth'</span>;
+
+<span class="kw">const</span> apiStatus = <span class="fn">useApiHealth</span>();
+<span class="cm">// retorna: 'checking' | 'online' | 'offline'</span>
+
+{apiStatus === <span class="str">'offline'</span> && &lt;Badge&gt;API offline&lt;/Badge&gt;}</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     NOVA PÁGINA
+══════════════════════════════════════════ -->
+<section id="sec-nova-pagina" class="wiki-section">
+  <div class="section-tag">Guias Práticos</div>
+  <h1 class="section-title">Criar Nova Página</h1>
+  <p class="section-desc">Passo a passo completo para adicionar uma nova rota e página ao sistema.</p>
+
+  <h2>1. Criar o ViewModel</h2>
+  <pre><code><span class="cm">// src/app/viewmodels/useMinhaPagina.ts</span>
+<span class="kw">import</span> { useState, useMemo } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { useApi } <span class="kw">from</span> <span class="str">'../data/useApi'</span>;
+<span class="kw">import</span> { minhasEntidades } <span class="kw">from</span> <span class="str">'../data/apiClient'</span>;
+
+<span class="kw">export function</span> <span class="fn">useMinhaPagina</span>() {
+  <span class="kw">const</span> { data, loading, error, refetch } = <span class="fn">useApi</span>(
+    () => minhasEntidades.<span class="fn">listar</span>(), []
+  );
+  <span class="kw">return</span> { items: data ?? [], loading, error, refresh: refetch };
+}</code></pre>
+
+  <h2>2. Criar o componente de página</h2>
+  <pre><code><span class="cm">// src/app/pages/comercial/MinhaPagina.tsx</span>
+<span class="kw">import</span> { PageShell, TableLayoutContainer, TableLayoutItem } <span class="kw">from</span> <span class="str">'../../components/PageShared'</span>;
+<span class="kw">import</span> { DataTable } <span class="kw">from</span> <span class="str">'../../components/DataTable'</span>;
+<span class="kw">import</span> { useMinhaPagina } <span class="kw">from</span> <span class="str">'../../viewmodels/useMinhaPagina'</span>;
+
+<span class="kw">export function</span> <span class="fn">MinhaPagina</span>() {
+  <span class="kw">const</span> { items, loading } = <span class="fn">useMinhaPagina</span>();
+
+  <span class="kw">if</span> (loading) <span class="kw">return</span> &lt;div className=<span class="str">"p-6"</span>&gt;Carregando…&lt;/div&gt;;
+
+  <span class="kw">return</span> (
+    &lt;<span class="fn">PageShell</span>&gt;
+      &lt;<span class="fn">TableLayoutContainer</span> cols={1}&gt;
+        &lt;<span class="fn">TableLayoutItem</span>&gt;
+          &lt;<span class="fn">DataTable</span> data={items} /&gt;
+        &lt;/<span class="fn">TableLayoutItem</span>&gt;
+      &lt;/<span class="fn">TableLayoutContainer</span>&gt;
+    &lt;/<span class="fn">PageShell</span>&gt;
+  );
+}</code></pre>
+
+  <h2>3. Registrar a rota em App.tsx</h2>
+  <pre><code><span class="cm">// src/app/App.tsx</span>
+<span class="kw">import</span> { MinhaPagina } <span class="kw">from</span> <span class="str">'./pages/comercial/MinhaPagina'</span>;
+
+<span class="kw">function</span> <span class="fn">AppRoutes</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">Routes</span>&gt;
+      &lt;<span class="fn">Route</span> path=<span class="str">"/comercial"</span> element={&lt;<span class="fn">Layout</span> /&gt;}&gt;
+        <span class="cm">{/* …rotas existentes… */}</span>
+        &lt;<span class="fn">Route</span> path=<span class="str">"minha-pagina"</span> element={&lt;<span class="fn">MinhaPagina</span> /&gt;} /&gt;
+      &lt;/<span class="fn">Route</span>&gt;
+    &lt;/<span class="fn">Routes</span>&gt;
+  );
+}</code></pre>
+
+  <h2>4. Adicionar ao menu (Layout.tsx)</h2>
+  <pre><code>subTabs: [
+  <span class="cm">// …itens existentes…</span>
+  { label: <span class="str">'Minha Página'</span>, path: <span class="str">'/comercial/minha-pagina'</span>, icon: MinhaIcone },
+],</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     NOVO MODAL
+══════════════════════════════════════════ -->
+<section id="sec-novo-modal" class="wiki-section">
+  <div class="section-tag">Guias Práticos</div>
+  <h1 class="section-title">Criar Modal de Edição</h1>
+  <p class="section-desc">Como criar um modal de manutenção completo seguindo o padrão do projeto.</p>
+
+  <pre><code><span class="kw">import</span> { useState } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { Save, X } <span class="kw">from</span> <span class="str">'lucide-react'</span>;
+<span class="kw">import</span> {
+  ManutencaoModalShell,
+  ManutencaoToolbar,
+  ToolbarBtn,
+  ToolbarDivider,
+  TabBar,
+  InfoHeaderBar,
+  HeaderField,
+} <span class="kw">from</span> <span class="str">'../ManutencaoShared'</span>;
+<span class="kw">import</span> { ConfirmModal } <span class="kw">from</span> <span class="str">'../ConfirmModal'</span>;
+
+<span class="kw">interface</span> <span class="tp">Props</span> {
+  item: <span class="tp">MinhaEntidade</span>;
+  onClose: () => <span class="kw">void</span>;
+  onSave: (item: <span class="tp">MinhaEntidade</span>) => <span class="kw">void</span>;
+}
+
+<span class="kw">export function</span> <span class="fn">MinhaEntidadeModal</span>({ item, onClose, onSave }: <span class="tp">Props</span>) {
+  <span class="kw">const</span> [draft, setDraft] = <span class="fn">useState</span>({ ...item });
+  <span class="kw">const</span> [editMode, setEditMode] = <span class="fn">useState</span>(<span class="kw">false</span>);
+  <span class="kw">const</span> [activeTab, setActiveTab] = <span class="fn">useState</span>(<span class="str">'dados'</span>);
+  <span class="kw">const</span> [confirmSave, setConfirmSave] = <span class="fn">useState</span>(<span class="kw">false</span>);
+
+  <span class="kw">const</span> abas = [
+    { id: <span class="str">'dados'</span>, label: <span class="str">'Dados'</span> },
+    { id: <span class="str">'historico'</span>, label: <span class="str">'Histórico'</span> },
+  ];
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="fn">ManutencaoModalShell</span> onClose={onClose}&gt;
+        &lt;<span class="fn">ManutencaoToolbar</span>&gt;
+          {!editMode && (
+            &lt;<span class="fn">ToolbarBtn</span> icon={Pencil} label=<span class="str">"Editar"</span> onClick={() => <span class="fn">setEditMode</span>(<span class="kw">true</span>)} /&gt;
+          )}
+          {editMode && (
+            &lt;&gt;
+              &lt;<span class="fn">ToolbarBtn</span> icon={Save} label=<span class="str">"Salvar"</span> variant=<span class="str">"primary"</span>
+                onClick={() => <span class="fn">setConfirmSave</span>(<span class="kw">true</span>)} /&gt;
+              &lt;<span class="fn">ToolbarDivider</span> /&gt;
+              &lt;<span class="fn">ToolbarBtn</span> icon={X} label=<span class="str">"Cancelar"</span>
+                onClick={() => { <span class="fn">setDraft</span>({ ...item }); <span class="fn">setEditMode</span>(<span class="kw">false</span>); }} /&gt;
+            &lt;/&gt;
+          )}
+        &lt;/<span class="fn">ManutencaoToolbar</span>&gt;
+
+        &lt;<span class="fn">InfoHeaderBar</span>&gt;
+          &lt;<span class="fn">HeaderField</span> label=<span class="str">"Nome"</span>&gt;{draft.nome}&lt;/<span class="fn">HeaderField</span>&gt;
+        &lt;/<span class="fn">InfoHeaderBar</span>&gt;
+
+        &lt;<span class="fn">TabBar</span> tabs={abas} activeTab={activeTab} onTabChange={setActiveTab} /&gt;
+
+        {activeTab === <span class="str">'dados'</span> && (
+          &lt;div className=<span class="str">"p-4"</span>&gt;
+            <span class="cm">{/* campos de edição */}</span>
+          &lt;/div&gt;
+        )}
+      &lt;/<span class="fn">ManutencaoModalShell</span>&gt;
+
+      &lt;<span class="fn">ConfirmModal</span>
+        isOpen={confirmSave}
+        title=<span class="str">"Salvar alterações?"</span>
+        message=<span class="str">"Confirmar as mudanças realizadas?"</span>
+        onConfirm={() => { <span class="fn">onSave</span>(draft); <span class="fn">setConfirmSave</span>(<span class="kw">false</span>); <span class="fn">setEditMode</span>(<span class="kw">false</span>); }}
+        onCancel={() => <span class="fn">setConfirmSave</span>(<span class="kw">false</span>)}
+      /&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     NOVO FILTRO
+══════════════════════════════════════════ -->
+<section id="sec-novo-filtro" class="wiki-section">
+  <div class="section-tag">Guias Práticos</div>
+  <h1 class="section-title">Adicionar Filtro</h1>
+  <p class="section-desc">Como adicionar um novo filtro a uma página existente, com persistência automática.</p>
+
+  <h2>1. Adicionar estado no ViewModel</h2>
+  <pre><code><span class="cm">// No ViewModel da página (ex: useComercialProposals.ts)</span>
+<span class="kw">const</span> [filterSegmento, setFilterSegmento] = <span class="fn">usePersistedState</span>&lt;<span class="tp">string</span>&gt;(
+  <span class="str">`${NS}.filterSegmento`</span>, <span class="str">''</span>, v => v, v => v
+);
+
+<span class="cm">// Incluir na lógica de filtered</span>
+<span class="kw">const</span> filtered = <span class="fn">useMemo</span>(() =>
+  proposals.<span class="fn">filter</span>(p => {
+    <span class="kw">const</span> matchSeg = !filterSegmento || p.segmento === filterSegmento;
+    <span class="cm">// …outros filtros…</span>
+    <span class="kw">return</span> matchSeg <span class="cm">/* && … */</span>;
+  }),
+  [proposals, filterSegmento]
+);
+
+<span class="cm">// Expor no retorno</span>
+<span class="kw">return</span> { filterSegmento, setFilterSegmento, <span class="cm">/* … */</span> };</code></pre>
+
+  <h2>2. Adicionar o input de filtro na View</h2>
+  <pre><code><span class="cm">// No componente de página</span>
+<span class="kw">import</span> { FilterBar, FilterSeparator } <span class="kw">from</span> <span class="str">'../../components/PageShared'</span>;
+<span class="kw">import</span> { SEGMENTOS } <span class="kw">from</span> <span class="str">'../../enums'</span>;
+
+&lt;<span class="fn">FilterBar</span> isOpen={showFilters} onToggle={...}&gt;
+  &lt;select
+    value={filterSegmento}
+    onChange={e => <span class="fn">setFilterSegmento</span>(e.target.value)}
+    className=<span class="str">"h-9 text-sm border rounded-lg px-2"</span>
+  &gt;
+    &lt;option value=<span class="str">""</span>&gt;Todos os segmentos&lt;/option&gt;
+    {SEGMENTOS.<span class="fn">map</span>(s => &lt;option key={s} value={s}&gt;{s}&lt;/option&gt;)}
+  &lt;/select&gt;
+&lt;/<span class="fn">FilterBar</span>&gt;</code></pre>
+
+  <h2>EnumCheckboxFilter — múltipla seleção</h2>
+  <pre><code><span class="kw">import</span> { EnumCheckboxFilter } <span class="kw">from</span> <span class="str">'../../components/EnumCheckboxFilter'</span>;
+
+&lt;<span class="fn">EnumCheckboxFilter</span>
+  label=<span class="str">"Status"</span>
+  options={STATUS_PROPOSTA}
+  selected={filterStatuses}
+  onChange={setFilterStatuses}
+  counts={counts}  <span class="cm">// opcional: mostra (N) ao lado de cada opção</span>
+/&gt;</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     EXPORT PDF/EXCEL
+══════════════════════════════════════════ -->
+<section id="sec-export" class="wiki-section">
+  <div class="section-tag">Guias Práticos</div>
+  <h1 class="section-title">Exportar PDF / Excel</h1>
+  <p class="section-desc">O projeto usa jsPDF + jsPDF-autotable para PDF e xlsx para Excel. O padrão está implementado em <code>useComercialReports.ts</code>.</p>
+
+  <h2>Exportar Excel (.xlsx)</h2>
+  <pre><code><span class="kw">import</span> * <span class="kw">as</span> XLSX <span class="kw">from</span> <span class="str">'xlsx'</span>;
+
+<span class="kw">function</span> <span class="fn">exportarExcel</span>(dados: <span class="tp">any</span>[], nomeArquivo: <span class="tp">string</span>) {
+  <span class="kw">const</span> ws = XLSX.<span class="fn">utils</span>.<span class="fn">json_to_sheet</span>(dados);
+  <span class="kw">const</span> wb = XLSX.<span class="fn">utils</span>.<span class="fn">book_new</span>();
+  XLSX.<span class="fn">utils</span>.<span class="fn">book_append_sheet</span>(wb, ws, <span class="str">'Relatório'</span>);
+  XLSX.<span class="fn">writeFile</span>(wb, <span class="str">`${nomeArquivo}.xlsx`</span>);
+}</code></pre>
+
+  <h2>Exportar PDF com tabela</h2>
+  <pre><code><span class="kw">import</span> jsPDF <span class="kw">from</span> <span class="str">'jspdf'</span>;
+<span class="kw">import</span> autoTable <span class="kw">from</span> <span class="str">'jspdf-autotable'</span>;
+
+<span class="kw">function</span> <span class="fn">exportarPDF</span>(dados: <span class="tp">any</span>[], colunas: <span class="tp">string</span>[]) {
+  <span class="kw">const</span> doc = <span class="kw">new</span> <span class="fn">jsPDF</span>({ orientation: <span class="str">'landscape'</span> });
+
+  doc.<span class="fn">setFontSize</span>(14);
+  doc.<span class="fn">text</span>(<span class="str">'Relatório JP Mall'</span>, 14, 15);
+  doc.<span class="fn">setFontSize</span>(9);
+  doc.<span class="fn">text</span>(<span class="kw">new</span> <span class="fn">Date</span>().<span class="fn">toLocaleDateString</span>(<span class="str">'pt-BR'</span>), 14, 22);
+
+  <span class="fn">autoTable</span>(doc, {
+    head: [colunas],
+    body: dados.<span class="fn">map</span>(row => colunas.<span class="fn">map</span>(col => row[col] ?? <span class="str">''</span>)),
+    startY: 28,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [139, 26, 26] },
+  });
+
+  doc.<span class="fn">save</span>(<span class="str">'relatorio.pdf'</span>);
+}</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     DARK MODE
+══════════════════════════════════════════ -->
+<section id="sec-dark-mode" class="wiki-section">
+  <div class="section-tag">Guias Práticos</div>
+  <h1 class="section-title">Dark Mode & Temas</h1>
+  <p class="section-desc">O dark mode é gerenciado pelo Layout via toggle e salvo em localStorage. Use as classes Tailwind corretas para suportar ambos os modos.</p>
+
+  <h2>Padrão de classes dark mode</h2>
+  <pre><code><span class="cm">/* Fundo */</span>
+bg-white dark:bg-[#242938]          <span class="cm">/* cards/painéis */</span>
+bg-[#F7F4EF] dark:bg-[#0F1117]     <span class="cm">/* fundo de página */</span>
+
+<span class="cm">/* Bordas */</span>
+border-gray-200 dark:border-[#2E3447]
+
+<span class="cm">/* Texto */</span>
+text-gray-900 dark:text-[#F1F5F9]   <span class="cm">/* primário */</span>
+text-gray-500 dark:text-[#94A3B8]   <span class="cm">/* secundário */</span>
+text-gray-400 dark:text-[#64748B]   <span class="cm">/* muted */</span>
+
+<span class="cm">/* Vermelho do sistema */</span>
+text-[#D93030] dark:text-[#E04444]
+bg-[#8B1A1A]                        <span class="cm">/* sidebar (sempre escuro) */</span></code></pre>
+
+  <h2>Cor de destaque do sistema</h2>
+  <table class="props-table">
+    <thead><tr><th>Uso</th><th>Light</th><th>Dark</th></tr></thead>
+    <tbody>
+      <tr><td>Ativo/selecionado</td><td><code>#D93030</code></td><td><code>#E04444</code></td></tr>
+      <tr><td>Sidebar bg</td><td colspan="2"><code>#8B1A1A</code> (fixo)</td></tr>
+      <tr><td>Botão primário</td><td><code>#D93030</code></td><td><code>#D93030</code></td></tr>
+      <tr><td>Ícones ativos</td><td><code>#D93030</code></td><td><code>#E04444</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Acessar/alterar o dark mode</h2>
+  <pre><code><span class="cm">// O Layout gerencia internamente. Para ler o estado atual:</span>
+<span class="kw">const</span> isDark = localStorage.<span class="fn">getItem</span>(<span class="str">'jp-mall-dark-mode'</span>) === <span class="str">'true'</span>;
+
+<span class="cm">// O Layout adiciona/remove a classe 'dark' no &lt;html&gt;:</span>
+document.documentElement.classList.<span class="fn">contains</span>(<span class="str">'dark'</span>); <span class="cm">// boolean</span></code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════
+     ERROS COMUNS
+══════════════════════════════════════════ -->
+<section id="sec-erros-comuns" class="wiki-section">
+  <div class="section-tag">Guias Práticos</div>
+  <h1 class="section-title">Erros Comuns</h1>
+  <p class="section-desc">Problemas frequentes e como resolvê-los.</p>
+
+  <h2>❌ useAuth must be used inside AuthProvider</h2>
+  <p>Você está usando <code>useAuth()</code> em um componente fora da árvore do <code>AuthProvider</code>. Certifique-se que o componente está dentro do <code>&lt;App&gt;</code>, que já envolve tudo com <code>AuthProvider</code>.</p>
+
+  <h2>❌ Double-encoded string no sessionStorage</h2>
+  <p>Você usou <code>usePersistedState&lt;string&gt;</code> sem passar as funções de serialização identity. Solução:</p>
+  <pre><code><span class="cm">// ❌ Errado:</span>
+<span class="kw">const</span> [val, setVal] = <span class="fn">usePersistedState</span>&lt;<span class="tp">string</span>&gt;(<span class="str">'key'</span>, <span class="str">''</span>);
+
+<span class="cm">// ✅ Correto:</span>
+<span class="kw">const</span> [val, setVal] = <span class="fn">usePersistedState</span>&lt;<span class="tp">string</span>&gt;(<span class="str">'key'</span>, <span class="str">''</span>, v => v, v => v);</code></pre>
+
+  <h2>❌ CORS ao chamar a API diretamente</h2>
+  <p>Em desenvolvimento, use sempre o caminho relativo <code>/api/v1/...</code> (o Vite proxy redireciona). Nunca chame <code>http://localhost:8080</code> diretamente no componente. Configure o <code>VITE_API_URL</code> no <code>.env</code>.</p>
+
+  <h2>❌ Tailwind dark: não funciona</h2>
+  <p>O dark mode é ativado via classe <code>dark</code> no elemento <code>&lt;html&gt;</code> (configuração padrão do Tailwind v4). Verifique se o Layout está corretamente adicionando/removendo essa classe.</p>
+
+  <h2>❌ DataTable não exibe coluna</h2>
+  <p>A coluna é inferida das chaves do primeiro objeto do array <code>data</code>. Se o array estiver vazio, nenhuma coluna é criada. Certifique-se de passar <code>data={items ?? []}</code> e que <code>_specified</code> não está <code>false</code> para aquela coluna.</p>
+
+  <h2>❌ Modal não fecha ao clicar no overlay</h2>
+  <p>O <code>ManutencaoModalShell</code> fecha via prop <code>onClose</code> ao clicar fora. Se o modal não está fechando, verifique se você está passando <code>onClose</code> corretamente e se não há um <code>e.stopPropagation()</code> desnecessário no conteúdo interno.</p>
+
+  <h2>❌ evento navigate-proposta não abre o modal</h2>
+  <p>O listener existe no <code>useComercialProposals</code>. Garanta que a página de Propostas já está montada (o usuário navegou até ela pelo menos uma vez). O evento é descartado se o componente não estiver montado.</p>
+
+  <h2>❌ Filtro não persiste após navegação</h2>
+  <p>Verifique se a chave do <code>usePersistedState</code> é única e segue o padrão <code>'namespace.campo'</code>. Chaves duplicadas causam conflito de estado entre páginas.</p>
+
+  <div class="callout info">
+    <div class="callout-icon">🔍</div>
+    <div class="callout-body">
+      <strong>Depurar o sessionStorage</strong>
+      <p>No Chrome DevTools → Application → Session Storage → localhost. Você pode ver e editar manualmente todos os valores persistidos pelos ViewModels.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+const sections = {};
+document.querySelectorAll('.wiki-section').forEach(s => {
+  sections[s.id.replace('sec-', '')] = s;
+});
+
+function showSection(id) {
+  document.querySelectorAll('.wiki-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  const sec = document.getElementById('sec-' + id);
+  if (sec) sec.classList.add('active');
+  const link = [...document.querySelectorAll('.nav-link')].find(l => l.getAttribute('onclick')?.includes("'" + id + "'"));
+  if (link) link.classList.add('active');
+  document.getElementById('search-overlay').classList.remove('active');
+  document.getElementById('search-input').value = '';
+  window.scrollTo(0, 0);
+  if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
+}
+
+function showSubTab(btn, panelId) {
+  const group = btn.parentElement;
+  group.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const container = btn.closest('.wiki-section');
+  container.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(panelId);
+  if (panel) panel.classList.add('active');
+}
+
+const SEARCH_INDEX = [
+  { section: 'visao-geral', title: 'Visão Geral', keywords: 'react typescript vite tailwind recharts stack rotas fluxo mvvm convenções' },
+  { section: 'arquitetura', title: 'Arquitetura', keywords: 'pastas estrutura onde criar arquivo componente página viewmodel serviço entidade' },
+  { section: 'setup', title: 'Setup', keywords: 'instalar npm pnpm vite dev build variáveis ambiente env proxy cors' },
+  { section: 'apiClient', title: 'apiClient', keywords: 'api fetch http request auth login logout propostas listar criar atualizar status documentos upload' },
+  { section: 'useApi', title: 'useApi hook', keywords: 'hook fetch loading error refetch race condition dados assincrono' },
+  { section: 'viewmodels', title: 'ViewModels', keywords: 'mvvm estado filtros ordenação modal dados derivados useMemo persistido' },
+  { section: 'entities', title: 'Entidades', keywords: 'typescript tipos proposta unidade usuario documento historico campos' },
+  { section: 'layout', title: 'Layout', keywords: 'sidebar header menu navegação dark mode bottomnav mobile outlet rota' },
+  { section: 'pageShared', title: 'PageShared', keywords: 'pageShell filterBar tableLayout desktop mobile responsivo separator dateRange viewModeToggle' },
+  { section: 'dataTable', title: 'DataTable', keywords: 'tabela genérica colunas filtro ordenação render wildcard sort clique linha' },
+  { section: 'dataCard', title: 'DataCard', keywords: 'card objeto slots titulo badge subtitulo valor footer statusBadge fieldMap' },
+  { section: 'statusBadge', title: 'StatusBadge', keywords: 'badge status proposta loja operação cor aprovado reprovado disponível' },
+  { section: 'kpiContainer', title: 'KpiContainer', keywords: 'kpi card métrica totalLojas contratosAtivos propostasAbertas vencendo' },
+  { section: 'manutencaoModal', title: 'PropostaManutencaoModal', keywords: 'modal proposta abas loja anterior necessidades tecnicas cessao taxa parecer comite historico anexos' },
+  { section: 'manutencaoShared', title: 'ManutencaoShared', keywords: 'modal toolbar toolbarBtn tabBar enumSelect infoHeaderBar headerField shell' },
+  { section: 'confirmModal', title: 'ConfirmModal', keywords: 'confirmação modal destrutivo danger título mensagem confirmar cancelar' },
+  { section: 'charts', title: 'Charts', keywords: 'gráfico recharts barChart pieChart lineChart tooltip dashboard' },
+  { section: 'datePicker', title: 'DatePickerInput', keywords: 'data input máscara dd/mm/aaaa date picker calendário' },
+  { section: 'persistedState', title: 'usePersistedState', keywords: 'sessionStorage persistir estado filtros navegação serialize deserialize string array' },
+  { section: 'filters', title: 'Filtros & Wildcards', keywords: 'matchColFilter wildcard asterisco ptBRToISO data conversão iso' },
+  { section: 'enums', title: 'Enums', keywords: 'enum constantes segmentos pisos corredores status operacao toOptionItems cores badge' },
+  { section: 'autenticacao', title: 'Autenticação', keywords: 'auth useAuth login logout token usuario isAuthenticated apiHealth online offline' },
+  { section: 'nova-pagina', title: 'Criar Nova Página', keywords: 'novo página rota menu layout viewmodel componente passo a passo' },
+  { section: 'novo-modal', title: 'Criar Modal de Edição', keywords: 'novo modal edição toolbar abas salvar cancelar confirmar' },
+  { section: 'novo-filtro', title: 'Adicionar Filtro', keywords: 'filtro checkbox enum múltiplo seleção persistir sessionStorage' },
+  { section: 'export', title: 'Exportar PDF/Excel', keywords: 'exportar pdf excel xlsx jspdf autotable relatorio download' },
+  { section: 'dark-mode', title: 'Dark Mode', keywords: 'dark mode tema escuro tailwind classes bg text border cores' },
+  { section: 'erros-comuns', title: 'Erros Comuns', keywords: 'erro bug problema cors auth modal double encoded sessionStorage tailwind dark filtro' },
+];
+
+function handleSearch(q) {
+  const overlay = document.getElementById('search-overlay');
+  const resultsDiv = document.getElementById('search-results');
+  const title = document.getElementById('search-results-title');
+  if (!q.trim()) { overlay.classList.remove('active'); return; }
+  overlay.classList.add('active');
+  const term = q.toLowerCase();
+  const results = SEARCH_INDEX.filter(item =>
+    item.title.toLowerCase().includes(term) || item.keywords.toLowerCase().includes(term)
+  );
+  title.textContent = results.length > 0
+    ? `${results.length} resultado(s) para "${q}"`
+    : `Nenhum resultado para "${q}"`;
+  resultsDiv.innerHTML = results.map(item => {
+    const snippet = item.keywords.split(' ').filter(w => w.includes(term.replace('*',''))).slice(0,5).join(', ');
+    return `<div class="search-result-item" onclick="showSection('${item.section}')">
+      <h4>${item.title.replace(new RegExp(q, 'gi'), m => '<mark>'+m+'</mark>')}</h4>
+      <p>${snippet || 'Clique para ver'}</p>
+    </div>`;
+  }).join('');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+</script>
+</body>
+</html>

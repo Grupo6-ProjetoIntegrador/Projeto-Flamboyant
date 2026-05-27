@@ -6,10 +6,9 @@ O projeto tem como objetivo a concepção de uma plataforma integrada de gestão
 
 - [🚀 Começando](#-começando)
   - [📋 Pré-requisitos](#-pré-requisitos)
-  - [🔧 Instalação do frontend](#-instalação-do-frontend)
-- [⚙️ Executando a API](#️-executando-a-api)
-  - [📋 Pré-requisitos da API](#-pré-requisitos-da-api)
-  - [🔧 Configuração e execução](#-configuração-e-execução)
+  - [🗄️ Banco de dados](#️-banco-de-dados)
+  - [📄 Variáveis de ambiente](#-variáveis-de-ambiente)
+  - [▶️ Executando o projeto](#️-executando-o-projeto)
 - [🧪 Testando com Postman](#-testando-com-postman)
   - [📥 Importando a coleção](#-importando-a-coleção)
   - [🌐 Configurando o ambiente](#-configurando-o-ambiente)
@@ -66,109 +65,112 @@ Essas instruções permitirão que você obtenha uma cópia do projeto em opera�
 
 ### 📋 Pré-requisitos
 
-Antes de começar, você vai precisar ter instalado na sua máquina:
+Instale as ferramentas abaixo antes de prosseguir. O script de inicialização cuida do restante automaticamente.
 
-- [Node.js](https://nodejs.org) v18 ou superior (recomendado: 20 LTS)
-- [pnpm](https://pnpm.io) (recomendado) ou npm/yarn
+| Ferramenta | Versão mínima | Download |
+|---|---|---|
+| [Go](https://go.dev/dl/) | 1.21+ | https://go.dev/dl/ |
+| [Node.js](https://nodejs.org) | 18 LTS+ (recomendado: 20 LTS) | https://nodejs.org |
+| [PostgreSQL](https://www.postgresql.org/download/) | 14+ | https://www.postgresql.org/download/ |
 
-Verifique se o Node.js está instalado:
+> **pnpm** não precisa ser instalado manualmente — o script `start.ps1` o instala automaticamente caso não esteja presente.
 
-```bash
-node --version
-```
-
-Instale o pnpm globalmente (caso ainda não tenha):
-
-```bash
-npm install -g pnpm
-```
-
-### 🔧 Instalação do frontend
-
-**1. Clone o repositório:**
-
-```bash
-git clone https://github.com/seu-usuario/projeto-flamboyant.git
-```
-
-**2. Acesse a pasta do frontend:**
-
-```bash
-cd Figma
-```
-
-**3. Instale as dependências do projeto:**
-
-```bash
-npm install
-```
-
-**4. Instale o `react` e `react-dom` manualmente:**
-
-> `react` e `react-dom` estão declarados como `peerDependencies` opcionais no `package.json`, o que significa que alguns gerenciadores de pacotes podem não instalá-los automaticamente. Execute este segundo comando para garantir que estejam presentes:
-
-```bash
-npm install react@18.3.1 react-dom@18.3.1
-```
-
-**5. Inicie o servidor de desenvolvimento:**
-
-```bash
-npm run dev
-```
-
-Acesse em: [http://localhost:5173](http://localhost:5173)
-
----
-
-## ⚙️ Executando a API
-
-### 📋 Pré-requisitos da API
-
-Antes de começar, você vai precisar ter instalado:
-
-- [Go](https://go.dev/dl/) v1.21 ou superior
-- [Visual Studio Code](https://code.visualstudio.com/) com a extensão [Go](https://marketplace.visualstudio.com/items?itemName=golang.Go) instalada
-
-Verifique se o Go está instalado:
+Verifique se as instalações estão corretas:
 
 ```bash
 go version
+node --version
+psql --version
 ```
 
-Para instalar a extensão no VS Code:
+---
 
-1. Abra o VS Code
-2. Acesse a aba **Extensions** (`Ctrl+Shift+X`)
-3. Pesquise por `Go` e instale a extensão oficial da **Go Team at Google**
+### 🗄️ Banco de dados
 
-### 🔧 Configuração e execução
+> [!IMPORTANT]
+> **O PostgreSQL precisa estar instalado e em execução para a API funcionar.**
 
-**1. Abra a pasta da API no VS Code:**
+Após instalar o PostgreSQL, certifique-se de que o serviço está rodando. No Windows, você pode verificar e iniciar pelo **Services** (`services.msc`) ou pelo painel de controle do instalador do PostgreSQL.
 
-```bash
-cd API
+O banco de dados e todas as tabelas são criados automaticamente pelas migrations ao iniciar a API — nenhuma configuração manual é necessária.
+
+---
+
+### 📄 Variáveis de ambiente
+
+O projeto requer dois arquivos `.env` que **não estão versionados** no repositório. Crie-os manualmente antes de rodar o projeto.
+
+#### API — `API/.env`
+
+Crie o arquivo `API/.env` na raiz da pasta `API/` com o seguinte conteúdo:
+
+```env
+SERVER_PORT=8080
+GIN_MODE=debug
+ALLOWED_ORIGIN=
+JWT_SECRET=bes2026-secret-change-in-production
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=jp-mall
+DB_SSLMODE=disable
 ```
 
-**2. Instale as dependências Go:**
+| Variável | Descrição |
+|---|---|
+| `SERVER_PORT` | Porta em que a API será iniciada |
+| `GIN_MODE` | Modo do framework (`debug` ou `release`) |
+| `ALLOWED_ORIGIN` | Origem permitida pelo CORS (deixe vazio para aceitar todas em dev) |
+| `JWT_SECRET` | Segredo para assinatura dos tokens JWT |
+| `DB_HOST` | Host do PostgreSQL |
+| `DB_PORT` | Porta do PostgreSQL (padrão: `5432`) |
+| `DB_USER` | Usuário do banco de dados |
+| `DB_PASSWORD` | Senha do banco de dados |
+| `DB_NAME` | Nome do banco de dados |
+| `DB_SSLMODE` | Modo SSL do PostgreSQL (`disable` para desenvolvimento local) |
 
-```bash
-go mod tidy
+#### Frontend — `Figma/.env`
+
+Crie o arquivo `Figma/.env` na raiz da pasta `Figma/` com o seguinte conteúdo:
+
+```env
+VITE_API_URL=http://localhost:8080/api/v1
 ```
 
-**3. Execute a API:**
+| Variável | Descrição |
+|---|---|
+| `VITE_API_URL` | URL base da API consumida pelo frontend |
 
-```bash
-go run cmd/main.go
+> Caso o arquivo `Figma/.env` não exista, o script `start.ps1` o criará automaticamente com o valor padrão acima.
+
+---
+
+### ▶️ Executando o projeto
+
+Com os pré-requisitos instalados, o banco de dados em execução e os arquivos `.env` criados, basta rodar o script na raiz do projeto:
+
+```powershell
+.\start.ps1
 ```
 
-A API estará disponível em: [http://localhost:8080](http://localhost:8080)
+O script faz tudo automaticamente:
 
-Para verificar se está no ar, acesse no navegador ou dispare pelo Postman:
+- Verifica se Go, Node.js e npm estão instalados
+- Instala o **pnpm** globalmente, caso não esteja presente
+- Atualiza as dependências Go (`go mod tidy`)
+- Instala as dependências do frontend com `pnpm install`
+- Inicia a **API** em uma janela separada na porta `8080`
+- Inicia o **Frontend** em uma janela separada na porta `5173`
 
-- **Método:** `GET`
-- **URL:** `http://localhost:8080/ping`
-- **Resposta esperada:** `200 OK` → `{ "message": "pong" }`
+Após a execução, os serviços estarão disponíveis em:
+
+| Serviço | URL |
+|---|---|
+| API | http://localhost:8080 |
+| Frontend | http://localhost:5173 |
+
+Para encerrar, feche as janelas abertas pelo script.
 
 ---
 
@@ -203,6 +205,8 @@ Projeto-Flamboyant/
 ├── API/                        → API REST em Go (Gin)
 │   ├── cmd/
 │   │   └── main.go             → Ponto de entrada da API
+│   ├── .env                    → Variáveis de ambiente da API (não versionado)
+│   ├── .env.example            → Exemplo de variáveis de ambiente
 │   ├── go.mod
 │   └── go.sum
 ├── Figma/                      → Frontend React/Vite
@@ -217,6 +221,7 @@ Projeto-Flamboyant/
 │   │   ├── assets/
 │   │   ├── styles/
 │   │   └── main.tsx
+│   ├── .env                    → Variáveis de ambiente do frontend (não versionado)
 │   ├── index.html
 │   ├── vite.config.ts
 │   └── package.json
@@ -227,6 +232,7 @@ Projeto-Flamboyant/
 │   ├── specs/                  → Especificações OpenAPI/YAML da API
 │   ├── flows/                  → Fluxos de teste encadeados
 │   └── mocks/                  → Servidores mock para testes sem API real
+├── start.ps1                   → Script de inicialização do projeto
 └── README.md
 ```
 
@@ -244,6 +250,7 @@ Projeto-Flamboyant/
 - [React Hook Form](https://react-hook-form.com) — Gerenciamento de formulários
 - [Go](https://go.dev) `1.21+` — Linguagem da API
 - [Gin](https://gin-gonic.com) — Framework web para a API
+- [PostgreSQL](https://www.postgresql.org) `14+` — Banco de dados relacional
 - [Postman](https://www.postman.com) — Testes e documentação da API
 
 ---
@@ -257,5 +264,3 @@ Projeto-Flamboyant/
 - **militao-discente** — [github.com/militao-discente](https://github.com/militao-discente)
 
 ---
-
-⌨️ com ❤️ pela equipe do Projeto-Flamboyant 😊
