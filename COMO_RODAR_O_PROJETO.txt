@@ -58,9 +58,25 @@ Copie-o e renomeie para API/.env:
 
 Em seguida, abra API/.env e preencha os campos em branco:
 
-    JWT_SECRET=coloque-uma-chave-secreta-aqui
-    DB_USER=postgres
-    DB_PASSWORD=SUA_SENHA_AQUI
+    # Porta em que a API Go vai rodar
+SERVER_PORT=8080
+
+# Modo do Gin: "debug" mostra logs detalhados | "release" para produção
+GIN_MODE=debug
+
+# Origem permitida para CORS (deixar vazio usa o proxy do Vite em dev)
+ALLOWED_ORIGIN=
+
+# Segredo para assinar tokens JWT — trocar em produção
+JWT_SECRET=
+
+# ── Banco de dados PostgreSQL ──────────────────────────────
+DB_HOST=
+DB_PORT=5432
+DB_USER=
+DB_PASSWORD=
+DB_NAME=jp-mall
+DB_SSLMODE=disable
 
   Substitua SUA_SENHA_AQUI pela senha do seu PostgreSQL.
   O JWT_SECRET pode ser qualquer texto longo (ex: uma frase aleatória).
