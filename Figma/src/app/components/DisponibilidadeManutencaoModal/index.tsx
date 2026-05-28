@@ -1,10 +1,9 @@
 import { useState, useMemo } from "react";
 import { FilePlus, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { propostas as propostasApi } from "../../data/apiClient";
-import type { PropostaResumo } from "../../data/apiClient";
 import { useApi } from "../../data/useApi";
 import { PropostaManutencaoModal } from "../PropostaManutencaoModal";
-import type { Unidade } from "../../data/apiClient";
+import type { Proposta, Unidade } from "../../data/apiClient";
 import { STATUS_VENCIDA, STATUS_APROVADO, STATUS_FINALIZADO, STATUS_DISPONIVEL, PISO_LABEL } from "../../enums";
 import type { Piso } from "../../enums";
 import { ToolbarBtn, ToolbarDivider, ManutencaoToolbar, ManutencaoModalShell, TabBar, InfoHeaderBar, HeaderField, HeaderDivider } from "../ManutencaoShared";
@@ -26,15 +25,15 @@ interface DisponibilidadeManutencaoModalProps {
   onClose: () => void;
 }
 
-export function DisponibilidadeManutencaoModal({ unidade: lojista, allUnidades: allLojistas, onClose }: DisponibilidadeManutencaoModalProps) {
+export function DisponibilidadeManutencaoModal({ unidade, allUnidades, onClose }: DisponibilidadeManutencaoModalProps) {
   const [activeTab, setActiveTab] = useState<TabId>(TAB.PROPOSTA_ATUAL);
   const [propostaModalAberta, setPropostaModalAberta] = useState<any>(null);
   const [novaPropostaEditMode, setNovaPropostaEditMode] = useState(false);
 
-  const currentIndex = allLojistas.findIndex(l => l.id === lojista.id);
+  const currentIndex = allUnidades.findIndex(l => l.id === unidade.id);
 
-  const { data: propostasData } = useApi(() => propostasApi.listar({ idUnidade: lojista.id }), [lojista.id]);
-  const todasPropostas = (propostasData || []) as PropostaResumo[];
+  const { data: propostasData } = useApi(() => propostasApi.listar({ idUnidade: unidade.id }), [unidade.id]);
+  const todasPropostas = (propostasData || []) as Proposta[];
 
   const propostaAtual = useMemo(() =>
     todasPropostas.find(p => p.status === STATUS_VENCIDA) ??
@@ -54,25 +53,24 @@ export function DisponibilidadeManutencaoModal({ unidade: lojista, allUnidades: 
 
   const handleAnterior = () => {
     if (currentIndex > 0) {
-      window.dispatchEvent(new CustomEvent('navigate-disponibilidade', { detail: allLojistas[currentIndex - 1] }));
+      window.dispatchEvent(new CustomEvent('navigate-disponibilidade', { detail: allUnidades[currentIndex - 1] }));
     }
   };
 
   const handleProximo = () => {
-    if (currentIndex < allLojistas.length - 1) {
-      window.dispatchEvent(new CustomEvent('navigate-disponibilidade', { detail: allLojistas[currentIndex + 1] }));
+    if (currentIndex < allUnidades.length - 1) {
+      window.dispatchEvent(new CustomEvent('navigate-disponibilidade', { detail: allUnidades[currentIndex + 1] }));
     }
   };
 
   const abrirNovaProposta = () => {
     const novaProposta: any = {
       id: `PROP-NOVO-${Date.now()}`,
-      unidade: lojista.codigo,
-      segmento: lojista.segmento,
+      unidade: unidade.codigo,
       tipoOperacao: 'Nova Instalação',
       tipo: 'Nova Instalação',
       valorProposto: 0,
-      area: lojista.area,
+      area: unidade.area,
       status: 'Aguardando análise financeira',
       responsavel: '',
       dataCriacao: new Date().toLocaleDateString('pt-BR'),
@@ -124,31 +122,20 @@ export function DisponibilidadeManutencaoModal({ unidade: lojista, allUnidades: 
             icon={<ChevronRight className="w-4 h-4" />}
             label="Próximo"
             onClick={handleProximo}
-            disabled={currentIndex >= allLojistas.length - 1}
+            disabled={currentIndex >= allUnidades.length - 1}
           />
           <ToolbarDivider />
           <ToolbarBtn icon={<LogOut className="w-4 h-4" />} label="Sair" onClick={onClose} />
         </ManutencaoToolbar>
 
         <InfoHeaderBar>
-          <HeaderField label="Nº da Loja" value={lojista.codigo} mono />
+          <HeaderField label="Nº da Loja" value={unidade.codigo} mono />
           <HeaderDivider />
-          <HeaderField label="Piso"      value={PISO_LABEL[lojista.piso as Piso] ?? '-'} />
+          <HeaderField label="Piso"      value={PISO_LABEL[unidade  .piso as Piso] ?? '-'} />
           <HeaderDivider />
-          <HeaderField label="Área (m²)" value={`${lojista.area} m²`} />
+          <HeaderField label="Área (m²)" value={`${unidade.area} m²`} />
           <HeaderDivider />
-          <HeaderField label="Corredor"  value={lojista.corredor} />
-          <HeaderDivider />
-          <HeaderField label="Segmento"  value={lojista.segmento} />
-          <HeaderDivider />
-          <HeaderField label="Status" colSpanFull>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border w-auto inline-flex items-center gap-1.5
-              ${lojista.status === STATUS_DISPONIVEL
-                ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-500/40'
-                : 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-500/40'}`}>
-              {lojista.status}
-            </span>
-          </HeaderField>
+          <HeaderField label="Corredor"  value={unidade.corredor} />
         </InfoHeaderBar>
 
         <TabBar

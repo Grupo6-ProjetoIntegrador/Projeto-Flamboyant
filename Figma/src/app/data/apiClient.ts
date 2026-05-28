@@ -27,8 +27,8 @@
 // ============================================================
 
 import type {
-  Proposta        as PropostaEntity,
-  Unidade         as UnidadeEntity,
+  Proposta,
+  Unidade,
   PropostaDocumento,
   PropostaHistorico,
   PropostaLojaAnterior,
@@ -36,7 +36,7 @@ import type {
   PropostaCessaoDireitos,
   PropostaTaxaTransferencia,
   PropostaParecerComite,
-  Usuario,
+  Usuario
 } from '../entities';
 
 // Re-exporta tipos de sub-tabelas para uso direto pelos componentes
@@ -47,6 +47,8 @@ export type {
   PropostaTaxaTransferencia,
   PropostaParecerComite,
   PropostaHistorico,
+  Proposta,
+  Unidade
 };
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
@@ -124,19 +126,9 @@ export const auth = {
 
 // ── Unidades ─────────────────────────────────────────────────
 
-/** Entidade Unidade com campos adicionados pela API. */
-export interface Unidade extends UnidadeEntity {
-  status: 'Disponível' | 'Ocupado';
-  /** nomeFantasia da proposta aprovada vinculada, ou status se disponível */
-  nome: string;
-  /** segmento da proposta aprovada vinculada */
-  segmento: string;
-}
-
 export interface UnidadesFiltros {
   piso?: string;
   corredor?: string;
-  status?: string;
 }
 
 export const unidades = {
@@ -144,7 +136,6 @@ export const unidades = {
     const params = new URLSearchParams();
     if (filtros?.piso)      params.set('piso', filtros.piso);
     if (filtros?.corredor)  params.set('corredor', filtros.corredor);
-    if (filtros?.status)    params.set('status', filtros.status);
     const qs = params.toString();
     return request<Unidade[]>(`/unidades${qs ? '?' + qs : ''}`);
   },
@@ -157,33 +148,7 @@ export interface PropostaFiltros {
   idUnidade?: string;
   status?: string;
   segmento?: string;
-  piso?: string;
-  dataFrom?: string;
-  dateTo?: string;
 }
-
-/**
- * Proposta com campos joined da Unidade adicionados pela API.
- * Estende a entidade `Proposta` com:
- *  - codigoUnidade / unidade (alias): código da unidade física
- *  - piso / corredor: da tabela Unidade
- *  - responsavel: nome resolvido de idUsuarioResponsavel
- *  - tipo: alias de tipoOperacao (compatibilidade legada)
- */
-export interface PropostaResumo extends PropostaEntity {
-  codigoUnidade: string;
-  /** @alias codigoUnidade — compatibilidade com páginas legadas */
-  unidade: string;
-  piso: string;
-  corredor: string;
-  /** Nome resolvido de idUsuarioResponsavel */
-  responsavel?: string;
-  /** @alias tipoOperacao — compatibilidade com páginas legadas */
-  tipo: string;
-}
-
-/** Alias de PropostaResumo — a entidade Proposta já contém todos os campos de detalhe. */
-export type PropostaDetalhe = PropostaResumo;
 
 /** Alias de PropostaDocumento — mantido para compatibilidade com imports existentes. */
 export type Documento = PropostaDocumento;
@@ -194,24 +159,21 @@ export const propostas = {
     if (filtros?.idUnidade) params.set('id_unidade', filtros.idUnidade);
     if (filtros?.status)    params.set('status', filtros.status);
     if (filtros?.segmento)  params.set('segmento', filtros.segmento);
-    if (filtros?.piso)      params.set('piso', filtros.piso);
-    if (filtros?.dataFrom)  params.set('data_from', filtros.dataFrom);
-    if (filtros?.dateTo)    params.set('data_to', filtros.dateTo);
     const qs = params.toString();
-    return request<PropostaResumo[]>(`/propostas${qs ? '?' + qs : ''}`);
+    return request<Proposta[]>(`/propostas${qs ? '?' + qs : ''}`);
   },
 
   detalhe: (id: string) =>
-    request<PropostaDetalhe>(`/propostas/${id}`),
+    request<Proposta>(`/propostas/${id}`),
 
-  criar: (payload: Partial<PropostaDetalhe>) =>
-    request<PropostaDetalhe>('/propostas', {
+  criar: (payload: Partial<Proposta>) =>
+    request<Proposta>('/propostas', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  atualizar: (id: string, payload: Partial<PropostaDetalhe>) =>
-    request<PropostaDetalhe>(`/propostas/${id}`, {
+  atualizar: (id: string, payload: Partial<Proposta>) =>
+    request<Proposta>(`/propostas/${id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),

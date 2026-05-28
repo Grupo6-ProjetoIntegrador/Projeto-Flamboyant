@@ -3,9 +3,9 @@ import { useApi } from '../data/useApi';
 import { UnidadesService } from '../services/unidades.service';
 import { PropostasService } from '../services/propostas.service';
 import { usePersistedState } from '../shared/hooks/usePersistedState';
-import type { Unidade } from '../data/apiClient';
-import { STATUS_OCUPADO, STATUS_DISPONIVEL, STATUS_APROVADO, ViewMode } from '../enums';
+import { ViewMode } from '../enums';
 import type { Piso, Corredor } from '../enums';
+import type { Unidade as UnidadeEntity } from '../entities/unidade';
 
 const NS = 'disponibilidade';
 
@@ -15,19 +15,6 @@ export function useComercialAvailability() {
     useApi(() => UnidadesService.listar(), []);
   const { data: todasPropostasData, refetch: refetchPropostas } =
     useApi(() => PropostasService.listar(), []);
-  const todasPropostas = useMemo(() => todasPropostasData || [], [todasPropostasData]);
-
-  // Adapter: nome e segmento calculados via join com Proposta aprovada
-  const allLojistas = useMemo<Unidade[]>(() => {
-    if (!todasUnidades) return [];
-    return todasUnidades.map(un => ({
-      ...un,
-      nome: un.status === STATUS_OCUPADO
-        ? (todasPropostas.find(p => p.idUnidade === un.id && p.status === STATUS_APROVADO)?.nomeFantasia || STATUS_OCUPADO)
-        : STATUS_DISPONIVEL,
-      segmento: todasPropostas.find(p => p.idUnidade === un.id && p.status === STATUS_APROVADO)?.segmento || 'Outros',
-    }));
-  }, [todasUnidades, todasPropostas]);
 
   // ── Estado persistido ────────────────────────────────────
   const [filterPisos,      setFilterPisos]      = usePersistedState<Piso[]>(`${NS}.filterPisos`, []);
@@ -36,7 +23,7 @@ export function useComercialAvailability() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // ── Estado de UI ─────────────────────────────────────────
-  const [manutencaoLojista, setManutencaoLojista] = useState<Unidade | null>(null);
+  const [manutencaoUnidade, setManutencaoUnidade] = useState<UnidadeEntity | null>(null);
 
   // Forçar mapa em mobile
   useEffect(() => {
@@ -48,22 +35,22 @@ export function useComercialAvailability() {
 
   // Navegação entre unidades via evento
   useEffect(() => {
-    const handler = (e: any) => setManutencaoLojista(e.detail);
+    const handler = (e: any) => setManutencaoUnidade(e.detail);
     window.addEventListener('navigate-disponibilidade', handler);
     return () => window.removeEventListener('navigate-disponibilidade', handler);
   }, []);
 
   // ── Dados derivados ──────────────────────────────────────
-  const filtered = useMemo<Unidade[]>(() => {
-    return allLojistas.filter(l => {
+  const filtered = useMemo<UnidadeEntity[]>(() => {
+    return todasUnidades === null ? [] : todasUnidades?.filter(l => {
       const matchPiso     = filterPisos.length === 0      || filterPisos.includes(l.piso as Piso);
       const matchCorredor = filterCorredores.length === 0 || filterCorredores.includes(l.corredor as Corredor);
       return matchPiso && matchCorredor;
     });
-  }, [allLojistas, filterPisos, filterCorredores]);
+  }, [todasUnidades, filterPisos, filterCorredores]);
 
   const mapaData = useMemo(() => {
-    const result: Record<Piso, Record<Corredor, Unidade[]>> = {
+    const result: Record<Piso, Record<Corredor, UnidadeEntity[]>> = {
       P: { A: [], B: [], C: [] },
       S: { A: [], B: [], C: [] },
       T: { A: [], B: [], C: [] },
@@ -82,13 +69,13 @@ export function useComercialAvailability() {
   const refetch = () => { refetchUnidades(); refetchPropostas(); };
 
   return {
-    allLojistas, filtered, mapaData, tableRows: filtered, todasPropostas,
+    todasUnidades, filtered, mapaData, tableRows: filtered,
     loadingUnidades,
     filterPisos, setFilterPisos,
     filterCorredores, setFilterCorredores,
     viewMode, setViewMode,
     showMobileFilters, setShowMobileFilters,
-    manutencaoLojista, setManutencaoLojista,
+    manutencaoUnidade, setManutencaoUnidade,
     refetch,
   };
 }

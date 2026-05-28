@@ -188,7 +188,7 @@ export function DataCard<T extends Record<string, any>>({
 
       {/* Linha 2: subtitle — metadados */}
       {subtitleVal && (
-        <div className="text-xs text-gray-500 dark:text-[#64748B] mb-2 truncate">
+        <div className="text-xs text-gray-500 dark:text-[#64748B] mb-2 break-words">
           {subtitleVal}
         </div>
       )}

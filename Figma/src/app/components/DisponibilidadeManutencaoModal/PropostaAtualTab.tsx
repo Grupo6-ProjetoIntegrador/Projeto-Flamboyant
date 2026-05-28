@@ -1,11 +1,11 @@
-import type { PropostaResumo } from "../../data/apiClient";
+import { Proposta } from "../../entities";
 import { fmtCurrency } from "../../utils/manutencao";
 import { TipoOperacaoBadge, StatusPropostaBadge } from "../StatusBadge";
 import { TableProposta } from "../TableProposta";
 
 interface Props {
-  propostaAtual: PropostaResumo | null;
-  onAbrirProposta: (p: PropostaResumo) => void;
+  propostaAtual: Proposta | null;
+  onAbrirProposta: (p: Proposta) => void;
 }
 
 export function PropostaAtualTab({ propostaAtual, onAbrirProposta }: Props) {

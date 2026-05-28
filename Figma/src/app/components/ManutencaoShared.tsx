@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { BadgeColors } from '../enums';
+import { DesktopRender, MobileRender } from './PageShared';
 
 // ---------------------------------------------------------------------------
 // TabDef — definição de uma aba usada em TabBar e SubTabBar
@@ -31,7 +32,7 @@ export function TabBar({
   mobileFallback?: boolean;
 }) {
   const buttons = (
-    <div className={`${mobileFallback ? 'hidden sm:flex' : 'flex'} px-4 gap-1 overflow-x-auto`}>
+    <div className="flex px-4 gap-1 overflow-x-auto">
       {tabs.map(aba => (
         <button
           key={aba.id}
@@ -52,7 +53,7 @@ export function TabBar({
   return (
     <div className="flex-shrink-0 bg-gray-50 dark:bg-[#1A1F2E] border-b border-gray-200 dark:border-[#2E3447]">
       {mobileFallback && (
-        <div className="block sm:hidden px-4 py-2">
+        <MobileRender className="px-4 py-2">
           <select
             value={activeTab}
             onChange={e => {
@@ -67,9 +68,9 @@ export function TabBar({
               </option>
             ))}
           </select>
-        </div>
+        </MobileRender>
       )}
-      {buttons}
+      {mobileFallback ? <DesktopRender>{buttons}</DesktopRender> : buttons}
     </div>
   );
 }
@@ -358,7 +359,11 @@ export function HeaderField({
 }
 
 export function HeaderDivider() {
-  return <div className="hidden sm:block w-px h-8 bg-gray-200 dark:bg-[#2E3447]" />;
+  return (
+    <DesktopRender>
+      <div className="w-px h-8 bg-gray-200 dark:bg-[#2E3447]" />
+    </DesktopRender>
+  );
 }
 
 export function ManutencaoToolbar({ children }: { children: ReactNode }) {

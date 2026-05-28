@@ -31,9 +31,9 @@ import {
   WifiOff,
 } from "lucide-react";
 import logoFlamboyant from "../../assets/isotipo_flamboyant.webp";
-import { getUserSession } from "../data/comercialStore";
 import { useAuth } from "../AuthContext";
 import { useApiHealth } from "../data/useApiHealth";
+import { MobileRender } from "./PageShared";
 
 interface SubTabDef {
   label: string;
@@ -220,10 +220,12 @@ function SidebarOverlay({
 }) {
   if (!sidebarOpen) return null;
   return (
-    <div
-      className="fixed inset-0 z-[89] bg-black/50 backdrop-blur-sm sm:hidden"
-      onClick={onClose}
-    />
+    <MobileRender>
+      <div
+        className="fixed inset-0 z-[89] bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+    </MobileRender>
   );
 }
 
@@ -241,7 +243,7 @@ function Sidebar({
   sidebarOpen: boolean;
   onClose: () => void;
   pathname: string;
-  userSession: ReturnType<typeof getUserSession>;
+  userSession: { name?: string; email?: string } | null;
   apiStatus: ReturnType<typeof useApiHealth>;
   onLogout: () => void;
 }) {
@@ -287,11 +289,11 @@ function Sidebar({
         )}
         <div className="flex items-center gap-3 px-1">
           <div className="w-8 h-8 rounded-full bg-[#C8A882] text-[#8B1A1A] font-bold flex items-center justify-center text-xs flex-shrink-0">
-            {getInitials(userSession.name || 'JP Mall')}
+            {getInitials(userSession?.name || 'JP Mall')}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate">{userSession.name || 'Gerente JP Mall'}</p>
-            <p className="text-xs text-white/50 truncate">{userSession.email || 'gerente@jpmall.com.br'}</p>
+            <p className="text-xs font-semibold text-white truncate">{userSession?.name || 'Gerente JP Mall'}</p>
+            <p className="text-xs text-white/50 truncate">{userSession?.email || 'gerente@jpmall.com.br'}</p>
           </div>
         </div>
         <button
@@ -385,13 +387,15 @@ function ContentArea({
 // ---------------------------------------------------------------------------
 function BottomNav() {
   return (
-    <nav className="block sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#242938] border-t border-gray-200 dark:border-[#2E3447] flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
-      {navigationItems.flatMap(item => item.subTabs ?? []).map(sub => (
-        sub.icon && (
-          <BottomNavItem key={sub.path} label={sub.label} path={sub.path} icon={sub.icon} />
-        )
-      ))}
-    </nav>
+    <MobileRender>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#242938] border-t border-gray-200 dark:border-[#2E3447] flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
+        {navigationItems.flatMap(item => item.subTabs ?? []).map(sub => (
+          sub.icon && (
+            <BottomNavItem key={sub.path} label={sub.label} path={sub.path} icon={sub.icon} />
+          )
+        ))}
+      </nav>
+    </MobileRender>
   );
 }
 
@@ -407,15 +411,11 @@ export function Layout() {
     const saved = localStorage.getItem("jp-mall-dark-mode");
     return saved === "true";
   });
-  const [userSession, setUserSession] = useState(getUserSession());
   const apiStatus = useApiHealth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
-
-  useEffect(() => {
-    setUserSession(getUserSession());
-  }, [location.pathname]);
+  const { logout, usuario } = useAuth();
+  const userSession = usuario ? { name: usuario.nome, email: usuario.email } : null;
 
   useEffect(() => {
     if (darkMode) {
