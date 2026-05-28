@@ -31,11 +31,9 @@ if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
 }
 Log "npm: $(npm --version)"
 
-# ── Verificar / instalar pnpm ─────────────────────────────────
+# ── Verificar pnpm ─────────────────────────────────
 if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
-    Log "pnpm nao encontrado. Instalando via npm..."
-    npm install -g pnpm
-    if ($LASTEXITCODE -ne 0) { Err "Falha ao instalar pnpm" }
+    Err "pnpm nao encontrado. Instale em: https://pnpm.io/installation"
 }
 Log "pnpm: $(pnpm --version)"
 
