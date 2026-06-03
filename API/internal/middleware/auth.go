@@ -1,35 +1,49 @@
-// ============================================================
-// middleware/auth.go — Middleware de autenticação HTTP (MODO PROTÓTIPO)
-// ============================================================
-//
-// MODO PROTÓTIPO: validação de token JWT completamente desabilitada.
-// O middleware injeta um usuário fixo no contexto Gin para que os
-// handlers possam chamar c.GetString("user_id") sem erro.
-//
-// Para produção:
-//  1. Extrair o header "Authorization: Bearer <token>"
-//  2. Validar a assinatura JWT com JWT_SECRET do .env
-//  3. Verificar se o token bate com token_ativo_u no banco (sessão única)
-//  4. Verificar se token_expira_em_u não passou
-//  5. Injetar user_id, user_email, user_nome, user_setor no contexto
-//  6. Retornar 401 se qualquer verificação falhar
-// ============================================================
 package middleware
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"go-api/internal/handlers"
 )
 
-// Auth — MODO PROTÓTIPO: middleware desabilitado, todas as rotas são públicas
-func Auth(db *pgxpool.Pool, authHandler *handlers.AuthHandler) gin.HandlerFunc {
+type authClaims struct {
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+	Nome   string `json:"nome"`
+	Setor  string `json:"setor"`
+	jwt.RegisteredClaims
+}
+
+func Auth(db *pgxpool.Pool, jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Injetar usuário fixo de protótipo no contexto
-		c.Set("user_id", "proto-001")
-		c.Set("user_email", "admin@flamboyant.com.br")
-		c.Set("user_nome", "Administrador")
-		c.Set("user_setor", "Comercial")
+		authorizationHeader := c.GetHeader("Authorization")
+		parts := strings.Fields(authorizationHeader)
+		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" || parts[1] == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Nao autorizado"})
+			return
+		}
+
+		tokenString := parts[1]
+		claims := &authClaims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrTokenSignatureInvalid
+			}
+			return []byte(jwtSecret), nil
+		})
+		if err != nil || token == nil || !token.Valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Nao autorizado"})
+			return
+		}
+
+		c.Set("user", claims)
+		c.Set("user_id", claims.UserID)
+		c.Set("user_email", claims.Email)
+		c.Set("user_nome", claims.Nome)
+		c.Set("user_setor", claims.Setor)
 		c.Next()
 	}
 }
