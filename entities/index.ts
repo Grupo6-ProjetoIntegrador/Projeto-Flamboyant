@@ -16,3 +16,7 @@ export * from './proposta_necessidades_tecnicas_historico';
 export * from './proposta_cessao_direitos_historico';
 export * from './proposta_taxa_transferencia_historico';
 export * from './proposta_parecer_comite_historico';
+<<<<<<< Updated upstream
+=======
+export * from './proposta_documento_historico';
+>>>>>>> Stashed changes

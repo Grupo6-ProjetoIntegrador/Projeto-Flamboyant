@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const tokenDuration = time.Hour
+// REMOVIDO: const tokenDuration = time.Hour (Agora vem do config)
 
 type Claims struct {
 	UserID string `json:"user_id"`
@@ -23,14 +23,17 @@ type Claims struct {
 }
 
 type AuthHandler struct {
-	db        *pgxpool.Pool
-	jwtSecret []byte
+	db            *pgxpool.Pool
+	jwtSecret     []byte
+	tokenDuration time.Duration // <-- ADICIONADO: Guarda a duração configurável
 }
 
-func NewAuthHandler(db *pgxpool.Pool, jwtSecret string) *AuthHandler {
+// Atualizado para receber a duration do config.go no momento da inicialização
+func NewAuthHandler(db *pgxpool.Pool, jwtSecret string, tokenDuration time.Duration) *AuthHandler {
 	return &AuthHandler{
-		db:        db,
-		jwtSecret: []byte(jwtSecret),
+		db:            db,
+		jwtSecret:     []byte(jwtSecret),
+		tokenDuration: tokenDuration, // <-- ADICIONADO
 	}
 }
 
@@ -60,7 +63,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// setor pode ser NULL no banco — usar *string para aceitar nil
 	var id, nome, senhaHash string
 	var setorPtr *string
 	err := h.db.QueryRow(ctx,
@@ -73,7 +75,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Converter *string para string
 	setor := ""
 	if setorPtr != nil {
 		setor = *setorPtr
@@ -84,7 +85,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	expiracao := time.Now().Add(tokenDuration)
+	// MODIFICADO: Agora usa a duração dinâmica injetada na struct do handler
+	expiracao := time.Now().Add(h.tokenDuration)
 	claims := &Claims{
 		UserID: id,
 		Email:  req.Email,
@@ -104,7 +106,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Salvar token no banco — sessão única
 	_, err = h.db.Exec(ctx,
 		`UPDATE "Usuario" SET token_ativo_u = $1, token_expira_em_u = $2 WHERE id_u = $3`,
 		tokenString, expiracao, id,
@@ -138,7 +139,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		userID,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao encerrar sessao"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao registrar sessao"})
 		return
 	}
 

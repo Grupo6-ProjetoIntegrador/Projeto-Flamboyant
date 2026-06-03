@@ -48,7 +48,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	routes.Register(r, db, cfg.Server.JwtSecret)
+	routes.Register(r, db, cfg.Server)
 
 	r.GET("/health", func(c *gin.Context) {
 		if err := db.Ping(context.Background()); err != nil {
