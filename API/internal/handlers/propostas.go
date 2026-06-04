@@ -218,3 +218,141 @@ func (h *PropostasHandler) PlaceholderOK(c *gin.Context) {
 func (h *PropostasHandler) PlaceholderList(c *gin.Context) {
 	c.JSON(http.StatusOK, []any{})
 }
+
+func (h *PropostasHandler) Atualizar(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+
+	var body struct {
+		Segmento       string  `json:"segmento"`
+		ValorProposto  float64 `json:"valorProposto"`
+		Area           float64 `json:"area"`
+		NomeFantasia   *string `json:"nomeFantasia"`
+		DataVencimento *string `json:"dataVencimento"`
+		Observacoes    *string `json:"observacoes"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	type snapshot struct {
+		codigoUnidade   string
+		segmento        string
+		tipoOperacao    string
+		valorProposto   float64
+		area            float64
+		abl             *float64
+		status          string
+		dataCriacao     string
+		dataVencimento  *string
+		nomeFantasia    *string
+		aluguelPercent  *float64
+		prazoLocacao    *int
+		aluguelPorM2    *float64
+		condominioAprox *float64
+		fppAprox        *float64
+		inicioContrato  *string
+		fimContrato     *string
+		dataInauguracao *string
+		observacoes     *string
+		atualizadoEm    *string
+	}
+
+	var snap snapshot
+	err := h.db.QueryRow(ctx, `
+		SELECT
+			u.codigo_un,
+			p.segmento_p, p.tipo_operacao_p,
+			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
+			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p,
+			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		WHERE p.id_p = $1
+	`, id).Scan(
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
+		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
+		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox,
+		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.observacoes, &snap.atualizadoEm,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transação"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaHistorico" (
+			id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
+			valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
+			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
+			condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES (
+			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+		)
+	`,
+		id, userID,
+		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
+		snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
+		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
+		snap.condominioAprox, snap.fppAprox,
+		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
+		snap.observacoes, snap.atualizadoEm,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		UPDATE "Proposta"
+		SET
+			segmento_p              = $1,
+			valor_proposto_p        = $2,
+			area_p                  = $3,
+			nome_fantasia_p         = $4,
+			data_vencimento_p       = $5,
+			observacoes_p           = $6,
+			id_usuario_ultima_alt_p = $7,
+			atualizado_em_p         = $8
+		WHERE id_p = $9
+	`,
+		body.Segmento, body.ValorProposto, body.Area,
+		body.NomeFantasia, body.DataVencimento, body.Observacoes,
+		userID, time.Now(), id,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao atualizar proposta"})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar transação"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Proposta atualizada com sucesso"})
+}
