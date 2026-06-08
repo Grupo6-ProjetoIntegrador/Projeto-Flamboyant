@@ -3,38 +3,47 @@
 // ============================================================
 //
 // Listar (GET /api/v1/propostas):
-//  JOIN com Unidade para trazer piso/corredor/código.
-//  JOIN com Usuario para trazer nome do responsável.
-//  Filtros: id_unidade, status, segmento, piso, data_from, data_to.
-//  Campos 'unidade' e 'tipo' são aliases de codigoUnidade e tipoOperacao
-//  mantidos por compatibilidade com o frontend legado.
+//
+//	JOIN com Unidade para trazer piso/corredor/código.
+//	JOIN com Usuario para trazer nome do responsável.
+//	Filtros: id_unidade, status, segmento, piso, data_from, data_to.
+//	Campos 'unidade' e 'tipo' são aliases de codigoUnidade e tipoOperacao
+//	mantidos por compatibilidade com o frontend legado.
 //
 // Detalhe (GET /api/v1/propostas/:id):
-//  Mesma query do Listar mas filtrada por ID.
+//
+//	Mesma query do Listar mas filtrada por ID.
 //
 // Criar (POST /api/v1/propostas):
-//  Insere nova proposta. user_id vem do contexto Gin (injetado pelo middleware).
-//  Retorna 201 Created com o ID gerado.
+//
+//	Insere nova proposta. user_id vem do contexto Gin (injetado pelo middleware).
+//	Retorna 201 Created com o ID gerado.
 //
 // AtualizarStatus (PATCH /api/v1/propostas/:id/status):
-//  Atualiza status_p e opcionalmente observacoes_p.
-//  Registra atualizado_em_p com time.Now().
+//
+//	Atualiza status_p e opcionalmente observacoes_p.
+//	Registra atualizado_em_p com time.Now().
 //
 // Historico, PlaceholderOK:
-//  Historico retorna [] — implementação futura via PropostaHistorico.
-//  PlaceholderOK retorna 200 OK para sub-recursos ainda não implementados.
+//
+//	Historico carrega PropostaHistorico por id da proposta.
+//	PlaceholderOK retorna 200 OK para sub-recursos ainda não implementados.
+//
 // ============================================================
 package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"go-api/internal/entities"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PropostasHandler struct {
@@ -67,22 +76,34 @@ func (h *PropostasHandler) Listar(c *gin.Context) {
 	i := 1
 
 	if v := c.Query("id_unidade"); v != "" {
-		query += fmt.Sprintf(" AND p.id_unidade_p = $%d", i); args = append(args, v); i++
+		query += fmt.Sprintf(" AND p.id_unidade_p = $%d", i)
+		args = append(args, v)
+		i++
 	}
 	if v := c.Query("status"); v != "" {
-		query += fmt.Sprintf(" AND p.status_p = $%d", i); args = append(args, v); i++
+		query += fmt.Sprintf(" AND p.status_p = $%d", i)
+		args = append(args, v)
+		i++
 	}
 	if v := c.Query("segmento"); v != "" {
-		query += fmt.Sprintf(" AND p.segmento_p = $%d", i); args = append(args, v); i++
+		query += fmt.Sprintf(" AND p.segmento_p = $%d", i)
+		args = append(args, v)
+		i++
 	}
 	if v := c.Query("piso"); v != "" {
-		query += fmt.Sprintf(" AND u.piso_un = $%d", i); args = append(args, v); i++
+		query += fmt.Sprintf(" AND u.piso_un = $%d", i)
+		args = append(args, v)
+		i++
 	}
 	if v := c.Query("data_from"); v != "" {
-		query += fmt.Sprintf(" AND p.data_criacao_p >= $%d", i); args = append(args, v); i++
+		query += fmt.Sprintf(" AND p.data_criacao_p >= $%d", i)
+		args = append(args, v)
+		i++
 	}
 	if v := c.Query("data_to"); v != "" {
-		query += fmt.Sprintf(" AND p.data_criacao_p <= $%d", i); args = append(args, v); i++
+		query += fmt.Sprintf(" AND p.data_criacao_p <= $%d", i)
+		args = append(args, v)
+		i++
 	}
 
 	query += " ORDER BY p.atualizado_em_p DESC"
@@ -149,14 +170,14 @@ func (h *PropostasHandler) Criar(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	var body struct {
-		IDUnidade      string   `json:"idUnidade"`
-		Segmento       string   `json:"segmento"`
-		TipoOperacao   string   `json:"tipoOperacao"`
-		ValorProposto  float64  `json:"valorProposto"`
-		Area           float64  `json:"area"`
-		NomeFantasia   string   `json:"nomeFantasia"`
-		DataVencimento *string  `json:"dataVencimento"`
-		Observacoes    string   `json:"observacoes"`
+		IDUnidade      string  `json:"idUnidade"`
+		Segmento       string  `json:"segmento"`
+		TipoOperacao   string  `json:"tipoOperacao"`
+		ValorProposto  float64 `json:"valorProposto"`
+		Area           float64 `json:"area"`
+		NomeFantasia   string  `json:"nomeFantasia"`
+		DataVencimento *string `json:"dataVencimento"`
+		Observacoes    string  `json:"observacoes"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
@@ -208,7 +229,53 @@ func (h *PropostasHandler) AtualizarStatus(c *gin.Context) {
 }
 
 func (h *PropostasHandler) Historico(c *gin.Context) {
-	c.JSON(http.StatusOK, []any{})
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var propostaID string
+	if err := h.db.QueryRow(ctx, `
+		SELECT id_p
+		FROM "Proposta"
+		WHERE id_p = $1
+	`, id).Scan(&propostaID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar proposta"})
+		return
+	}
+
+	rows, err := h.db.Query(ctx, `
+		SELECT
+			id_ph, id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph, valor_proposto_ph,
+			area_ph, abl_ph, status_ph, data_criacao_ph, data_vencimento_ph,
+			nome_fantasia_ph, aluguel_percent_ph, prazo_locacao_meses_ph,
+			aluguel_por_m2_ph, condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		FROM "PropostaHistorico"
+		WHERE id_proposta_ph = $1
+		ORDER BY editado_em_ph DESC
+	`, propostaID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar historico"})
+		return
+	}
+	defer rows.Close()
+
+	historicos, err := pgx.CollectRows(rows, pgx.RowToStructByName[entities.PropostaHistorico])
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao processar historico"})
+		return
+	}
+	if historicos == nil {
+		historicos = []entities.PropostaHistorico{}
+	}
+
+	c.JSON(http.StatusOK, historicos)
 }
 
 func (h *PropostasHandler) PlaceholderOK(c *gin.Context) {

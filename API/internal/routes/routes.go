@@ -1,38 +1,22 @@
 // ============================================================
 // routes/routes.go — Registro de todas as rotas da API
 // ============================================================
-//
-// Organização:
-//  Rotas públicas (sem middleware):
-//    GET  /ping              — health check (usado pelo useApiHealth)
-//    POST /api/v1/auth/login — autenticação
-//
-//  Rotas protegidas (com middleware Auth):
-//    Auth:       logout, me
-//    Unidades:   listar (GET /unidades), detalhe (GET /unidades/:id)
-//    Propostas:  CRUD completo + sub-recursos (historico, loja-anterior,
-//                necessidades-tecnicas, cessao-direitos, taxa-transferencia,
-//                parecer-comite)
-//    Documentos: listar, upload (POST multipart), remover
-//
-// Handlers implementados: auth, unidades, propostas (parcial)
-// Handlers placeholder (retornam 200 OK sem lógica): sub-recursos de
-// proposta e documentos — serão implementados nas próximas iterações.
-// ============================================================
 package routes
 
 import (
 	"net/http"
 
+	"go-api/internal/config"     // <-- Corrigido usando o nome do módulo
+	"go-api/internal/handlers"   // <-- Certifique-se de que está assim
+	"go-api/internal/middleware" // <-- Certifique-se de que está assim
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"go-api/internal/handlers"
-	"go-api/internal/middleware"
 )
 
-func Register(r *gin.Engine, db *pgxpool.Pool, jwtSecret string) {
+func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 
-	authHandler := handlers.NewAuthHandler(db, jwtSecret)
+	authHandler := handlers.NewAuthHandler(db, cfg.JwtSecret, cfg.JwtDuration)
 	unidadesHandler := handlers.NewUnidadesHandler(db)
 	propostasHandler := handlers.NewPropostasHandler(db)
 
@@ -43,9 +27,9 @@ func Register(r *gin.Engine, db *pgxpool.Pool, jwtSecret string) {
 
 	r.POST("/api/v1/auth/login", authHandler.Login)
 
-	// Rotas protegidas (middleware bypassado no modo protótipo)
 	api := r.Group("/api/v1")
-	api.Use(middleware.Auth(db, authHandler))
+	// <-- 2. AJUSTADO: Agora o middleware lê a chave de dentro da struct cfg
+	api.Use(middleware.Auth(db, cfg.JwtSecret))
 	{
 		// Auth
 		api.POST("/auth/logout", authHandler.Logout)

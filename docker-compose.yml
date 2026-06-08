@@ -42,6 +42,7 @@ services:
       GIN_MODE: ${GIN_MODE:-release}
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_DURATION: ${JWT_DURATION:-24h}
       DB_HOST: postgres              # nome do serviço interno do compose
       DB_PORT: 5432
       DB_USER: ${DB_USER:-postgres}
