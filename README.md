@@ -1,3 +1,42 @@
+
+## . Estrutura de Pastas Resumida
+
+```
+Projeto-Flamboyant/
+├── .env.example              ← variáveis de ambiente necessárias
+├── docker-compose.yml        ← orquestração dos 3 serviços
+│
+├── API/                      ← Backend Go
+│   ├── cmd/main.go           ← ponto de entrada: DB + rotas + servidor
+│   ├── internal/
+│   │   ├── config/           ← lê variáveis de ambiente
+│   │   ├── database/         ← pool pgx + golang-migrate
+│   │   ├── entities/         ← structs geradas pelo codegen (DO NOT EDIT)
+│   │   ├── handlers/         ← lógica HTTP de cada recurso
+│   │   ├── middleware/        ← auth JWT
+│   │   └── routes/           ← registro de todos os endpoints
+│   └── migrations/           ← 000001..000005 SQL up/down
+│
+├── Figma/                    ← Frontend React/Vite
+│   └── src/app/
+│       ├── data/             ← apiClient.ts, useApi hook
+│       ├── entities/         ← interfaces TS geradas (DO NOT EDIT)
+│       ├── services/         ← PropostasService, UnidadesService (Model)
+│       ├── viewmodels/       ← hooks com lógica de negócio (ViewModel)
+│       ├── pages/comercial/  ← telas do módulo comercial (View)
+│       ├── components/       ← componentes reutilizáveis
+│       ├── App.tsx           ← roteamento + AuthContext provider
+│       └── AuthContext.tsx   ← estado global de autenticação
+│
+├── codegen/
+│   └── generate.go           ← lê migrations SQL, gera .go e .ts
+│
+├── entities/                 ← fonte intermediária (copiada para API e Figma)
+│
+└── postman/                  ← coleções, specs OpenAPI, mocks para testes
+```
+
+
 # 🏛️ Arquitetura C4 — Projeto Flamboyant - JP MALL
 
 > Este documento descreve a arquitetura do **Projeto Flamboyant** usando o **C4 Model**, 
