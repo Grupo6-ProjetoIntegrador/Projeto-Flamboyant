@@ -260,7 +260,7 @@ erDiagram
         TIMESTAMP atualizado_em_p
     }
 
-    PropostaLojaAnterior {
+   PropostaLojaAnterior {
         UUID id_proposta_pla PK_FK
         VARCHAR nome_fantasia_pla
         VARCHAR segmento_pla
@@ -276,7 +276,6 @@ erDiagram
         DECIMAL area_minima_m2_pnt
         VARCHAR status_pnt
     }
-
     PropostaCessaoDireitos {
         UUID id_proposta_pcd PK_FK
         DECIMAL res_sperata_proposta_pcd
