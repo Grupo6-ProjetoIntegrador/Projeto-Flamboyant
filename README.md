@@ -222,6 +222,7 @@ C4Component
 ### 3.3 Componentes do Banco de Dados (PostgreSQL)
 
 ```mermaid
+
 erDiagram
     Usuario {
         UUID id_u PK
@@ -276,6 +277,7 @@ erDiagram
         DECIMAL area_minima_m2_pnt
         VARCHAR status_pnt
     }
+
     PropostaCessaoDireitos {
         UUID id_proposta_pcd PK_FK
         DECIMAL res_sperata_proposta_pcd
