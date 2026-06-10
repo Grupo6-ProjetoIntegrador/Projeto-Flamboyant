@@ -450,4 +450,21 @@ npm run dev
 
 ---
 
-⌨️ com ❤️ pela equipe do Projeto-Flamboyant
+## 🏗️ Arquitetura e Modelo C4 (C4 Model)
+
+O sistema segue o padrão **C4 Model** para documentação arquitetural, dividindo a complexidade do ecossistema em níveis crescentes de detalhe. Abaixo estão os diagramas de contexto, contentores e componentes do **Projeto Flamboyant**.
+
+---
+
+### 🌍 Nível 1: Diagrama de Contexto de Sistema (System Context)
+
+O diagrama de contexto apresenta uma visão macro, destacando as interações fundamentais entre os utilizadores comerciais e o ecossistema do sistema, sem entrar em pormenores tecnológicos.
+
+```mermaid
+C4Context
+    title Diagrama de Contexto de Sistema - Projeto Flamboyant
+    
+    Person(user, "Usuário Comercial", "Gerentes comerciais, administradores e equipa de locação do JP Mall.")
+    System(sys, "Projeto Flamboyant", "Plataforma centralizada de gestão de propostas comerciais, disponibilidade física das unidades do shopping e geração de relatórios gerenciais.")
+    
+    Rel(user, sys, "Gerencia unidades, cria propostas, elabora contratos e acede a dashboards", "HTTPS")
