@@ -62,15 +62,18 @@ export interface ApiError {
 
 // ── Helper central ───────────────────────────────────────────
 
-// MODO PROTÓTIPO — sem autenticação via token
 async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const session = sessionStorage.getItem('jp-mall-session');
+  const token = session ? JSON.parse(session).token : null;
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });

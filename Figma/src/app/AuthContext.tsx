@@ -1,24 +1,3 @@
-// ============================================================
-// AuthContext.tsx — Contexto de autenticação (MODO PROTÓTIPO)
-// ============================================================
-//
-// Gerencia o estado de autenticação globalmente via React Context.
-//
-// MODO PROTÓTIPO: o usuário começa sempre autenticado com um usuário
-// fixo (USUARIO_PROTOTIPO). O login aceita qualquer credencial e apenas
-// salva o perfil na sessionStorage. Não há validação de token JWT.
-//
-// Para produção:
-//  - substituir USUARIO_PROTOTIPO pela resposta real da API
-//  - no login(), chamar apiClient.auth.login() e salvar o token JWT
-//  - no logout(), chamar apiClient.auth.logout() e limpar o token
-//  - o estado inicial deve ler o token do localStorage, não ser fixo
-//
-// Exporta:
-//  AuthContext      — contexto bruto (usado pelo useApi para ler token)
-//  AuthProvider     — wrapper que deve envolver toda a aplicação
-//  useAuth()        — hook para consumir login/logout/isAuthenticated
-// ============================================================
 import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
@@ -42,26 +21,31 @@ interface AuthContextValue extends AuthState {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
-const USUARIO_PROTOTIPO: Usuario = {
-  id: 'proto-001',
-  nome: 'Administrador',
-  email: 'admin@flamboyant.com.br',
-  setor: 'Comercial',
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [auth, setAuth] = useState<AuthState>({
-    token: 'proto-token',
-    usuario: USUARIO_PROTOTIPO,
+  const [auth, setAuth] = useState<AuthState>(() => {
+    const session = sessionStorage.getItem('jp-mall-session');
+    if (session) {
+      const parsed = JSON.parse(session);
+      return {
+        token: parsed.token || null,
+        usuario: parsed.token ? {
+          nome: parsed.name,
+          email: parsed.email,
+          setor: parsed.sector,
+        } : null,
+      };
+    }
+    return { token: null, usuario: null };
   });
 
-  const login = useCallback((_token: string, usuario: Usuario) => {
+  const login = useCallback((token: string, usuario: Usuario) => {
     sessionStorage.setItem('jp-mall-session', JSON.stringify({
+      token,
       name: usuario.nome,
       email: usuario.email,
       sector: usuario.setor,
     }));
-    setAuth({ token: 'proto-token', usuario });
+    setAuth({ token, usuario });
   }, []);
 
   const logout = useCallback(() => {

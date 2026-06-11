@@ -26,22 +26,30 @@ export function Login() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     const form = e.currentTarget;
     const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
 
-    // MODO PROTÓTIPO — sem validação real, qualquer credencial entra
-    login('proto-token', {
-      nome: 'Administrador',
-      email: email || 'admin@flamboyant.com.br',
-      setor: 'Comercial',
-    });
-
-    const from = (location.state as any)?.from?.pathname || "/comercial/dashboard";
-    navigate(from, { replace: true });
+    // Chama a API real de login
+    try {
+      const senha = (form.elements.namedItem('password') as HTMLInputElement)?.value;
+      const response = await import('../data/apiClient').then(m => m.auth.login({ email, senha }));
+      login(response.token, {
+        id: response.usuario.id,
+        nome: response.usuario.nome,
+        email: response.usuario.email,
+        setor: response.usuario.setor,
+      });
+      const from = (location.state as any)?.from?.pathname || "/comercial/dashboard";
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      alert(err.message || 'Credenciais inválidas');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
