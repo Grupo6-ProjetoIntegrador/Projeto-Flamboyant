@@ -11,4 +11,6 @@ type Usuario struct {
 	SenhaHash                                string       `json:"senhaHash" db:"senha_hash_u"`
 	Setor                                    *string      `json:"setor" db:"setor_u"`
 	CriadoEm                                 string       `json:"criadoEm" db:"criado_em_u"`
+	TokenAtivo                               *string      `json:"tokenAtivo" db:"token_ativo_u"`
+	TokenExpiraEm                            *string      `json:"tokenExpiraEm" db:"token_expira_em_u"`
 }

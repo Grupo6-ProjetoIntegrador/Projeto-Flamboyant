@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -39,7 +41,20 @@ func Auth(db *pgxpool.Pool, jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user", claims)
+		// Valida sessão única e expiração no banco
+		ctx := context.Background()
+		var tokenAtivo *string
+		var tokenExpiraEm *time.Time
+		err = db.QueryRow(ctx,
+			`SELECT token_ativo_u, token_expira_em_u FROM "Usuario" WHERE id_u = $1`,
+			claims.UserID,
+		).Scan(&tokenAtivo, &tokenExpiraEm)
+
+		if err != nil || tokenAtivo == nil || *tokenAtivo != tokenString || tokenExpiraEm == nil || time.Now().After(*tokenExpiraEm) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Nao autorizado"})
+			return
+		}
+
 		c.Set("user_id", claims.UserID)
 		c.Set("user_email", claims.Email)
 		c.Set("user_nome", claims.Nome)

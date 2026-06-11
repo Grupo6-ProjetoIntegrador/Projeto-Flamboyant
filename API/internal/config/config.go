@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -33,7 +34,7 @@ type DatabaseConfig struct {
 func Load() *Config {
 	environment := normalizedEnv("ENV", "development")
 	jwtSecret := getJWTSecret(environment)
-	jwtDuration := getJWTDuration()
+	jwtDuration := getJWTExpirationDuration()
 
 	return &Config{
 		Server: ServerConfig{
@@ -87,29 +88,25 @@ func getJWTSecret(environment string) string {
 	return getEnv("JWT_SECRET", "bes2026-secret-change-in-production")
 }
 
-func getJWTDuration() time.Duration {
-	durationStr := getEnv("JWT_DURATION", "24h")
-	durationStr = strings.TrimSpace(durationStr)
-	if durationStr == "" {
-		durationStr = "24h"
+// getJWTExpirationDuration lê JWT_EXPIRATION_HOURS e retorna como time.Duration
+// Padrão: 24 horas se não especificado
+func getJWTExpirationDuration() time.Duration {
+	hoursStr := strings.TrimSpace(getEnv("JWT_EXPIRATION_HOURS", ""))
+	
+	// Se vazio, usa padrão de 24 horas
+	if hoursStr == "" {
+		return 24 * time.Hour
 	}
 
-	if strings.HasSuffix(strings.ToLower(durationStr), "d") {
-		days := strings.TrimSuffix(strings.ToLower(durationStr), "d")
-		if days == "" {
-			log.Fatalf("Erro crítico: formato inválido para JWT_DURATION '%s'", durationStr)
-		}
-		parsedDays, err := time.ParseDuration(days + "h")
-		if err != nil {
-			log.Fatalf("Erro crítico: formato inválido para JWT_DURATION '%s': %v", durationStr, err)
-		}
-		return parsedDays * 24
-	}
-
-	parsedDuration, err := time.ParseDuration(durationStr)
+	// Tenta converter para inteiro
+	hours, err := strconv.Atoi(hoursStr)
 	if err != nil {
-		log.Fatalf("Erro crítico: formato inválido para JWT_DURATION '%s': %v", durationStr, err)
+		log.Fatalf("Erro crítico: JWT_EXPIRATION_HOURS deve ser um número inteiro (horas), recebido '%s': %v", hoursStr, err)
 	}
 
-	return parsedDuration
+	if hours <= 0 {
+		log.Fatalf("Erro crítico: JWT_EXPIRATION_HOURS deve ser maior que 0, recebido '%d'", hours)
+	}
+
+	return time.Duration(hours) * time.Hour
 }

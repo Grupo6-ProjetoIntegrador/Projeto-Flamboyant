@@ -14,7 +14,9 @@ CREATE TABLE "Usuario" (
     email_u       VARCHAR(200)  NOT NULL UNIQUE,
     senha_hash_u  VARCHAR(255)  NOT NULL,
     setor_u       VARCHAR(100),
-    criado_em_u   TIMESTAMP     NOT NULL DEFAULT NOW()
+    criado_em_u   TIMESTAMP     NOT NULL DEFAULT NOW(),
+    token_ativo_u     VARCHAR(500),
+    token_expira_em_u TIMESTAMP
 );
 
 -- ============================================================
