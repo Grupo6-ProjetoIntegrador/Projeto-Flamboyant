@@ -1287,3 +1287,211 @@ func (h *PropostasHandler) PlaceholderOK(c *gin.Context) {
 func (h *PropostasHandler) PlaceholderList(c *gin.Context) {
 	c.JSON(http.StatusOK, []any{})
 }
+func (h *PropostasHandler) GetTaxaTransferencia(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var tipoOperacao string
+	err := h.db.QueryRow(ctx,
+		`SELECT tipo_operacao_p FROM "Proposta" WHERE id_p = $1`, id,
+	).Scan(&tipoOperacao)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar proposta"})
+		return
+	}
+
+	if tipoOperacao != "Transferência" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Operação não permite taxa de transferência"})
+		return
+	}
+
+	var tt entities.PropostaTaxaTransferencia
+	err = h.db.QueryRow(ctx, `
+		SELECT id_proposta_ptt,
+		       tt_contratual_ptt, tt_proposta_ptt, tt_proposta_num_amm_ptt,
+		       sinal_tt_ptt, forma_pagamento_tt_ptt, justificativa_tt_ptt, status_tt_ptt
+		FROM "PropostaTaxaTransferencia"
+		WHERE id_proposta_ptt = $1
+	`, id).Scan(
+		&tt.IdProposta,
+		&tt.TtContratual, &tt.TtProposta, &tt.TtPropostaNumAmm,
+		&tt.SinalTt, &tt.FormaPagamentoTt, &tt.JustificativaTt, &tt.StatusTt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusOK, nil)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar taxa de transferência"})
+		return
+	}
+
+	c.JSON(http.StatusOK, tt)
+}
+
+func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+
+	type propostaSnap struct {
+		codigoUnidade   string
+		segmento        string
+		tipoOperacao    string
+		valorProposto   float64
+		area            float64
+		abl             *float64
+		status          string
+		dataCriacao     string
+		dataVencimento  *string
+		nomeFantasia    *string
+		aluguelPercent  *float64
+		prazoLocacao    *int
+		aluguelPorM2    *float64
+		condominioAprox *float64
+		fppAprox        *float64
+		inicioContrato  *string
+		fimContrato     *string
+		dataInauguracao *string
+		observacoes     *string
+		atualizadoEm    *string
+	}
+
+	var snap propostaSnap
+	err := h.db.QueryRow(ctx, `
+		SELECT
+			u.codigo_un,
+			p.segmento_p, p.tipo_operacao_p,
+			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
+			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p,
+			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		WHERE p.id_p = $1
+	`, id).Scan(
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
+		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
+		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox,
+		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.observacoes, &snap.atualizadoEm,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	if snap.tipoOperacao != "Transferência" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Operação não permite taxa de transferência"})
+		return
+	}
+
+	var body struct {
+		TtContratual     *float64 `json:"ttContratual"`
+		TtProposta       *float64 `json:"ttProposta"`
+		TtPropostaNumAmm *float64 `json:"ttPropostaNumAmm"`
+		SinalTt          *float64 `json:"sinalTt"`
+		FormaPagamentoTt *string  `json:"formaPagamentoTt"`
+		JustificativaTt  *string  `json:"justificativaTt"`
+		StatusTt         *string  `json:"statusTt"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transação"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var idPH string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO "PropostaHistorico" (
+			id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
+			valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
+			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
+			condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES (
+			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+		) RETURNING id_ph
+	`,
+		id, userID,
+		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
+		snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
+		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
+		snap.condominioAprox, snap.fppAprox,
+		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
+		snap.observacoes, snap.atualizadoEm,
+	).Scan(&idPH)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaTaxaTransferencia" (
+			id_proposta_ptt,
+			tt_contratual_ptt, tt_proposta_ptt, tt_proposta_num_amm_ptt,
+			sinal_tt_ptt, forma_pagamento_tt_ptt, justificativa_tt_ptt, status_tt_ptt
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+		ON CONFLICT (id_proposta_ptt) DO UPDATE SET
+			tt_contratual_ptt        = EXCLUDED.tt_contratual_ptt,
+			tt_proposta_ptt          = EXCLUDED.tt_proposta_ptt,
+			tt_proposta_num_amm_ptt  = EXCLUDED.tt_proposta_num_amm_ptt,
+			sinal_tt_ptt             = EXCLUDED.sinal_tt_ptt,
+			forma_pagamento_tt_ptt   = EXCLUDED.forma_pagamento_tt_ptt,
+			justificativa_tt_ptt     = EXCLUDED.justificativa_tt_ptt,
+			status_tt_ptt            = EXCLUDED.status_tt_ptt
+	`,
+		id,
+		body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
+		body.SinalTt, body.FormaPagamentoTt, body.JustificativaTt, body.StatusTt,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar taxa de transferência"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaTaxaTransferenciaHistorico" (
+			id_historico_ptth,
+			tt_contratual_ptth, tt_proposta_ptth, tt_proposta_num_amm_ptth,
+			sinal_tt_ptth, forma_pagamento_tt_ptth, justificativa_tt_ptth, status_tt_ptth
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+	`,
+		idPH,
+		body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
+		body.SinalTt, body.FormaPagamentoTt, body.JustificativaTt, body.StatusTt,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico da taxa de transferência"})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar transação"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Taxa de transferência salva com sucesso"})
+}

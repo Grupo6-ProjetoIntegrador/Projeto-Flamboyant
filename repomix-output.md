@@ -38,8 +38,7 @@ The content is organized as follows:
 .gitignore
 ajustar entidades via migration.ps1
 API/cmd/main.go
-API/Dockerfile
-API/dockerignore
+API/genhash.go
 API/go.mod
 API/internal/config/config.go
 API/internal/database/database.go
@@ -76,15 +75,16 @@ API/migrations/000004_add_token_usuario.down.sql
 API/migrations/000004_add_token_usuario.up.sql
 API/migrations/000005_seed_propostas.down.sql
 API/migrations/000005_seed_propostas.up.sql
+API/migrations/000006_update_documento_mime_type.down.sql
+API/migrations/000006_update_documento_mime_type.up.sql
 API/package.json
+API/updatepw.go
 codegen/generate.go
 codegen/generate.ps1
 codegen/go.mod
 COMO_RODAR_O_PROJETO.txt
 COMO_USAR_DEBUG.txt
 debug.ps1
-DOCKER_GUIDE.md
-docker-compose.yml
 entities/doc.go
 entities/index.ts
 entities/proposta_cessao_direitos_historico.go
@@ -119,11 +119,8 @@ entities/unidade.go
 entities/unidade.ts
 entities/usuario.go
 entities/usuario.ts
-Estrutura_do_Projeto_Flamboyant.pdf
 Figma/ATTRIBUTIONS.md
 Figma/default_shadcn_theme.css
-Figma/Dockerfile
-Figma/dockerignore
 Figma/guidelines/Guidelines.md
 Figma/index.html
 Figma/nginx.conf
@@ -288,65 +285,19 @@ if ($LASTEXITCODE -eq 0) {
 }
 ````
 
-## File: API/Dockerfile
-````
-# ============================================================
-# Dockerfile — API Go (Projeto Flamboyant)
-# Multi-stage: builder separa o build do runtime final
-# ============================================================
+## File: API/genhash.go
+````go
+package main
 
-# ── Stage 1: Build ───────────────────────────────────────────
-FROM golang:1.23-alpine AS builder
+import (
+"fmt"
+"golang.org/x/crypto/bcrypt"
+)
 
-RUN apk add --no-cache git ca-certificates tzdata
-
-WORKDIR /app
-
-ENV GOTOOLCHAIN=auto
-
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
-
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-w -s" -o /app/server ./cmd/main.go
-
-# ── Stage 2: Runtime ─────────────────────────────────────────
-FROM alpine:3.20
-
-# Certificados SSL e timezone
-RUN apk add --no-cache ca-certificates tzdata
-
-WORKDIR /app
-
-# Copiar apenas o binário compilado
-COPY --from=builder /app/server .
-
-# Copiar as migrations (lidas em runtime pelo golang-migrate)
-COPY --from=builder /app/migrations ./migrations
-
-# Usuário não-root por segurança
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
-
-EXPOSE 8080
-
-CMD ["./server"]
-````
-
-## File: API/dockerignore
-````
-# API/.dockerignore
-.env
-.env.*
-bin/
-tmp/
-vendor/
-*.exe
-*.test
-coverage.out
-coverage.html
+func main() {
+h, _ := bcrypt.GenerateFromPassword([]byte("Admin@2026"), 10)
+fmt.Println(string(h))
+}
 ````
 
 ## File: API/internal/database/database.go
@@ -1459,6 +1410,49 @@ BEGIN
 END $$;
 ````
 
+## File: API/migrations/000006_update_documento_mime_type.down.sql
+````sql
+-- ============================================================
+-- BES-2026 | Migration 000006 DOWN — Restaura restrição antiga de tipo
+-- ============================================================
+
+ALTER TABLE "PropostaDocumento"
+    ALTER COLUMN tipo_pd TYPE VARCHAR(10);
+
+ALTER TABLE "PropostaDocumento"
+    ADD CONSTRAINT "PropostaDocumento_tipo_pd_check"
+    CHECK (tipo_pd IN ('PDF', 'DOCX', 'XLSX', 'JPG', 'PNG'));
+````
+
+## File: API/migrations/000006_update_documento_mime_type.up.sql
+````sql
+-- ============================================================
+-- BES-2026 | Migration 000006 — Ajusta documentos para MIME types reais
+-- ============================================================
+
+DO $$
+DECLARE
+    constraint_name text;
+BEGIN
+    SELECT c.conname
+    INTO constraint_name
+    FROM pg_constraint c
+    JOIN pg_class t ON t.oid = c.conrelid
+    JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY (c.conkey)
+    WHERE t.relname = 'PropostaDocumento'
+      AND a.attname = 'tipo_pd'
+      AND c.contype = 'c'
+    LIMIT 1;
+
+    IF constraint_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE "PropostaDocumento" DROP CONSTRAINT %I', constraint_name);
+    END IF;
+END $$;
+
+ALTER TABLE "PropostaDocumento"
+    ALTER COLUMN tipo_pd TYPE VARCHAR(255);
+````
+
 ## File: API/package.json
 ````json
 {
@@ -1469,6 +1463,26 @@ END $$;
     "jsdom": "^29.1.1",
     "vitest": "^4.1.7"
   }
+}
+````
+
+## File: API/updatepw.go
+````go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
+)
+
+func main() {
+	conn, _ := pgx.Connect(context.Background(), "host=localhost port=5432 user=postgres password=postgres dbname=jp-mall sslmode=disable")
+	defer conn.Close(context.Background())
+	conn.Exec(context.Background(), `UPDATE "Usuario" SET senha_hash_u = $1 WHERE email_u = $2`,
+		"$2a$10$On6FHl5UWmSYh4kCdkv.V.YkB5kYXOwJAuA8BaDOFRT/oPkrq7YT2", "admin@flamboyant.com.br")
+	fmt.Println("Senha atualizada!")
 }
 ````
 
@@ -1988,268 +2002,6 @@ Log "----------------------------------------------"
 Write-Host ""
 ````
 
-## File: DOCKER_GUIDE.md
-````markdown
-# Docker — Guia de Implementação
-## Projeto Flamboyant (Go API + React/Vite + PostgreSQL)
-
----
-
-## Visão Geral da Arquitetura
-
-```
-┌─────────────────────────────────────────────────────┐
-│                  docker-compose                      │
-│                                                     │
-│  ┌─────────────┐   ┌──────────────┐   ┌──────────┐ │
-│  │  frontend   │──▶│     api      │──▶│ postgres │ │
-│  │  nginx:80   │   │  go:8080     │   │  pg:5432 │ │
-│  └─────────────┘   └──────────────┘   └──────────┘ │
-│                         flamboyant-network           │
-└─────────────────────────────────────────────────────┘
-```
-
-- **postgres** sobe primeiro (healthcheck garante prontidão)
-- **api** espera o postgres estar saudável, roda as migrations automaticamente
-- **frontend** espera a api estar saudável, serve o build Vite via nginx
-
----
-
-## Passo 1 — Instalar o Docker
-
-Baixe e instale o **Docker Desktop** (Windows/Mac) ou **Docker Engine** (Linux):
-- https://docs.docker.com/get-docker/
-
-Verifique a instalação:
-```bash
-docker --version
-docker compose version
-```
-
----
-
-## Passo 2 — Copiar os arquivos para o projeto
-
-Copie os arquivos gerados para o seu repositório seguindo a estrutura:
-
-```
-Projeto-Flamboyant/          ← raiz do repositório
-├── docker-compose.yml       ← NOVO
-├── .env.example             ← NOVO (modelo)
-├── .env                     ← NOVO (sua cópia preenchida, não commitada)
-│
-├── API/
-│   ├── Dockerfile           ← NOVO
-│   ├── .dockerignore        ← NOVO
-│   ├── cmd/main.go
-│   ├── migrations/
-│   └── ...
-│
-└── Figma/
-    ├── Dockerfile           ← NOVO
-    ├── .dockerignore        ← NOVO
-    ├── nginx.conf           ← NOVO
-    └── ...
-```
-
----
-
-## Passo 3 — Criar o arquivo .env
-
-Na raiz do projeto, copie o exemplo e preencha:
-
-```bash
-# Windows (PowerShell)
-Copy-Item .env.example .env
-
-# Linux / Mac
-cp .env.example .env
-```
-
-Abra o `.env` e preencha obrigatoriamente:
-
-```env
-JWT_SECRET=uma-frase-longa-e-segura-para-producao
-DB_PASSWORD=sua-senha-do-banco
-```
-
-> ⚠️ **NUNCA** commite o `.env` no git. Adicione ao `.gitignore`:
-> ```
-> .env
-> ```
-
----
-
-## Passo 4 — Adicionar .env ao .gitignore
-
-No `.gitignore` da raiz do projeto, adicione:
-
-```gitignore
-# Docker
-.env
-```
-
----
-
-## Passo 5 — Fazer o build e subir os containers
-
-Na **raiz do projeto** (onde está o `docker-compose.yml`):
-
-```bash
-# Build das imagens e sobe em background
-docker compose up --build -d
-```
-
-Na primeira execução, o Docker vai:
-1. Baixar as imagens base (postgres, golang, node, nginx)
-2. Compilar a API Go (multi-stage build)
-3. Fazer o build do React (npm run build)
-4. Subir os 3 containers
-
-Acompanhe os logs em tempo real:
-```bash
-docker compose logs -f
-```
-
----
-
-## Passo 6 — Verificar se está funcionando
-
-```bash
-# Ver status dos containers
-docker compose ps
-
-# Resultado esperado:
-# NAME                    STATUS          PORTS
-# flamboyant-postgres     healthy         0.0.0.0:5432->5432/tcp
-# flamboyant-api          healthy         0.0.0.0:8080->8080/tcp
-# flamboyant-frontend     running         0.0.0.0:80->80/tcp
-```
-
-Teste o health check da API:
-```bash
-curl http://localhost:8080/health
-# Esperado: {"status":"ok","database":"conectado"}
-```
-
-Acesse o frontend: http://localhost
-
----
-
-## Comandos do dia a dia
-
-```bash
-# Subir tudo (sem rebuild)
-docker compose up -d
-
-# Subir com rebuild (após alterar código)
-docker compose up --build -d
-
-# Parar tudo (mantém os dados do banco)
-docker compose down
-
-# Parar e apagar o volume do banco (CUIDADO — apaga os dados!)
-docker compose down -v
-
-# Ver logs de um serviço específico
-docker compose logs -f api
-docker compose logs -f frontend
-docker compose logs -f postgres
-
-# Acessar o terminal de um container
-docker compose exec api sh
-docker compose exec postgres psql -U postgres -d jp-mall
-
-# Restart de um serviço específico após mudança de código
-docker compose up --build -d api
-```
-
----
-
-## Rebuild seletivo (fluxo de desenvolvimento)
-
-Durante o desenvolvimento, você vai rebuildar serviços individualmente:
-
-```bash
-# Só alterou código da API Go?
-docker compose up --build -d api
-
-# Só alterou o frontend?
-docker compose up --build -d frontend
-
-# Alterou variáveis de ambiente no .env?
-docker compose down && docker compose up --build -d
-```
-
----
-
-## Escalando horizontalmente (múltiplas instâncias da API)
-
-Para escalar a API para múltiplas instâncias:
-
-```bash
-# Sobe 3 instâncias da API
-docker compose up -d --scale api=3
-```
-
-> ⚠️ Para usar `--scale`, remova o `container_name` do serviço `api` no `docker-compose.yml` e adicione um **load balancer** (nginx ou Traefik) na frente.
-
----
-
-## Troubleshooting comum
-
-### API não conecta ao banco
-```bash
-# Verifique se o postgres está healthy
-docker compose ps
-# Se não estiver healthy, veja os logs:
-docker compose logs postgres
-```
-
-### Migrations falhando
-```bash
-# Acesse o container da API e rode manualmente
-docker compose exec api sh
-# Dentro do container — verifique a variável DB_HOST
-env | grep DB_
-```
-
-### Frontend não acessa a API (CORS / VITE_API_URL)
-O `VITE_API_URL` é **injetado no build**. Se mudar, precisa rebuildar:
-```bash
-docker compose up --build -d frontend
-```
-
-### Porta já em uso
-```bash
-# Verificar o que está usando a porta
-# Windows:
-netstat -ano | findstr :8080
-# Linux/Mac:
-lsof -i :8080
-```
-
----
-
-## Para produção (observações importantes)
-
-Antes de ir para produção, ajuste no `.env`:
-
-```env
-GIN_MODE=release
-JWT_SECRET=string-muito-longa-e-aleatoria-gerada-com-openssl
-DB_PASSWORD=senha-forte-do-banco
-ALLOWED_ORIGIN=https://seu-dominio.com.br
-VITE_API_URL=https://api.seu-dominio.com.br/api/v1
-DB_SSLMODE=require   # habilitar SSL no banco em produção
-```
-
-E considere:
-- Usar um serviço de banco gerenciado (RDS, Supabase, Neon) em vez do postgres no compose
-- Configurar HTTPS com certificado SSL (Let's Encrypt via Traefik ou Caddy)
-- Guardar segredos em um vault (ex: Docker Secrets, AWS Secrets Manager)
-````
-
 ## File: entities/doc.go
 ````go
 // Package entities contém as structs geradas a partir das migrations do banco de dados.
@@ -2394,59 +2146,6 @@ This Figma Make file includes photos from [Unsplash](https://unsplash.com) used 
 }
 ````
 
-## File: Figma/Dockerfile
-````
-# ============================================================
-# Dockerfile — Frontend React/Vite (Projeto Flamboyant)
-# Multi-stage: Node faz o build, nginx serve os estáticos
-# ============================================================
-
-# ── Stage 1: Build ───────────────────────────────────────────
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copiar manifesto de dependências primeiro (cache)
-COPY package.json package-lock.json* ./
-RUN npm ci --frozen-lockfile
-
-# Copiar código-fonte
-COPY . .
-
-# Build de produção (VITE_API_URL injetada via build-arg)
-ARG VITE_API_URL=http://localhost:8080/api/v1
-ENV VITE_API_URL=$VITE_API_URL
-
-RUN npm run build
-
-# ── Stage 2: Serve com nginx ──────────────────────────────────
-FROM nginx:1.27-alpine
-
-# Remover config padrão do nginx
-RUN rm /etc/nginx/conf.d/default.conf
-
-# Configuração customizada para SPA (React Router)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copiar arquivos estáticos do build
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-````
-
-## File: Figma/dockerignore
-````
-# Figma/.dockerignore
-node_modules/
-dist/
-.env
-.env.*
-.vite/
-*.tsbuildinfo
-````
-
 ## File: Figma/guidelines/Guidelines.md
 ````markdown
 
@@ -2502,12 +2201,6 @@ server {
 }
 ````
 
-## File: Figma/pnpm-workspace.yaml
-````yaml
-packages:
-  - '.'
-````
-
 ## File: Figma/postcss.config.mjs
 ````javascript
 /**
@@ -2538,98 +2231,6 @@ export default {}
   Run `npm i` to install the dependencies.
 
   Run `npm run dev` to start the development server.
-````
-
-## File: Figma/src/app/AuthContext.tsx
-````typescript
-// ============================================================
-// AuthContext.tsx — Contexto de autenticação (MODO PROTÓTIPO)
-// ============================================================
-//
-// Gerencia o estado de autenticação globalmente via React Context.
-//
-// MODO PROTÓTIPO: o usuário começa sempre autenticado com um usuário
-// fixo (USUARIO_PROTOTIPO). O login aceita qualquer credencial e apenas
-// salva o perfil na sessionStorage. Não há validação de token JWT.
-//
-// Para produção:
-//  - substituir USUARIO_PROTOTIPO pela resposta real da API
-//  - no login(), chamar apiClient.auth.login() e salvar o token JWT
-//  - no logout(), chamar apiClient.auth.logout() e limpar o token
-//  - o estado inicial deve ler o token do localStorage, não ser fixo
-//
-// Exporta:
-//  AuthContext      — contexto bruto (usado pelo useApi para ler token)
-//  AuthProvider     — wrapper que deve envolver toda a aplicação
-//  useAuth()        — hook para consumir login/logout/isAuthenticated
-// ============================================================
-import { createContext, useContext, useState, useCallback } from 'react';
-import type { ReactNode } from 'react';
-
-interface Usuario {
-  id?: string;
-  nome: string;
-  email: string;
-  setor: string;
-}
-
-interface AuthState {
-  token: string | null;
-  usuario: Usuario | null;
-}
-
-interface AuthContextValue extends AuthState {
-  login: (token: string, usuario: Usuario) => void;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
-
-const USUARIO_PROTOTIPO: Usuario = {
-  id: 'proto-001',
-  nome: 'Administrador',
-  email: 'admin@flamboyant.com.br',
-  setor: 'Comercial',
-};
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [auth, setAuth] = useState<AuthState>({
-    token: 'proto-token',
-    usuario: USUARIO_PROTOTIPO,
-  });
-
-  const login = useCallback((_token: string, usuario: Usuario) => {
-    sessionStorage.setItem('jp-mall-session', JSON.stringify({
-      name: usuario.nome,
-      email: usuario.email,
-      sector: usuario.setor,
-    }));
-    setAuth({ token: 'proto-token', usuario });
-  }, []);
-
-  const logout = useCallback(() => {
-    sessionStorage.removeItem('jp-mall-session');
-    setAuth({ token: null, usuario: null });
-  }, []);
-
-  return (
-    <AuthContext.Provider value={{
-      ...auth,
-      isAuthenticated: !!auth.token,
-      login,
-      logout,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth deve ser usado dentro de <AuthProvider>');
-  return ctx;
-}
 ````
 
 ## File: Figma/src/app/components/ChartsContainer.tsx
@@ -8662,125 +8263,6 @@ DB_SSLMODE=disable
 VITE_API_URL=http://localhost:8080/api/v1
 ````
 
-## File: API/internal/config/config.go
-````go
-package config
-
-import (
-	"log"
-	"os"
-	"strings"
-	"time"
-)
-
-type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-}
-
-type ServerConfig struct {
-	Port          string
-	Mode          string
-	AllowedOrigin string
-	Environment   string
-	JwtSecret     string
-	JwtDuration   time.Duration
-}
-
-type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
-}
-
-func Load() *Config {
-	environment := normalizedEnv("ENV", "development")
-	jwtSecret := getJWTSecret(environment)
-	jwtDuration := getJWTDuration()
-
-	return &Config{
-		Server: ServerConfig{
-			Port:          getEnv("SERVER_PORT", "8080"),
-			Mode:          getEnv("GIN_MODE", defaultGinMode(environment)),
-			AllowedOrigin: getEnv("ALLOWED_ORIGIN", ""),
-			Environment:   environment,
-			JwtSecret:     jwtSecret,
-			JwtDuration:   jwtDuration,
-		},
-		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "postgres"),
-			Name:     getEnv("DB_NAME", "jp-mall"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
-		},
-	}
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
-}
-
-func normalizedEnv(key, fallback string) string {
-	return strings.ToLower(strings.TrimSpace(getEnv(key, fallback)))
-}
-
-func defaultGinMode(environment string) string {
-	if environment == "production" {
-		return "release"
-	}
-	return "debug"
-}
-
-func getJWTSecret(environment string) string {
-	if environment == "production" {
-		if secret := getEnv("JWT_SECRET_PROD", ""); secret != "" {
-			return secret
-		}
-	}
-
-	if secret := getEnv("JWT_SECRET_DEV", ""); secret != "" {
-		return secret
-	}
-
-	return getEnv("JWT_SECRET", "bes2026-secret-change-in-production")
-}
-
-func getJWTDuration() time.Duration {
-	durationStr := getEnv("JWT_DURATION", "24h")
-	durationStr = strings.TrimSpace(durationStr)
-	if durationStr == "" {
-		durationStr = "24h"
-	}
-
-	if strings.HasSuffix(strings.ToLower(durationStr), "d") {
-		days := strings.TrimSuffix(strings.ToLower(durationStr), "d")
-		if days == "" {
-			log.Fatalf("Erro crítico: formato inválido para JWT_DURATION '%s'", durationStr)
-		}
-		parsedDays, err := time.ParseDuration(days + "h")
-		if err != nil {
-			log.Fatalf("Erro crítico: formato inválido para JWT_DURATION '%s': %v", durationStr, err)
-		}
-		return parsedDays * 24
-	}
-
-	parsedDuration, err := time.ParseDuration(durationStr)
-	if err != nil {
-		log.Fatalf("Erro crítico: formato inválido para JWT_DURATION '%s': %v", durationStr, err)
-	}
-
-	return parsedDuration
-}
-````
-
 ## File: API/internal/entities/proposta_cessao_direitos_historico.go
 ````go
 // Code generated by codegen/generate.go — DO NOT EDIT.
@@ -9147,24 +8629,6 @@ type Unidade struct {
 }
 ````
 
-## File: API/internal/entities/usuario.go
-````go
-// Code generated by codegen/generate.go — DO NOT EDIT.
-// Atualize rodando: .\codegen\generate.ps1
-
-package entities
-
-// Usuario representa a tabela "Usuario" do banco de dados.
-type Usuario struct {
-	Id                                       string       `json:"id" db:"id_u"`
-	Nome                                     string       `json:"nome" db:"nome_u"`
-	Email                                    string       `json:"email" db:"email_u"`
-	SenhaHash                                string       `json:"senhaHash" db:"senha_hash_u"`
-	Setor                                    *string      `json:"setor" db:"setor_u"`
-	CriadoEm                                 string       `json:"criadoEm" db:"criado_em_u"`
-}
-````
-
 ## File: API/internal/handlers/auth.go
 ````go
 package handlers
@@ -9342,283 +8806,6 @@ func (h *AuthHandler) ValidarToken(tokenString string) (*Claims, error) {
 }
 ````
 
-## File: API/internal/handlers/propostas.go
-````go
-// ============================================================
-// handlers/propostas.go — Handlers HTTP para o recurso Proposta
-// ============================================================
-//
-// Listar (GET /api/v1/propostas):
-//  JOIN com Unidade para trazer piso/corredor/código.
-//  JOIN com Usuario para trazer nome do responsável.
-//  Filtros: id_unidade, status, segmento, piso, data_from, data_to.
-//  Campos 'unidade' e 'tipo' são aliases de codigoUnidade e tipoOperacao
-//  mantidos por compatibilidade com o frontend legado.
-//
-// Detalhe (GET /api/v1/propostas/:id):
-//  Mesma query do Listar mas filtrada por ID.
-//
-// Criar (POST /api/v1/propostas):
-//  Insere nova proposta. user_id vem do contexto Gin (injetado pelo middleware).
-//  Retorna 201 Created com o ID gerado.
-//
-// AtualizarStatus (PATCH /api/v1/propostas/:id/status):
-//  Atualiza status_p e opcionalmente observacoes_p.
-//  Registra atualizado_em_p com time.Now().
-//
-// Historico, PlaceholderOK:
-//  Historico retorna [] — implementação futura via PropostaHistorico.
-//  PlaceholderOK retorna 200 OK para sub-recursos ainda não implementados.
-// ============================================================
-package handlers
-
-import (
-	"context"
-	"fmt"
-	"net/http"
-	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"go-api/internal/entities"
-)
-
-type PropostasHandler struct {
-	db *pgxpool.Pool
-}
-
-func NewPropostasHandler(db *pgxpool.Pool) *PropostasHandler {
-	return &PropostasHandler{db: db}
-}
-
-func (h *PropostasHandler) Listar(c *gin.Context) {
-	ctx := context.Background()
-
-	query := `
-		SELECT
-			p.id_p, p.id_unidade_p, u.codigo_un, u.piso_un, u.corredor_un,
-			p.segmento_p, p.tipo_operacao_p, p.valor_proposto_p, p.area_p, p.status_p,
-			COALESCE(p.nome_fantasia_p, ''),
-			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
-			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
-			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
-			COALESCE(us.nome_u, 'Gerência Comercial')
-		FROM "Proposta" p
-		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
-		LEFT JOIN "Usuario" us ON us.id_u = p.id_usuario_responsavel_p
-		WHERE 1=1`
-
-	args := []any{}
-	i := 1
-
-	if v := c.Query("id_unidade"); v != "" {
-		query += fmt.Sprintf(" AND p.id_unidade_p = $%d", i); args = append(args, v); i++
-	}
-	if v := c.Query("status"); v != "" {
-		query += fmt.Sprintf(" AND p.status_p = $%d", i); args = append(args, v); i++
-	}
-	if v := c.Query("segmento"); v != "" {
-		query += fmt.Sprintf(" AND p.segmento_p = $%d", i); args = append(args, v); i++
-	}
-	if v := c.Query("piso"); v != "" {
-		query += fmt.Sprintf(" AND u.piso_un = $%d", i); args = append(args, v); i++
-	}
-	if v := c.Query("data_from"); v != "" {
-		query += fmt.Sprintf(" AND p.data_criacao_p >= $%d", i); args = append(args, v); i++
-	}
-	if v := c.Query("data_to"); v != "" {
-		query += fmt.Sprintf(" AND p.data_criacao_p <= $%d", i); args = append(args, v); i++
-	}
-
-	query += " ORDER BY p.atualizado_em_p DESC"
-
-	rows, err := h.db.Query(ctx, query, args...)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao listar propostas"})
-		return
-	}
-	defer rows.Close()
-
-	result := []entities.PropostaResponse{}
-	for rows.Next() {
-		var p entities.PropostaResponse
-		if err := rows.Scan(
-			&p.ID, &p.IDUnidade, &p.CodigoUnidade, &p.Piso, &p.Corredor,
-			&p.Segmento, &p.TipoOperacao, &p.ValorProposto, &p.Area,
-			&p.Status, &p.NomeFantasia, &p.DataCriacao, &p.AtualizadoEm,
-			&p.DataVencimento, &p.FimContrato, &p.Responsavel,
-		); err != nil {
-			continue
-		}
-		p.Unidade = p.CodigoUnidade
-		p.Tipo = p.TipoOperacao
-		result = append(result, p)
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-func (h *PropostasHandler) Detalhe(c *gin.Context) {
-	ctx := context.Background()
-	id := c.Param("id")
-
-	var p entities.PropostaResponse
-	err := h.db.QueryRow(ctx, `
-		SELECT p.id_p, p.id_unidade_p, u.codigo_un, u.piso_un, u.corredor_un,
-			p.segmento_p, p.tipo_operacao_p, p.valor_proposto_p, p.area_p, p.status_p,
-			COALESCE(p.nome_fantasia_p,''), TO_CHAR(p.data_criacao_p,'YYYY-MM-DD'),
-			TO_CHAR(p.atualizado_em_p,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-			TO_CHAR(p.data_vencimento_p,'YYYY-MM-DD'), TO_CHAR(p.fim_contrato_p,'YYYY-MM-DD'),
-			COALESCE(us.nome_u,'Gerência Comercial')
-		FROM "Proposta" p
-		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
-		LEFT JOIN "Usuario" us ON us.id_u = p.id_usuario_responsavel_p
-		WHERE p.id_p = $1
-	`, id).Scan(
-		&p.ID, &p.IDUnidade, &p.CodigoUnidade, &p.Piso, &p.Corredor,
-		&p.Segmento, &p.TipoOperacao, &p.ValorProposto, &p.Area,
-		&p.Status, &p.NomeFantasia, &p.DataCriacao, &p.AtualizadoEm,
-		&p.DataVencimento, &p.FimContrato, &p.Responsavel,
-	)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
-		return
-	}
-	p.Unidade = p.CodigoUnidade
-	p.Tipo = p.TipoOperacao
-	c.JSON(http.StatusOK, p)
-}
-
-func (h *PropostasHandler) Criar(c *gin.Context) {
-	ctx := context.Background()
-	userID := c.GetString("user_id")
-
-	var body struct {
-		IDUnidade      string   `json:"idUnidade"`
-		Segmento       string   `json:"segmento"`
-		TipoOperacao   string   `json:"tipoOperacao"`
-		ValorProposto  float64  `json:"valorProposto"`
-		Area           float64  `json:"area"`
-		NomeFantasia   string   `json:"nomeFantasia"`
-		DataVencimento *string  `json:"dataVencimento"`
-		Observacoes    string   `json:"observacoes"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
-		return
-	}
-
-	var id string
-	err := h.db.QueryRow(ctx, `
-		INSERT INTO "Proposta"
-			(id_unidade_p, id_usuario_criacao_p, segmento_p, tipo_operacao_p,
-			 valor_proposto_p, area_p, nome_fantasia_p, data_vencimento_p, observacoes_p)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id_p
-	`, body.IDUnidade, userID, body.Segmento, body.TipoOperacao,
-		body.ValorProposto, body.Area, body.NomeFantasia,
-		body.DataVencimento, body.Observacoes,
-	).Scan(&id)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao criar proposta"})
-		return
-	}
-	c.JSON(http.StatusCreated, gin.H{"id": id})
-}
-
-func (h *PropostasHandler) AtualizarStatus(c *gin.Context) {
-	ctx := context.Background()
-	id := c.Param("id")
-
-	var body struct {
-		Status      string `json:"status"`
-		Observacoes string `json:"observacoes"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
-		return
-	}
-
-	_, err := h.db.Exec(ctx, `
-		UPDATE "Proposta"
-		SET status_p = $1, observacoes_p = COALESCE($2, observacoes_p), atualizado_em_p = $3
-		WHERE id_p = $4
-	`, body.Status, body.Observacoes, time.Now(), id)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao atualizar status"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Status atualizado"})
-}
-
-func (h *PropostasHandler) Historico(c *gin.Context) {
-	c.JSON(http.StatusOK, []any{})
-}
-
-func (h *PropostasHandler) PlaceholderOK(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "ok"})
-}
-
-func (h *PropostasHandler) PlaceholderList(c *gin.Context) {
-	c.JSON(http.StatusOK, []any{})
-}
-````
-
-## File: API/internal/middleware/auth.go
-````go
-package middleware
-
-import (
-	"net/http"
-	"strings"
-
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-)
-
-type authClaims struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
-	Nome   string `json:"nome"`
-	Setor  string `json:"setor"`
-	jwt.RegisteredClaims
-}
-
-func Auth(db *pgxpool.Pool, jwtSecret string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authorizationHeader := c.GetHeader("Authorization")
-		parts := strings.Fields(authorizationHeader)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" || parts[1] == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Nao autorizado"})
-			return
-		}
-
-		tokenString := parts[1]
-		claims := &authClaims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrTokenSignatureInvalid
-			}
-			return []byte(jwtSecret), nil
-		})
-		if err != nil || token == nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Nao autorizado"})
-			return
-		}
-
-		c.Set("user", claims)
-		c.Set("user_id", claims.UserID)
-		c.Set("user_email", claims.Email)
-		c.Set("user_nome", claims.Nome)
-		c.Set("user_setor", claims.Setor)
-		c.Next()
-	}
-}
-````
-
 ## File: API/migrations/000001_create_tables.down.sql
 ````sql
 -- ============================================================
@@ -9640,428 +8827,6 @@ DROP TABLE IF EXISTS "PropostaLojaAnterior";
 DROP TABLE IF EXISTS "Proposta";
 DROP TABLE IF EXISTS "Unidade";
 DROP TABLE IF EXISTS "Usuario";
-````
-
-## File: API/migrations/000001_create_tables.up.sql
-````sql
--- ============================================================
--- BES-2026 | Migration 000001 — Criação das tabelas
--- ============================================================
-
--- Extensão para UUID
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
--- ============================================================
--- Usuario
--- ============================================================
-CREATE TABLE "Usuario" (
-    id_u          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nome_u        VARCHAR(150)  NOT NULL,
-    email_u       VARCHAR(200)  NOT NULL UNIQUE,
-    senha_hash_u  VARCHAR(255)  NOT NULL,
-    setor_u       VARCHAR(100),
-    criado_em_u   TIMESTAMP     NOT NULL DEFAULT NOW()
-);
-
--- ============================================================
--- Unidade
--- ============================================================
-CREATE TABLE "Unidade" (
-    id_un         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    codigo_un     VARCHAR(20)   NOT NULL UNIQUE,
-    piso_un       CHAR(1)       NOT NULL CHECK (piso_un IN ('P','S','T')),
-    corredor_un   CHAR(1)       NOT NULL CHECK (corredor_un IN ('A','B','C','D','E')),
-    area_un       DECIMAL(10,2) NOT NULL,
-    criado_em_un  TIMESTAMP     NOT NULL DEFAULT NOW()
-);
-
--- ============================================================
--- Proposta (inclui campos da aba Loja Proposta)
--- ============================================================
-CREATE TABLE "Proposta" (
-    id_p                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_unidade_p            UUID          NOT NULL REFERENCES "Unidade"(id_un),
-    id_usuario_criacao_p    UUID          NOT NULL REFERENCES "Usuario"(id_u),
-    id_usuario_ultima_alt_p UUID          REFERENCES "Usuario"(id_u),
-    id_usuario_responsavel_p UUID         REFERENCES "Usuario"(id_u),
-    segmento_p              VARCHAR(100)  NOT NULL,
-    tipo_operacao_p         VARCHAR(50)   NOT NULL,
-    valor_proposto_p        DECIMAL(15,2) NOT NULL,
-    area_p                  DECIMAL(10,2) NOT NULL,
-    abl_p                   DECIMAL(10,2),
-    status_p                VARCHAR(60)   NOT NULL DEFAULT 'Aguardando análise financeira',
-    data_criacao_p          DATE          NOT NULL DEFAULT CURRENT_DATE,
-    data_vencimento_p       DATE,
-    nome_fantasia_p         VARCHAR(200),
-    aluguel_percent_p       DECIMAL(10,2),
-    prazo_locacao_meses_p   INTEGER,
-    aluguel_por_m2_p        DECIMAL(10,2),
-    condominio_aprox_p      DECIMAL(10,2),
-    fpp_aprox_p             DECIMAL(10,2),
-    inicio_contrato_p       DATE,
-    fim_contrato_p          DATE,
-    data_inauguracao_p      DATE,
-    observacoes_p           TEXT,
-    atualizado_em_p         TIMESTAMP     NOT NULL DEFAULT NOW()
-);
-
--- ============================================================
--- PropostaLojaAnterior (1:1 com Proposta)
--- ============================================================
-CREATE TABLE "PropostaLojaAnterior" (
-    id_proposta_pla       UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
-    nome_fantasia_pla     VARCHAR(200),
-    segmento_pla          VARCHAR(100),
-    tipo_operacao_pla     VARCHAR(50),
-    cto_pla               DECIMAL(15,2),
-    abl_pla               DECIMAL(10,2),
-    amm_pla               DECIMAL(10,2),
-    divida_amm_pla        DECIMAL(15,2),
-    divida_negociada_pla  DECIMAL(15,2),
-    divida_condominio_pla DECIMAL(15,2),
-    divida_fpp_pla        DECIMAL(15,2),
-    forma_pagamento_pla   VARCHAR(100)
-);
-
--- ============================================================
--- PropostaNecessidadesTecnicas (1:1 com Proposta)
--- ============================================================
-CREATE TABLE "PropostaNecessidadesTecnicas" (
-    id_proposta_pnt              UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
-    -- Elétrica
-    demanda_eletrica_kva_pnt     DECIMAL(8,2),
-    tensao_necessaria_pnt        VARCHAR(20),
-    circuitos_especiais_pnt      BOOLEAN DEFAULT FALSE,
-    obs_eletrica_pnt             TEXT,
-    -- Hidráulica
-    ponto_agua_pnt               BOOLEAN DEFAULT FALSE,
-    quantidade_pontos_agua_pnt   INTEGER,
-    ponto_esgoto_pnt             BOOLEAN DEFAULT FALSE,
-    vazao_necessaria_lmin_pnt    DECIMAL(8,2),
-    caixa_gordura_pnt            BOOLEAN DEFAULT FALSE,
-    obs_hidraulica_pnt           TEXT,
-    -- Gás
-    necessita_gas_pnt            BOOLEAN DEFAULT FALSE,
-    tipo_gas_pnt                 VARCHAR(20),
-    consumo_gas_m3h_pnt          DECIMAL(8,2),
-    obs_gas_pnt                  TEXT,
-    -- Ventilação e Exaustão
-    necessita_exaustao_pnt       BOOLEAN DEFAULT FALSE,
-    vazao_exaustao_m3h_pnt       DECIMAL(10,2),
-    necessita_make_up_ar_pnt     BOOLEAN DEFAULT FALSE,
-    obs_ventilacao_pnt           TEXT,
-    -- Estrutura
-    area_minima_m2_pnt           DECIMAL(8,2),
-    area_maxima_m2_pnt           DECIMAL(8,2),
-    pe_direito_minimo_m_pnt      DECIMAL(5,2),
-    carga_piso_kgm2_pnt          DECIMAL(8,2),
-    necessita_mezanino_pnt       BOOLEAN DEFAULT FALSE,
-    obs_estrutura_pnt            TEXT,
-    -- Fachada e Visual
-    frente_minima_m_pnt          DECIMAL(6,2),
-    tipo_fachada_pnt             VARCHAR(20),
-    comunicacao_visual_led_pnt   BOOLEAN DEFAULT FALSE,
-    obs_fachada_pnt              TEXT,
-    -- TI e Telecom
-    pontos_dados_pnt             INTEGER,
-    necessita_fibra_pnt          BOOLEAN DEFAULT FALSE,
-    obs_telecom_pnt              TEXT,
-    -- Controle
-    status_pnt                   VARCHAR(30) DEFAULT 'Rascunho',
-    id_usuario_responsavel_pnt   UUID REFERENCES "Usuario"(id_u),
-    criado_em_pnt                TIMESTAMP NOT NULL DEFAULT NOW(),
-    atualizado_em_pnt            TIMESTAMP
-);
-
--- ============================================================
--- PropostaCessaoDireitos (1:1 com Proposta)
--- ============================================================
-CREATE TABLE "PropostaCessaoDireitos" (
-    id_proposta_pcd              UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
-    res_sperata_proposta_pcd     DECIMAL(15,2),
-    referencia_mercado_por_m2_pcd DECIMAL(10,2),
-    sinal_res_sperata_pcd        DECIMAL(15,2),
-    forma_pagamento_saldo_pcd    VARCHAR(100),
-    num_parcelas_pcd             INTEGER,
-    status_res_sperata_pcd       VARCHAR(50),
-    observacoes_pcd              TEXT
-);
-
--- ============================================================
--- PropostaTaxaTransferencia (1:1 com Proposta)
--- ============================================================
-CREATE TABLE "PropostaTaxaTransferencia" (
-    id_proposta_ptt        UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
-    tt_contratual_ptt      DECIMAL(15,2),
-    tt_proposta_ptt        DECIMAL(15,2),
-    tt_proposta_num_amm_ptt DECIMAL(10,2),
-    sinal_tt_ptt           DECIMAL(15,2),
-    forma_pagamento_tt_ptt VARCHAR(100),
-    justificativa_tt_ptt   TEXT,
-    status_tt_ptt          VARCHAR(50)
-);
-
--- ============================================================
--- PropostaParecerComite (1:1 com Proposta)
--- ============================================================
-CREATE TABLE "PropostaParecerComite" (
-    id_proposta_ppc              UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
-    presidente_ppc               BOOLEAN DEFAULT FALSE,
-    presidente_data_ppc          DATE,
-    diretoria_comp1_ppc          BOOLEAN DEFAULT FALSE,
-    diretoria_comp1_data_ppc     DATE,
-    diretoria_comp2_ppc          BOOLEAN DEFAULT FALSE,
-    diretoria_comp2_data_ppc     DATE,
-    superintendente_ppc          BOOLEAN DEFAULT FALSE,
-    superintendente_data_ppc     DATE,
-    in_networking_ppc            BOOLEAN DEFAULT FALSE,
-    in_networking_data_ppc       DATE
-);
-
--- ============================================================
--- PropostaDocumento (N:1 com Proposta)
--- ============================================================
-CREATE TABLE "PropostaDocumento" (
-    id_pd           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_proposta_pd  UUID          NOT NULL REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
-    id_usuario_pd   UUID          NOT NULL REFERENCES "Usuario"(id_u),
-    codigo_pd       VARCHAR(50)   NOT NULL UNIQUE,
-    nome_original_pd VARCHAR(255) NOT NULL,
-    tipo_pd         VARCHAR(10)   NOT NULL CHECK (tipo_pd IN ('PDF','DOCX','XLSX','JPG','PNG')),
-    tamanho_pd      VARCHAR(20)   NOT NULL,
-    url_storage_pd  VARCHAR(500),
-    data_upload_pd  TIMESTAMP     NOT NULL DEFAULT NOW()
-);
-
--- ============================================================
--- PropostaHistorico — espelha os campos da tabela Proposta no
--- momento da edição. Sem FK para Unidade (codigo armazenado como
--- texto). Vinculado somente à Proposta.
--- ============================================================
-CREATE TABLE "PropostaHistorico" (
-    id_ph                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_proposta_ph           UUID          NOT NULL REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
-    id_usuario_ph            UUID          NOT NULL REFERENCES "Usuario"(id_u),
-    editado_em_ph            TIMESTAMP     NOT NULL DEFAULT NOW(),
-
-    -- Mesmos campos de Proposta (codigo_unidade como texto — sem FK)
-    codigo_unidade_ph        VARCHAR(20),
-    segmento_ph              VARCHAR(100),
-    tipo_operacao_ph         VARCHAR(50),
-    valor_proposto_ph        DECIMAL(15,2),
-    area_ph                  DECIMAL(10,2),
-    abl_ph                   DECIMAL(10,2),
-    status_ph                VARCHAR(60),
-    data_criacao_ph          DATE,
-    data_vencimento_ph       DATE,
-    nome_fantasia_ph         VARCHAR(200),
-    aluguel_percent_ph       DECIMAL(10,2),
-    prazo_locacao_meses_ph   INTEGER,
-    aluguel_por_m2_ph        DECIMAL(10,2),
-    condominio_aprox_ph      DECIMAL(10,2),
-    fpp_aprox_ph             DECIMAL(10,2),
-    inicio_contrato_ph       DATE,
-    fim_contrato_ph          DATE,
-    data_inauguracao_ph      DATE,
-    observacoes_ph           TEXT,
-    atualizado_em_snapshot_ph TIMESTAMP
-);
-
--- ============================================================
--- Tabelas de Histórico (1:1 com PropostaHistorico)
--- ============================================================
-
-CREATE TABLE "PropostaLojaAnteriorHistorico" (
-    id_historico_plah       UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
-    nome_fantasia_plah      VARCHAR(200),
-    segmento_plah           VARCHAR(100),
-    tipo_operacao_plah      VARCHAR(50),
-    cto_plah                DECIMAL(15,2),
-    abl_plah                DECIMAL(10,2),
-    amm_plah                DECIMAL(10,2),
-    divida_amm_plah         DECIMAL(15,2),
-    divida_negociada_plah   DECIMAL(15,2),
-    divida_condominio_plah  DECIMAL(15,2),
-    divida_fpp_plah         DECIMAL(15,2),
-    forma_pagamento_plah    VARCHAR(100)
-);
-
-CREATE TABLE "PropostaNecessidadesTecnicasHistorico" (
-    id_historico_pnth              UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
-    demanda_eletrica_kva_pnth      DECIMAL(8,2),
-    tensao_necessaria_pnth         VARCHAR(20),
-    circuitos_especiais_pnth       BOOLEAN DEFAULT FALSE,
-    obs_eletrica_pnth              TEXT,
-    ponto_agua_pnth                BOOLEAN DEFAULT FALSE,
-    quantidade_pontos_agua_pnth    INTEGER,
-    ponto_esgoto_pnth              BOOLEAN DEFAULT FALSE,
-    vazao_necessaria_lmin_pnth     DECIMAL(8,2),
-    caixa_gordura_pnth             BOOLEAN DEFAULT FALSE,
-    obs_hidraulica_pnth            TEXT,
-    necessita_gas_pnth             BOOLEAN DEFAULT FALSE,
-    tipo_gas_pnth                  VARCHAR(20),
-    consumo_gas_m3h_pnth           DECIMAL(8,2),
-    obs_gas_pnth                   TEXT,
-    necessita_exaustao_pnth        BOOLEAN DEFAULT FALSE,
-    vazao_exaustao_m3h_pnth        DECIMAL(10,2),
-    necessita_make_up_ar_pnth      BOOLEAN DEFAULT FALSE,
-    obs_ventilacao_pnth            TEXT,
-    area_minima_m2_pnth            DECIMAL(8,2),
-    area_maxima_m2_pnth            DECIMAL(8,2),
-    pe_direito_minimo_m_pnth       DECIMAL(5,2),
-    carga_piso_kgm2_pnth           DECIMAL(8,2),
-    necessita_mezanino_pnth        BOOLEAN DEFAULT FALSE,
-    obs_estrutura_pnth             TEXT,
-    frente_minima_m_pnth           DECIMAL(6,2),
-    tipo_fachada_pnth              VARCHAR(20),
-    comunicacao_visual_led_pnth    BOOLEAN DEFAULT FALSE,
-    obs_fachada_pnth               TEXT,
-    pontos_dados_pnth              INTEGER,
-    necessita_fibra_pnth           BOOLEAN DEFAULT FALSE,
-    obs_telecom_pnth               TEXT,
-    status_pnth                    VARCHAR(30),
-    id_usuario_responsavel_pnth    UUID REFERENCES "Usuario"(id_u),
-    criado_em_pnth                 TIMESTAMP,
-    atualizado_em_pnth             TIMESTAMP
-);
-
-CREATE TABLE "PropostaCessaoDireitosHistorico" (
-    id_historico_pcdh              UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
-    res_sperata_proposta_pcdh      DECIMAL(15,2),
-    referencia_mercado_por_m2_pcdh DECIMAL(10,2),
-    sinal_res_sperata_pcdh         DECIMAL(15,2),
-    forma_pagamento_saldo_pcdh     VARCHAR(100),
-    num_parcelas_pcdh              INTEGER,
-    status_res_sperata_pcdh        VARCHAR(50),
-    observacoes_pcdh               TEXT
-);
-
-CREATE TABLE "PropostaTaxaTransferenciaHistorico" (
-    id_historico_ptth          UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
-    tt_contratual_ptth         DECIMAL(15,2),
-    tt_proposta_ptth           DECIMAL(15,2),
-    tt_proposta_num_amm_ptth   DECIMAL(10,2),
-    sinal_tt_ptth              DECIMAL(15,2),
-    forma_pagamento_tt_ptth    VARCHAR(100),
-    justificativa_tt_ptth      TEXT,
-    status_tt_ptth             VARCHAR(50)
-);
-
-CREATE TABLE "PropostaParecerComiteHistorico" (
-    id_historico_ppch              UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
-    presidente_ppch                BOOLEAN DEFAULT FALSE,
-    presidente_data_ppch           DATE,
-    diretoria_comp1_ppch           BOOLEAN DEFAULT FALSE,
-    diretoria_comp1_data_ppch      DATE,
-    diretoria_comp2_ppch           BOOLEAN DEFAULT FALSE,
-    diretoria_comp2_data_ppch      DATE,
-    superintendente_ppch           BOOLEAN DEFAULT FALSE,
-    superintendente_data_ppch      DATE,
-    in_networking_ppch             BOOLEAN DEFAULT FALSE,
-    in_networking_data_ppch        DATE
-);
-
--- ============================================================
--- Índices para performance
--- ============================================================
-CREATE INDEX idx_proposta_unidade    ON "Proposta"(id_unidade_p);
-CREATE INDEX idx_proposta_status     ON "Proposta"(status_p);
-CREATE INDEX idx_proposta_criacao    ON "Proposta"(data_criacao_p);
-CREATE INDEX idx_historico_proposta  ON "PropostaHistorico"(id_proposta_ph);
-CREATE INDEX idx_documento_proposta  ON "PropostaDocumento"(id_proposta_pd);
-````
-
-## File: docker-compose.yml
-````yaml
-# ============================================================
-# docker-compose.yml — Projeto Flamboyant
-# Serviços: postgres | api | frontend
-# ============================================================
-
-services:
-
-  # ── Banco de Dados ─────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    container_name: flamboyant-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-jp-mall}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"           # expõe para acesso local (ex: DBeaver)
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-jp-mall}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    networks:
-      - flamboyant-net
-
-  # ── API Go ────────────────────────────────────────────────
-  api:
-    build:
-      context: ./API
-      dockerfile: Dockerfile
-    container_name: flamboyant-api
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy   # aguarda o postgres estar pronto
-    environment:
-      SERVER_PORT: ${SERVER_PORT:-8080}
-      GIN_MODE: ${GIN_MODE:-release}
-      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_DURATION: ${JWT_DURATION:-24h}
-      DB_HOST: postgres              # nome do serviço interno do compose
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DB_NAME: ${DB_NAME:-jp-mall}
-      DB_SSLMODE: ${DB_SSLMODE:-disable}
-    ports:
-      - "8080:8080"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    networks:
-      - flamboyant-net
-
-  # ── Frontend React ────────────────────────────────────────
-  frontend:
-    build:
-      context: ./Figma
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080/api/v1}
-    container_name: flamboyant-frontend
-    restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
-    ports:
-      - "80:80"
-    networks:
-      - flamboyant-net
-
-# ── Volumes ───────────────────────────────────────────────────
-volumes:
-  postgres_data:
-    name: flamboyant-postgres-data
-
-# ── Rede interna ──────────────────────────────────────────────
-networks:
-  flamboyant-net:
-    name: flamboyant-network
-    driver: bridge
 ````
 
 ## File: entities/proposta_cessao_direitos_historico.go
@@ -10892,6 +9657,82 @@ export default function App() {
       </AuthProvider>
     </BrowserRouter>
   );
+}
+````
+
+## File: Figma/src/app/AuthContext.tsx
+````typescript
+import { createContext, useContext, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
+
+interface Usuario {
+  id?: string;
+  nome: string;
+  email: string;
+  setor: string;
+}
+
+interface AuthState {
+  token: string | null;
+  usuario: Usuario | null;
+}
+
+interface AuthContextValue extends AuthState {
+  login: (token: string, usuario: Usuario) => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+}
+
+export const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [auth, setAuth] = useState<AuthState>(() => {
+    const session = sessionStorage.getItem('jp-mall-session');
+    if (session) {
+      const parsed = JSON.parse(session);
+      return {
+        token: parsed.token || null,
+        usuario: parsed.token ? {
+          nome: parsed.name,
+          email: parsed.email,
+          setor: parsed.sector,
+        } : null,
+      };
+    }
+    return { token: null, usuario: null };
+  });
+
+  const login = useCallback((token: string, usuario: Usuario) => {
+    sessionStorage.setItem('jp-mall-session', JSON.stringify({
+      token,
+      name: usuario.nome,
+      email: usuario.email,
+      sector: usuario.setor,
+    }));
+    setAuth({ token, usuario });
+  }, []);
+
+  const logout = useCallback(() => {
+    sessionStorage.removeItem('jp-mall-session');
+    setAuth({ token: null, usuario: null });
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{
+      ...auth,
+      isAuthenticated: !!auth.token,
+      login,
+      logout,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth deve ser usado dentro de <AuthProvider>');
+  return ctx;
 }
 ````
 
@@ -12336,6 +11177,122 @@ export default defineConfig({
 })
 ````
 
+## File: API/internal/config/config.go
+````go
+package config
+
+import (
+	"log"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type Config struct {
+	Server   ServerConfig
+	Database DatabaseConfig
+}
+
+type ServerConfig struct {
+	Port          string
+	Mode          string
+	AllowedOrigin string
+	Environment   string
+	JwtSecret     string
+	JwtDuration   time.Duration
+}
+
+type DatabaseConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Name     string
+	SSLMode  string
+}
+
+func Load() *Config {
+	environment := normalizedEnv("ENV", "development")
+	jwtSecret := getJWTSecret(environment)
+	jwtDuration := getJWTExpirationDuration()
+
+	return &Config{
+		Server: ServerConfig{
+			Port:          getEnv("SERVER_PORT", "8080"),
+			Mode:          getEnv("GIN_MODE", defaultGinMode(environment)),
+			AllowedOrigin: getEnv("ALLOWED_ORIGIN", ""),
+			Environment:   environment,
+			JwtSecret:     jwtSecret,
+			JwtDuration:   jwtDuration,
+		},
+		Database: DatabaseConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnv("DB_PORT", "5432"),
+			User:     getEnv("DB_USER", "postgres"),
+			Password: getEnv("DB_PASSWORD", "postgres"),
+			Name:     getEnv("DB_NAME", "jp-mall"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+	}
+}
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
+func normalizedEnv(key, fallback string) string {
+	return strings.ToLower(strings.TrimSpace(getEnv(key, fallback)))
+}
+
+func defaultGinMode(environment string) string {
+	if environment == "production" {
+		return "release"
+	}
+	return "debug"
+}
+
+func getJWTSecret(environment string) string {
+	if environment == "production" {
+		if secret := getEnv("JWT_SECRET_PROD", ""); secret != "" {
+			return secret
+		}
+	}
+
+	if secret := getEnv("JWT_SECRET_DEV", ""); secret != "" {
+		return secret
+	}
+
+	return getEnv("JWT_SECRET", "bes2026-secret-change-in-production")
+}
+
+// getJWTExpirationDuration lê JWT_EXPIRATION_HOURS e retorna como time.Duration
+// Padrão: 24 horas se não especificado
+func getJWTExpirationDuration() time.Duration {
+	hoursStr := strings.TrimSpace(getEnv("JWT_EXPIRATION_HOURS", ""))
+	
+	// Se vazio, usa padrão de 24 horas
+	if hoursStr == "" {
+		return 24 * time.Hour
+	}
+
+	// Tenta converter para inteiro
+	hours, err := strconv.Atoi(hoursStr)
+	if err != nil {
+		log.Fatalf("Erro crítico: JWT_EXPIRATION_HOURS deve ser um número inteiro (horas), recebido '%s': %v", hoursStr, err)
+	}
+
+	if hours <= 0 {
+		log.Fatalf("Erro crítico: JWT_EXPIRATION_HOURS deve ser maior que 0, recebido '%d'", hours)
+	}
+
+	return time.Duration(hours) * time.Hour
+}
+````
+
 ## File: API/internal/entities/proposta_historico.go
 ````go
 // Code generated by codegen/generate.go — DO NOT EDIT.
@@ -12372,75 +11329,423 @@ type PropostaHistorico struct {
 }
 ````
 
-## File: API/internal/routes/routes.go
+## File: API/internal/entities/usuario.go
 ````go
-// ============================================================
-// routes/routes.go — Registro de todas as rotas da API
-// ============================================================
-package routes
+// Code generated by codegen/generate.go — DO NOT EDIT.
+// Atualize rodando: .\codegen\generate.ps1
+
+package entities
+
+// Usuario representa a tabela "Usuario" do banco de dados.
+type Usuario struct {
+	Id                                       string       `json:"id" db:"id_u"`
+	Nome                                     string       `json:"nome" db:"nome_u"`
+	Email                                    string       `json:"email" db:"email_u"`
+	SenhaHash                                string       `json:"senhaHash" db:"senha_hash_u"`
+	Setor                                    *string      `json:"setor" db:"setor_u"`
+	CriadoEm                                 string       `json:"criadoEm" db:"criado_em_u"`
+	TokenAtivo                               *string      `json:"tokenAtivo" db:"token_ativo_u"`
+	TokenExpiraEm                            *string      `json:"tokenExpiraEm" db:"token_expira_em_u"`
+}
+````
+
+## File: API/internal/middleware/auth.go
+````go
+package middleware
 
 import (
+	"context"
 	"net/http"
-
-	"go-api/internal/config"     // <-- Corrigido usando o nome do módulo
-	"go-api/internal/handlers"   // <-- Certifique-se de que está assim
-	"go-api/internal/middleware" // <-- Certifique-se de que está assim
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
+type authClaims struct {
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+	Nome   string `json:"nome"`
+	Setor  string `json:"setor"`
+	jwt.RegisteredClaims
+}
 
-	authHandler := handlers.NewAuthHandler(db, cfg.JwtSecret, cfg.JwtDuration)
-	unidadesHandler := handlers.NewUnidadesHandler(db)
-	propostasHandler := handlers.NewPropostasHandler(db)
+func Auth(db *pgxpool.Pool, jwtSecret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authorizationHeader := c.GetHeader("Authorization")
+		parts := strings.Fields(authorizationHeader)
+		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" || parts[1] == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Nao autorizado"})
+			return
+		}
 
-	// Rotas públicas
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
-	})
+		tokenString := parts[1]
+		claims := &authClaims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrTokenSignatureInvalid
+			}
+			return []byte(jwtSecret), nil
+		})
+		if err != nil || token == nil || !token.Valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Nao autorizado"})
+			return
+		}
 
-	r.POST("/api/v1/auth/login", authHandler.Login)
+		// Valida sessão única e expiração no banco
+		ctx := context.Background()
+		var tokenAtivo *string
+		var tokenExpiraEm *time.Time
+		err = db.QueryRow(ctx,
+			`SELECT token_ativo_u, token_expira_em_u FROM "Usuario" WHERE id_u = $1`,
+			claims.UserID,
+		).Scan(&tokenAtivo, &tokenExpiraEm)
 
-	api := r.Group("/api/v1")
-	// <-- 2. AJUSTADO: Agora o middleware lê a chave de dentro da struct cfg
-	api.Use(middleware.Auth(db, cfg.JwtSecret))
-	{
-		// Auth
-		api.POST("/auth/logout", authHandler.Logout)
-		api.GET("/auth/me", authHandler.Me)
+		if err != nil || tokenAtivo == nil || *tokenAtivo != tokenString || tokenExpiraEm == nil || time.Now().After(*tokenExpiraEm) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Nao autorizado"})
+			return
+		}
 
-		// Unidades
-		api.GET("/unidades", unidadesHandler.Listar)
-		api.GET("/unidades/:id", unidadesHandler.Detalhe)
-
-		// Propostas
-		api.GET("/propostas", propostasHandler.Listar)
-		api.GET("/propostas/:id", propostasHandler.Detalhe)
-		api.POST("/propostas", propostasHandler.Criar)
-		api.PUT("/propostas/:id", propostasHandler.PlaceholderOK)
-		api.PATCH("/propostas/:id/status", propostasHandler.AtualizarStatus)
-		api.POST("/propostas/check-vencidas", propostasHandler.PlaceholderOK)
-
-		api.GET("/propostas/:id/historico", propostasHandler.Historico)
-		api.GET("/propostas/:id/loja-anterior", propostasHandler.PlaceholderOK)
-		api.PUT("/propostas/:id/loja-anterior", propostasHandler.PlaceholderOK)
-		api.GET("/propostas/:id/necessidades-tecnicas", propostasHandler.PlaceholderOK)
-		api.PUT("/propostas/:id/necessidades-tecnicas", propostasHandler.PlaceholderOK)
-		api.GET("/propostas/:id/cessao-direitos", propostasHandler.PlaceholderOK)
-		api.PUT("/propostas/:id/cessao-direitos", propostasHandler.PlaceholderOK)
-		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.PlaceholderOK)
-		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.PlaceholderOK)
-		api.GET("/propostas/:id/parecer-comite", propostasHandler.PlaceholderOK)
-		api.PUT("/propostas/:id/parecer-comite", propostasHandler.PlaceholderOK)
-
-		// Documentos
-		api.GET("/documentos", propostasHandler.PlaceholderList)
-		api.POST("/documentos", propostasHandler.PlaceholderOK)
-		api.DELETE("/documentos/:id", propostasHandler.PlaceholderOK)
+		c.Set("user_id", claims.UserID)
+		c.Set("user_email", claims.Email)
+		c.Set("user_nome", claims.Nome)
+		c.Set("user_setor", claims.Setor)
+		c.Next()
 	}
 }
+````
+
+## File: API/migrations/000001_create_tables.up.sql
+````sql
+-- ============================================================
+-- BES-2026 | Migration 000001 — Criação das tabelas
+-- ============================================================
+
+-- Extensão para UUID
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ============================================================
+-- Usuario
+-- ============================================================
+CREATE TABLE "Usuario" (
+    id_u          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nome_u        VARCHAR(150)  NOT NULL,
+    email_u       VARCHAR(200)  NOT NULL UNIQUE,
+    senha_hash_u  VARCHAR(255)  NOT NULL,
+    setor_u       VARCHAR(100),
+    criado_em_u   TIMESTAMP     NOT NULL DEFAULT NOW(),
+    token_ativo_u     VARCHAR(500),
+    token_expira_em_u TIMESTAMP
+);
+
+-- ============================================================
+-- Unidade
+-- ============================================================
+CREATE TABLE "Unidade" (
+    id_un         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    codigo_un     VARCHAR(20)   NOT NULL UNIQUE,
+    piso_un       CHAR(1)       NOT NULL CHECK (piso_un IN ('P','S','T')),
+    corredor_un   CHAR(1)       NOT NULL CHECK (corredor_un IN ('A','B','C','D','E')),
+    area_un       DECIMAL(10,2) NOT NULL,
+    criado_em_un  TIMESTAMP     NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
+-- Proposta (inclui campos da aba Loja Proposta)
+-- ============================================================
+CREATE TABLE "Proposta" (
+    id_p                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_unidade_p            UUID          NOT NULL REFERENCES "Unidade"(id_un),
+    id_usuario_criacao_p    UUID          NOT NULL REFERENCES "Usuario"(id_u),
+    id_usuario_ultima_alt_p UUID          REFERENCES "Usuario"(id_u),
+    id_usuario_responsavel_p UUID         REFERENCES "Usuario"(id_u),
+    segmento_p              VARCHAR(100)  NOT NULL,
+    tipo_operacao_p         VARCHAR(50)   NOT NULL,
+    valor_proposto_p        DECIMAL(15,2) NOT NULL,
+    area_p                  DECIMAL(10,2) NOT NULL,
+    abl_p                   DECIMAL(10,2),
+    status_p                VARCHAR(60)   NOT NULL DEFAULT 'Aguardando análise financeira',
+    data_criacao_p          DATE          NOT NULL DEFAULT CURRENT_DATE,
+    data_vencimento_p       DATE,
+    nome_fantasia_p         VARCHAR(200),
+    aluguel_percent_p       DECIMAL(10,2),
+    prazo_locacao_meses_p   INTEGER,
+    aluguel_por_m2_p        DECIMAL(10,2),
+    condominio_aprox_p      DECIMAL(10,2),
+    fpp_aprox_p             DECIMAL(10,2),
+    inicio_contrato_p       DATE,
+    fim_contrato_p          DATE,
+    data_inauguracao_p      DATE,
+    observacoes_p           TEXT,
+    atualizado_em_p         TIMESTAMP     NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
+-- PropostaLojaAnterior (1:1 com Proposta)
+-- ============================================================
+CREATE TABLE "PropostaLojaAnterior" (
+    id_proposta_pla       UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
+    nome_fantasia_pla     VARCHAR(200),
+    segmento_pla          VARCHAR(100),
+    tipo_operacao_pla     VARCHAR(50),
+    cto_pla               DECIMAL(15,2),
+    abl_pla               DECIMAL(10,2),
+    amm_pla               DECIMAL(10,2),
+    divida_amm_pla        DECIMAL(15,2),
+    divida_negociada_pla  DECIMAL(15,2),
+    divida_condominio_pla DECIMAL(15,2),
+    divida_fpp_pla        DECIMAL(15,2),
+    forma_pagamento_pla   VARCHAR(100)
+);
+
+-- ============================================================
+-- PropostaNecessidadesTecnicas (1:1 com Proposta)
+-- ============================================================
+CREATE TABLE "PropostaNecessidadesTecnicas" (
+    id_proposta_pnt              UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
+    -- Elétrica
+    demanda_eletrica_kva_pnt     DECIMAL(8,2),
+    tensao_necessaria_pnt        VARCHAR(20),
+    circuitos_especiais_pnt      BOOLEAN DEFAULT FALSE,
+    obs_eletrica_pnt             TEXT,
+    -- Hidráulica
+    ponto_agua_pnt               BOOLEAN DEFAULT FALSE,
+    quantidade_pontos_agua_pnt   INTEGER,
+    ponto_esgoto_pnt             BOOLEAN DEFAULT FALSE,
+    vazao_necessaria_lmin_pnt    DECIMAL(8,2),
+    caixa_gordura_pnt            BOOLEAN DEFAULT FALSE,
+    obs_hidraulica_pnt           TEXT,
+    -- Gás
+    necessita_gas_pnt            BOOLEAN DEFAULT FALSE,
+    tipo_gas_pnt                 VARCHAR(20),
+    consumo_gas_m3h_pnt          DECIMAL(8,2),
+    obs_gas_pnt                  TEXT,
+    -- Ventilação e Exaustão
+    necessita_exaustao_pnt       BOOLEAN DEFAULT FALSE,
+    vazao_exaustao_m3h_pnt       DECIMAL(10,2),
+    necessita_make_up_ar_pnt     BOOLEAN DEFAULT FALSE,
+    obs_ventilacao_pnt           TEXT,
+    -- Estrutura
+    area_minima_m2_pnt           DECIMAL(8,2),
+    area_maxima_m2_pnt           DECIMAL(8,2),
+    pe_direito_minimo_m_pnt      DECIMAL(5,2),
+    carga_piso_kgm2_pnt          DECIMAL(8,2),
+    necessita_mezanino_pnt       BOOLEAN DEFAULT FALSE,
+    obs_estrutura_pnt            TEXT,
+    -- Fachada e Visual
+    frente_minima_m_pnt          DECIMAL(6,2),
+    tipo_fachada_pnt             VARCHAR(20),
+    comunicacao_visual_led_pnt   BOOLEAN DEFAULT FALSE,
+    obs_fachada_pnt              TEXT,
+    -- TI e Telecom
+    pontos_dados_pnt             INTEGER,
+    necessita_fibra_pnt          BOOLEAN DEFAULT FALSE,
+    obs_telecom_pnt              TEXT,
+    -- Controle
+    status_pnt                   VARCHAR(30) DEFAULT 'Rascunho',
+    id_usuario_responsavel_pnt   UUID REFERENCES "Usuario"(id_u),
+    criado_em_pnt                TIMESTAMP NOT NULL DEFAULT NOW(),
+    atualizado_em_pnt            TIMESTAMP
+);
+
+-- ============================================================
+-- PropostaCessaoDireitos (1:1 com Proposta)
+-- ============================================================
+CREATE TABLE "PropostaCessaoDireitos" (
+    id_proposta_pcd              UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
+    res_sperata_proposta_pcd     DECIMAL(15,2),
+    referencia_mercado_por_m2_pcd DECIMAL(10,2),
+    sinal_res_sperata_pcd        DECIMAL(15,2),
+    forma_pagamento_saldo_pcd    VARCHAR(100),
+    num_parcelas_pcd             INTEGER,
+    status_res_sperata_pcd       VARCHAR(50),
+    observacoes_pcd              TEXT
+);
+
+-- ============================================================
+-- PropostaTaxaTransferencia (1:1 com Proposta)
+-- ============================================================
+CREATE TABLE "PropostaTaxaTransferencia" (
+    id_proposta_ptt        UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
+    tt_contratual_ptt      DECIMAL(15,2),
+    tt_proposta_ptt        DECIMAL(15,2),
+    tt_proposta_num_amm_ptt DECIMAL(10,2),
+    sinal_tt_ptt           DECIMAL(15,2),
+    forma_pagamento_tt_ptt VARCHAR(100),
+    justificativa_tt_ptt   TEXT,
+    status_tt_ptt          VARCHAR(50)
+);
+
+-- ============================================================
+-- PropostaParecerComite (1:1 com Proposta)
+-- ============================================================
+CREATE TABLE "PropostaParecerComite" (
+    id_proposta_ppc              UUID PRIMARY KEY REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
+    presidente_ppc               BOOLEAN DEFAULT FALSE,
+    presidente_data_ppc          DATE,
+    diretoria_comp1_ppc          BOOLEAN DEFAULT FALSE,
+    diretoria_comp1_data_ppc     DATE,
+    diretoria_comp2_ppc          BOOLEAN DEFAULT FALSE,
+    diretoria_comp2_data_ppc     DATE,
+    superintendente_ppc          BOOLEAN DEFAULT FALSE,
+    superintendente_data_ppc     DATE,
+    in_networking_ppc            BOOLEAN DEFAULT FALSE,
+    in_networking_data_ppc       DATE
+);
+
+-- ============================================================
+-- PropostaDocumento (N:1 com Proposta)
+-- ============================================================
+CREATE TABLE "PropostaDocumento" (
+    id_pd           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_proposta_pd  UUID          NOT NULL REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
+    id_usuario_pd   UUID          NOT NULL REFERENCES "Usuario"(id_u),
+    codigo_pd       VARCHAR(50)   NOT NULL UNIQUE,
+    nome_original_pd VARCHAR(255) NOT NULL,
+    tipo_pd         VARCHAR(10)   NOT NULL CHECK (tipo_pd IN ('PDF','DOCX','XLSX','JPG','PNG')),
+    tamanho_pd      VARCHAR(20)   NOT NULL,
+    url_storage_pd  VARCHAR(500),
+    data_upload_pd  TIMESTAMP     NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
+-- PropostaHistorico — espelha os campos da tabela Proposta no
+-- momento da edição. Sem FK para Unidade (codigo armazenado como
+-- texto). Vinculado somente à Proposta.
+-- ============================================================
+CREATE TABLE "PropostaHistorico" (
+    id_ph                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_proposta_ph           UUID          NOT NULL REFERENCES "Proposta"(id_p) ON DELETE CASCADE,
+    id_usuario_ph            UUID          NOT NULL REFERENCES "Usuario"(id_u),
+    editado_em_ph            TIMESTAMP     NOT NULL DEFAULT NOW(),
+
+    -- Mesmos campos de Proposta (codigo_unidade como texto — sem FK)
+    codigo_unidade_ph        VARCHAR(20),
+    segmento_ph              VARCHAR(100),
+    tipo_operacao_ph         VARCHAR(50),
+    valor_proposto_ph        DECIMAL(15,2),
+    area_ph                  DECIMAL(10,2),
+    abl_ph                   DECIMAL(10,2),
+    status_ph                VARCHAR(60),
+    data_criacao_ph          DATE,
+    data_vencimento_ph       DATE,
+    nome_fantasia_ph         VARCHAR(200),
+    aluguel_percent_ph       DECIMAL(10,2),
+    prazo_locacao_meses_ph   INTEGER,
+    aluguel_por_m2_ph        DECIMAL(10,2),
+    condominio_aprox_ph      DECIMAL(10,2),
+    fpp_aprox_ph             DECIMAL(10,2),
+    inicio_contrato_ph       DATE,
+    fim_contrato_ph          DATE,
+    data_inauguracao_ph      DATE,
+    observacoes_ph           TEXT,
+    atualizado_em_snapshot_ph TIMESTAMP
+);
+
+-- ============================================================
+-- Tabelas de Histórico (1:1 com PropostaHistorico)
+-- ============================================================
+
+CREATE TABLE "PropostaLojaAnteriorHistorico" (
+    id_historico_plah       UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
+    nome_fantasia_plah      VARCHAR(200),
+    segmento_plah           VARCHAR(100),
+    tipo_operacao_plah      VARCHAR(50),
+    cto_plah                DECIMAL(15,2),
+    abl_plah                DECIMAL(10,2),
+    amm_plah                DECIMAL(10,2),
+    divida_amm_plah         DECIMAL(15,2),
+    divida_negociada_plah   DECIMAL(15,2),
+    divida_condominio_plah  DECIMAL(15,2),
+    divida_fpp_plah         DECIMAL(15,2),
+    forma_pagamento_plah    VARCHAR(100)
+);
+
+CREATE TABLE "PropostaNecessidadesTecnicasHistorico" (
+    id_historico_pnth              UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
+    demanda_eletrica_kva_pnth      DECIMAL(8,2),
+    tensao_necessaria_pnth         VARCHAR(20),
+    circuitos_especiais_pnth       BOOLEAN DEFAULT FALSE,
+    obs_eletrica_pnth              TEXT,
+    ponto_agua_pnth                BOOLEAN DEFAULT FALSE,
+    quantidade_pontos_agua_pnth    INTEGER,
+    ponto_esgoto_pnth              BOOLEAN DEFAULT FALSE,
+    vazao_necessaria_lmin_pnth     DECIMAL(8,2),
+    caixa_gordura_pnth             BOOLEAN DEFAULT FALSE,
+    obs_hidraulica_pnth            TEXT,
+    necessita_gas_pnth             BOOLEAN DEFAULT FALSE,
+    tipo_gas_pnth                  VARCHAR(20),
+    consumo_gas_m3h_pnth           DECIMAL(8,2),
+    obs_gas_pnth                   TEXT,
+    necessita_exaustao_pnth        BOOLEAN DEFAULT FALSE,
+    vazao_exaustao_m3h_pnth        DECIMAL(10,2),
+    necessita_make_up_ar_pnth      BOOLEAN DEFAULT FALSE,
+    obs_ventilacao_pnth            TEXT,
+    area_minima_m2_pnth            DECIMAL(8,2),
+    area_maxima_m2_pnth            DECIMAL(8,2),
+    pe_direito_minimo_m_pnth       DECIMAL(5,2),
+    carga_piso_kgm2_pnth           DECIMAL(8,2),
+    necessita_mezanino_pnth        BOOLEAN DEFAULT FALSE,
+    obs_estrutura_pnth             TEXT,
+    frente_minima_m_pnth           DECIMAL(6,2),
+    tipo_fachada_pnth              VARCHAR(20),
+    comunicacao_visual_led_pnth    BOOLEAN DEFAULT FALSE,
+    obs_fachada_pnth               TEXT,
+    pontos_dados_pnth              INTEGER,
+    necessita_fibra_pnth           BOOLEAN DEFAULT FALSE,
+    obs_telecom_pnth               TEXT,
+    status_pnth                    VARCHAR(30),
+    id_usuario_responsavel_pnth    UUID REFERENCES "Usuario"(id_u),
+    criado_em_pnth                 TIMESTAMP,
+    atualizado_em_pnth             TIMESTAMP
+);
+
+CREATE TABLE "PropostaCessaoDireitosHistorico" (
+    id_historico_pcdh              UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
+    res_sperata_proposta_pcdh      DECIMAL(15,2),
+    referencia_mercado_por_m2_pcdh DECIMAL(10,2),
+    sinal_res_sperata_pcdh         DECIMAL(15,2),
+    forma_pagamento_saldo_pcdh     VARCHAR(100),
+    num_parcelas_pcdh              INTEGER,
+    status_res_sperata_pcdh        VARCHAR(50),
+    observacoes_pcdh               TEXT
+);
+
+CREATE TABLE "PropostaTaxaTransferenciaHistorico" (
+    id_historico_ptth          UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
+    tt_contratual_ptth         DECIMAL(15,2),
+    tt_proposta_ptth           DECIMAL(15,2),
+    tt_proposta_num_amm_ptth   DECIMAL(10,2),
+    sinal_tt_ptth              DECIMAL(15,2),
+    forma_pagamento_tt_ptth    VARCHAR(100),
+    justificativa_tt_ptth      TEXT,
+    status_tt_ptth             VARCHAR(50)
+);
+
+CREATE TABLE "PropostaParecerComiteHistorico" (
+    id_historico_ppch              UUID PRIMARY KEY REFERENCES "PropostaHistorico"(id_ph) ON DELETE CASCADE,
+    presidente_ppch                BOOLEAN DEFAULT FALSE,
+    presidente_data_ppch           DATE,
+    diretoria_comp1_ppch           BOOLEAN DEFAULT FALSE,
+    diretoria_comp1_data_ppch      DATE,
+    diretoria_comp2_ppch           BOOLEAN DEFAULT FALSE,
+    diretoria_comp2_data_ppch      DATE,
+    superintendente_ppch           BOOLEAN DEFAULT FALSE,
+    superintendente_data_ppch      DATE,
+    in_networking_ppch             BOOLEAN DEFAULT FALSE,
+    in_networking_data_ppch        DATE
+);
+
+-- ============================================================
+-- Índices para performance
+-- ============================================================
+CREATE INDEX idx_proposta_unidade    ON "Proposta"(id_unidade_p);
+CREATE INDEX idx_proposta_status     ON "Proposta"(status_p);
+CREATE INDEX idx_proposta_criacao    ON "Proposta"(data_criacao_p);
+CREATE INDEX idx_historico_proposta  ON "PropostaHistorico"(id_proposta_ph);
+CREATE INDEX idx_documento_proposta  ON "PropostaDocumento"(id_proposta_pd);
 ````
 
 ## File: COMO_RODAR_O_PROJETO.txt
@@ -12664,6 +11969,16 @@ export interface PropostaHistorico {
   observacoes?: string | null;
   atualizadoEmSnapshot?: string | null;
 }
+````
+
+## File: Figma/pnpm-workspace.yaml
+````yaml
+packages:
+  - '.'
+allowBuilds:
+  '@tailwindcss/oxide': true
+  core-js: true
+  esbuild: true
 ````
 
 ## File: Figma/src/app/components/DataCard.tsx
@@ -13165,270 +12480,6 @@ export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
 }
 ````
 
-## File: Figma/src/app/data/apiClient.ts
-````typescript
-// ============================================================
-// apiClient.ts — Cliente HTTP centralizado para a API BES-2026
-// ============================================================
-//
-// Camada de acesso à API REST. Toda requisição HTTP da aplicação
-// passa por aqui — nunca use fetch() diretamente nas páginas.
-//
-// Estrutura interna:
-//  - API_BASE: lido de VITE_API_URL (.env). Em dev, o Vite proxy
-//    redireciona /api/* para http://localhost:8080, evitando CORS.
-//  - request<T>(): função genérica que faz fetch, trata erros HTTP
-//    e retorna o JSON tipado. MODO PROTÓTIPO: sem header Authorization.
-//  - checkHealth(): verifica se a API está disponível via GET /api/v1/ping
-//
-// Grupos de endpoints exportados:
-//  auth       — login, logout, me
-//  unidades   — listar (com filtros), detalhe
-//  propostas  — listar, detalhe, criar, atualizar, atualizarStatus,
-//               checkVencidas, lojaAnterior, necessidadesTecnicas,
-//               cessaoDireitos, taxaTransferencia, parecerComite, historico
-//  documentos — listar, upload (multipart), remover
-//
-// Tipos exportados:
-//  Derivam diretamente das entidades em ../entities.
-//  Unidade e PropostaResumo estendem a entidade com campos
-//  calculados/joined que a API adiciona à resposta.
-// ============================================================
-
-import type {
-  Proposta,
-  Unidade,
-  PropostaDocumento,
-  PropostaHistorico,
-  PropostaLojaAnterior,
-  PropostaNecessidadesTecnicas,
-  PropostaCessaoDireitos,
-  PropostaTaxaTransferencia,
-  PropostaParecerComite,
-  Usuario
-} from '../entities';
-
-// Re-exporta tipos de sub-tabelas para uso direto pelos componentes
-export type {
-  PropostaLojaAnterior,
-  PropostaNecessidadesTecnicas,
-  PropostaCessaoDireitos,
-  PropostaTaxaTransferencia,
-  PropostaParecerComite,
-  PropostaHistorico,
-  Proposta,
-  Unidade
-};
-
-const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
-
-// ── Tipos ────────────────────────────────────────────────────
-
-export interface ApiError {
-  message: string;
-  status: number;
-}
-
-// ── Helper central ───────────────────────────────────────────
-
-// MODO PROTÓTIPO — sem autenticação via token
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
-    throw { message: body.message || res.statusText, status: res.status } as ApiError;
-  }
-
-  if (res.status === 204) return undefined as unknown as T;
-
-  return res.json();
-}
-
-// ── Health ───────────────────────────────────────────────────
-
-export async function checkHealth(): Promise<boolean> {
-  try {
-    const res = await fetch('/api/v1/ping',
-      { signal: AbortSignal.timeout(4000) }
-    );
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-// ── Auth ─────────────────────────────────────────────────────
-
-export interface LoginPayload {
-  email: string;
-  senha: string;
-}
-
-export interface LoginResponse {
-  token: string;
-  usuario: Omit<Usuario, 'senhaHash'>;
-}
-
-export const auth = {
-  login: (payload: LoginPayload) =>
-    request<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  logout: () =>
-    request<void>('/auth/logout', { method: 'POST' }),
-
-  me: () =>
-    request<Omit<Usuario, 'senhaHash'>>('/auth/me'),
-};
-
-// ── Unidades ─────────────────────────────────────────────────
-
-export interface UnidadesFiltros {
-  piso?: string;
-  corredor?: string;
-}
-
-export const unidades = {
-  listar: (filtros?: UnidadesFiltros) => {
-    const params = new URLSearchParams();
-    if (filtros?.piso)      params.set('piso', filtros.piso);
-    if (filtros?.corredor)  params.set('corredor', filtros.corredor);
-    const qs = params.toString();
-    return request<Unidade[]>(`/unidades${qs ? '?' + qs : ''}`);
-  },
-  detalhe: (id: string) => request<Unidade>(`/unidades/${id}`),
-};
-
-// ── Propostas ────────────────────────────────────────────────
-
-export interface PropostaFiltros {
-  idUnidade?: string;
-  status?: string;
-  segmento?: string;
-}
-
-/** Alias de PropostaDocumento — mantido para compatibilidade com imports existentes. */
-export type Documento = PropostaDocumento;
-
-export const propostas = {
-  listar: (filtros?: PropostaFiltros) => {
-    const params = new URLSearchParams();
-    if (filtros?.idUnidade) params.set('id_unidade', filtros.idUnidade);
-    if (filtros?.status)    params.set('status', filtros.status);
-    if (filtros?.segmento)  params.set('segmento', filtros.segmento);
-    const qs = params.toString();
-    return request<Proposta[]>(`/propostas${qs ? '?' + qs : ''}`);
-  },
-
-  detalhe: (id: string) =>
-    request<Proposta>(`/propostas/${id}`),
-
-  criar: (payload: Partial<Proposta>) =>
-    request<Proposta>('/propostas', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  atualizar: (id: string, payload: Partial<Proposta>) =>
-    request<Proposta>(`/propostas/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    }),
-
-  atualizarStatus: (id: string, status: string, observacoes?: string) =>
-    request<void>(`/propostas/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status, observacoes }),
-    }),
-
-  checkVencidas: () =>
-    request<void>('/propostas/check-vencidas', { method: 'POST' }),
-
-  lojaAnterior: {
-    detalhe: (id: string) =>
-      request<PropostaLojaAnterior>(`/propostas/${id}/loja-anterior`),
-    salvar: (id: string, payload: Partial<PropostaLojaAnterior>) =>
-      request<PropostaLojaAnterior>(`/propostas/${id}/loja-anterior`, {
-        method: 'PUT', body: JSON.stringify(payload),
-      }),
-  },
-
-  necessidadesTecnicas: {
-    detalhe: (id: string) =>
-      request<PropostaNecessidadesTecnicas>(`/propostas/${id}/necessidades-tecnicas`),
-    salvar: (id: string, payload: Partial<PropostaNecessidadesTecnicas>) =>
-      request<PropostaNecessidadesTecnicas>(`/propostas/${id}/necessidades-tecnicas`, {
-        method: 'PUT', body: JSON.stringify(payload),
-      }),
-  },
-
-  cessaoDireitos: {
-    detalhe: (id: string) =>
-      request<PropostaCessaoDireitos>(`/propostas/${id}/cessao-direitos`),
-    salvar: (id: string, payload: Partial<PropostaCessaoDireitos>) =>
-      request<PropostaCessaoDireitos>(`/propostas/${id}/cessao-direitos`, {
-        method: 'PUT', body: JSON.stringify(payload),
-      }),
-  },
-
-  taxaTransferencia: {
-    detalhe: (id: string) =>
-      request<PropostaTaxaTransferencia>(`/propostas/${id}/taxa-transferencia`),
-    salvar: (id: string, payload: Partial<PropostaTaxaTransferencia>) =>
-      request<PropostaTaxaTransferencia>(`/propostas/${id}/taxa-transferencia`, {
-        method: 'PUT', body: JSON.stringify(payload),
-      }),
-  },
-
-  parecerComite: {
-    detalhe: (id: string) =>
-      request<PropostaParecerComite>(`/propostas/${id}/parecer-comite`),
-    salvar: (id: string, payload: Partial<PropostaParecerComite>) =>
-      request<PropostaParecerComite>(`/propostas/${id}/parecer-comite`, {
-        method: 'PUT', body: JSON.stringify(payload),
-      }),
-  },
-
-  historico: {
-    listar: (id: string) =>
-      request<PropostaHistorico[]>(`/propostas/${id}/historico`),
-  },
-};
-
-// ── Documentos ───────────────────────────────────────────────
-
-export const documentos = {
-  listar: (idProposta: string) =>
-    request<Documento[]>(`/documentos?id_proposta=${idProposta}`),
-
-  upload: (idProposta: string, file: File, codigo: string) => {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('id_proposta', idProposta);
-    form.append('codigo', codigo);
-    return fetch(`${API_BASE}/documentos`, {
-      method: 'POST',
-      body: form,
-    }).then(async r => r.json() as Promise<Documento>);
-  },
-
-  remover: (id: string) =>
-    request<void>(`/documentos/${id}`, { method: 'DELETE' }),
-};
-````
-
 ## File: Figma/src/app/entities/index.ts
 ````typescript
 // Code generated by codegen/generate.go — DO NOT EDIT.
@@ -13667,136 +12718,6 @@ export function toOptionItems(
 ): { value: string; label: string }[] {
   return options.map(o =>
     typeof o === 'string' ? { value: o, label: o } : o,
-  );
-}
-````
-
-## File: Figma/src/app/pages/Login.tsx
-````typescript
-/**
- * Login.tsx — Tela de autenticação (MODO PROTÓTIPO).
- *
- * Comportamento atual:
- *  - Qualquer e-mail e senha são aceitos
- *  - Chama login() do AuthContext com usuário fixo 'Administrador'
- *  - Redireciona para a rota de origem (location.state.from) ou
- *    para /comercial/dashboard se não houver rota anterior
- *
- * O campo de senha tem defaultValue="123" para facilitar os testes
- * durante o protótipo — remover em produção.
- *
- * Para produção:
- *  - Chamar PropostasService.login({ email, senha }) ou similar
- *  - Tratar erros de autenticação (401) com mensagem na tela
- *  - Habilitar/desabilitar o botão com base no useApiHealth()
- */
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router";
-import { Building2, Lock, Mail } from "lucide-react";
-import { useAuth } from "../AuthContext";
-
-export function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login } = useAuth();
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const form = e.currentTarget;
-    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
-
-    // MODO PROTÓTIPO — sem validação real, qualquer credencial entra
-    login('proto-token', {
-      nome: 'Administrador',
-      email: email || 'admin@flamboyant.com.br',
-      setor: 'Comercial',
-    });
-
-    const from = (location.state as any)?.from?.pathname || "/comercial/dashboard";
-    navigate(from, { replace: true });
-  };
-
-  return (
-    <div className="min-h-screen bg-[#F7F4EF] dark:bg-[#0F1117] flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B1A1A] to-[#a43030] dark:from-[#8B1A1A] dark:to-[#E04444] shadow-lg flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-            <Building2 className="w-8 h-8 text-[#C8A882] dark:text-[#D4A96A]" />
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-[#F1F5F9]">
-            JP Mall
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-[#94A3B8]">
-            Sistema Comercial
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-[#242938] py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border-t-4 border-[#8B1A1A] dark:border-[#E04444]">
-
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-lg p-3 mb-6 text-sm text-center">
-            Modo protótipo — qualquer credencial é aceita
-          </div>
-
-          <form className="space-y-5" onSubmit={handleLogin}>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-[#94A3B8]">
-                E-mail
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400 dark:text-[#64748B]" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  defaultValue="admin@flamboyant.com.br"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] rounded-md focus:outline-none focus:ring-[#D93030] focus:border-[#D93030] sm:text-sm transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-[#94A3B8]">
-                Senha
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400 dark:text-[#64748B]" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  defaultValue="123"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] rounded-md focus:outline-none focus:ring-[#D93030] focus:border-[#D93030] sm:text-sm transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#D93030] hover:bg-[#b92828] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D93030] transition-colors duration-200 disabled:opacity-50"
-              >
-                {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                {loading ? 'Entrando...' : 'Entrar no Sistema'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
   );
 }
 ````
@@ -14464,60 +13385,409 @@ func runMigrations(cfg *config.Config) {
 }
 ````
 
-## File: API/go.mod
+## File: Figma/src/app/data/apiClient.ts
+````typescript
+// ============================================================
+// apiClient.ts — Cliente HTTP centralizado para a API BES-2026
+// ============================================================
+//
+// Camada de acesso à API REST. Toda requisição HTTP da aplicação
+// passa por aqui — nunca use fetch() diretamente nas páginas.
+//
+// Estrutura interna:
+//  - API_BASE: lido de VITE_API_URL (.env). Em dev, o Vite proxy
+//    redireciona /api/* para http://localhost:8080, evitando CORS.
+//  - request<T>(): função genérica que faz fetch, trata erros HTTP
+//    e retorna o JSON tipado. MODO PROTÓTIPO: sem header Authorization.
+//  - checkHealth(): verifica se a API está disponível via GET /api/v1/ping
+//
+// Grupos de endpoints exportados:
+//  auth       — login, logout, me
+//  unidades   — listar (com filtros), detalhe
+//  propostas  — listar, detalhe, criar, atualizar, atualizarStatus,
+//               checkVencidas, lojaAnterior, necessidadesTecnicas,
+//               cessaoDireitos, taxaTransferencia, parecerComite, historico
+//  documentos — listar, upload (multipart), remover
+//
+// Tipos exportados:
+//  Derivam diretamente das entidades em ../entities.
+//  Unidade e PropostaResumo estendem a entidade com campos
+//  calculados/joined que a API adiciona à resposta.
+// ============================================================
+
+import type {
+  Proposta,
+  Unidade,
+  PropostaDocumento,
+  PropostaHistorico,
+  PropostaLojaAnterior,
+  PropostaNecessidadesTecnicas,
+  PropostaCessaoDireitos,
+  PropostaTaxaTransferencia,
+  PropostaParecerComite,
+  Usuario
+} from '../entities';
+
+// Re-exporta tipos de sub-tabelas para uso direto pelos componentes
+export type {
+  PropostaLojaAnterior,
+  PropostaNecessidadesTecnicas,
+  PropostaCessaoDireitos,
+  PropostaTaxaTransferencia,
+  PropostaParecerComite,
+  PropostaHistorico,
+  Proposta,
+  Unidade
+};
+
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+
+// ── Tipos ────────────────────────────────────────────────────
+
+export interface ApiError {
+  message: string;
+  status: number;
+}
+
+// ── Helper central ───────────────────────────────────────────
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const session = sessionStorage.getItem('jp-mall-session');
+  const token = session ? JSON.parse(session).token : null;
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+    throw { message: body.message || res.statusText, status: res.status } as ApiError;
+  }
+
+  if (res.status === 204) return undefined as unknown as T;
+
+  return res.json();
+}
+
+// ── Health ───────────────────────────────────────────────────
+
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/v1/ping',
+      { signal: AbortSignal.timeout(4000) }
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ── Auth ─────────────────────────────────────────────────────
+
+export interface LoginPayload {
+  email: string;
+  senha: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  usuario: Omit<Usuario, 'senhaHash'>;
+}
+
+export const auth = {
+  login: (payload: LoginPayload) =>
+    request<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  logout: () =>
+    request<void>('/auth/logout', { method: 'POST' }),
+
+  me: () =>
+    request<Omit<Usuario, 'senhaHash'>>('/auth/me'),
+};
+
+// ── Unidades ─────────────────────────────────────────────────
+
+export interface UnidadesFiltros {
+  piso?: string;
+  corredor?: string;
+}
+
+export const unidades = {
+  listar: (filtros?: UnidadesFiltros) => {
+    const params = new URLSearchParams();
+    if (filtros?.piso)      params.set('piso', filtros.piso);
+    if (filtros?.corredor)  params.set('corredor', filtros.corredor);
+    const qs = params.toString();
+    return request<Unidade[]>(`/unidades${qs ? '?' + qs : ''}`);
+  },
+  detalhe: (id: string) => request<Unidade>(`/unidades/${id}`),
+};
+
+// ── Propostas ────────────────────────────────────────────────
+
+export interface PropostaFiltros {
+  idUnidade?: string;
+  status?: string;
+  segmento?: string;
+}
+
+/** Alias de PropostaDocumento — mantido para compatibilidade com imports existentes. */
+export type Documento = PropostaDocumento;
+
+export const propostas = {
+  listar: (filtros?: PropostaFiltros) => {
+    const params = new URLSearchParams();
+    if (filtros?.idUnidade) params.set('id_unidade', filtros.idUnidade);
+    if (filtros?.status)    params.set('status', filtros.status);
+    if (filtros?.segmento)  params.set('segmento', filtros.segmento);
+    const qs = params.toString();
+    return request<Proposta[]>(`/propostas${qs ? '?' + qs : ''}`);
+  },
+
+  detalhe: (id: string) =>
+    request<Proposta>(`/propostas/${id}`),
+
+  criar: (payload: Partial<Proposta>) =>
+    request<Proposta>('/propostas', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizar: (id: string, payload: Partial<Proposta>) =>
+    request<Proposta>(`/propostas/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  atualizarStatus: (id: string, status: string, observacoes?: string) =>
+    request<void>(`/propostas/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, observacoes }),
+    }),
+
+  checkVencidas: () =>
+    request<void>('/propostas/check-vencidas', { method: 'POST' }),
+
+  lojaAnterior: {
+    detalhe: (id: string) =>
+      request<PropostaLojaAnterior>(`/propostas/${id}/loja-anterior`),
+    salvar: (id: string, payload: Partial<PropostaLojaAnterior>) =>
+      request<PropostaLojaAnterior>(`/propostas/${id}/loja-anterior`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
+  },
+
+  necessidadesTecnicas: {
+    detalhe: (id: string) =>
+      request<PropostaNecessidadesTecnicas>(`/propostas/${id}/necessidades-tecnicas`),
+    salvar: (id: string, payload: Partial<PropostaNecessidadesTecnicas>) =>
+      request<PropostaNecessidadesTecnicas>(`/propostas/${id}/necessidades-tecnicas`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
+  },
+
+  cessaoDireitos: {
+    detalhe: (id: string) =>
+      request<PropostaCessaoDireitos>(`/propostas/${id}/cessao-direitos`),
+    salvar: (id: string, payload: Partial<PropostaCessaoDireitos>) =>
+      request<PropostaCessaoDireitos>(`/propostas/${id}/cessao-direitos`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
+  },
+
+  taxaTransferencia: {
+    detalhe: (id: string) =>
+      request<PropostaTaxaTransferencia>(`/propostas/${id}/taxa-transferencia`),
+    salvar: (id: string, payload: Partial<PropostaTaxaTransferencia>) =>
+      request<PropostaTaxaTransferencia>(`/propostas/${id}/taxa-transferencia`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
+  },
+
+  parecerComite: {
+    detalhe: (id: string) =>
+      request<PropostaParecerComite>(`/propostas/${id}/parecer-comite`),
+    salvar: (id: string, payload: Partial<PropostaParecerComite>) =>
+      request<PropostaParecerComite>(`/propostas/${id}/parecer-comite`, {
+        method: 'PUT', body: JSON.stringify(payload),
+      }),
+  },
+
+  historico: {
+    listar: (id: string) =>
+      request<PropostaHistorico[]>(`/propostas/${id}/historico`),
+  },
+};
+
+// ── Documentos ───────────────────────────────────────────────
+
+export const documentos = {
+  listar: (idProposta: string) =>
+    request<Documento[]>(`/documentos?id_proposta=${idProposta}`),
+
+  upload: (idProposta: string, file: File, codigo: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('id_proposta', idProposta);
+    form.append('codigo', codigo);
+    return fetch(`${API_BASE}/documentos`, {
+      method: 'POST',
+      body: form,
+    }).then(async r => r.json() as Promise<Documento>);
+  },
+
+  remover: (id: string) =>
+    request<void>(`/documentos/${id}`, { method: 'DELETE' }),
+};
 ````
-module go-api
 
-go 1.25.0
+## File: Figma/src/app/pages/Login.tsx
+````typescript
+/**
+ * Login.tsx — Tela de autenticação (MODO PROTÓTIPO).
+ *
+ * Comportamento atual:
+ *  - Qualquer e-mail e senha são aceitos
+ *  - Chama login() do AuthContext com usuário fixo 'Administrador'
+ *  - Redireciona para a rota de origem (location.state.from) ou
+ *    para /comercial/dashboard se não houver rota anterior
+ *
+ * O campo de senha tem defaultValue="123" para facilitar os testes
+ * durante o protótipo — remover em produção.
+ *
+ * Para produção:
+ *  - Chamar PropostasService.login({ email, senha }) ou similar
+ *  - Tratar erros de autenticação (401) com mensagem na tela
+ *  - Habilitar/desabilitar o botão com base no useApiHealth()
+ */
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router";
+import { Building2, Lock, Mail } from "lucide-react";
+import { useAuth } from "../AuthContext";
 
-require (
-	github.com/gin-contrib/cors v1.7.3
-	github.com/gin-gonic/gin v1.12.0
-	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/golang-migrate/migrate/v4 v4.18.3
-	github.com/jackc/pgx/v5 v5.7.5
-	golang.org/x/crypto v0.48.0
-)
+export function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
 
-require (
-	github.com/bytedance/gopkg v0.1.3 // indirect
-	github.com/bytedance/sonic v1.15.0 // indirect
-	github.com/bytedance/sonic/loader v0.5.0 // indirect
-	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
-	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/go-playground/locales v0.14.1 // indirect
-	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.30.1 // indirect
-	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/goccy/go-yaml v1.19.2 // indirect
-	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.3.1 // indirect
-	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/arch v0.22.0 // indirect
-	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
-)
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
+
+    // Chama a API real de login
+    try {
+      const senha = (form.elements.namedItem('password') as HTMLInputElement)?.value;
+      const response = await import('../data/apiClient').then(m => m.auth.login({ email, senha }));
+      login(response.token, {
+        id: response.usuario.id,
+        nome: response.usuario.nome,
+        email: response.usuario.email,
+        setor: response.usuario.setor,
+      });
+      const from = (location.state as any)?.from?.pathname || "/comercial/dashboard";
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      alert(err.message || 'Credenciais inválidas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F7F4EF] dark:bg-[#0F1117] flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B1A1A] to-[#a43030] dark:from-[#8B1A1A] dark:to-[#E04444] shadow-lg flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
+            <Building2 className="w-8 h-8 text-[#C8A882] dark:text-[#D4A96A]" />
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-[#F1F5F9]">
+            JP Mall
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-[#94A3B8]">
+            Sistema Comercial
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white dark:bg-[#242938] py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border-t-4 border-[#8B1A1A] dark:border-[#E04444]">
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-lg p-3 mb-6 text-sm text-center">
+            Modo protótipo — qualquer credencial é aceita
+          </div>
+
+          <form className="space-y-5" onSubmit={handleLogin}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-[#94A3B8]">
+                E-mail
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400 dark:text-[#64748B]" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  defaultValue="admin@flamboyant.com.br"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] rounded-md focus:outline-none focus:ring-[#D93030] focus:border-[#D93030] sm:text-sm transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-[#94A3B8]">
+                Senha
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-[#64748B]" />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  defaultValue="123"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] rounded-md focus:outline-none focus:ring-[#D93030] focus:border-[#D93030] sm:text-sm transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#D93030] hover:bg-[#b92828] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D93030] transition-colors duration-200 disabled:opacity-50"
+              >
+                {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                {loading ? 'Entrando...' : 'Entrar no Sistema'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
 ````
 
 ## File: .gitignore
@@ -14671,6 +13941,1354 @@ DB_NAME=jp-mall
 DB_SSLMODE=disable
 
 .claude/settings.local.json
+````
+
+## File: API/go.mod
+````
+module go-api
+
+go 1.25.0
+
+require (
+	github.com/gin-contrib/cors v1.7.3
+	github.com/gin-gonic/gin v1.12.0
+	github.com/golang-jwt/jwt/v5 v5.2.2
+	github.com/golang-migrate/migrate/v4 v4.18.3
+	github.com/jackc/pgx/v5 v5.7.5
+	golang.org/x/crypto v0.48.0
+)
+
+require (
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/sonic v1.15.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.0 // indirect
+	github.com/cloudwego/base64x v0.1.6 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
+	github.com/gin-contrib/sse v1.1.0 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.30.1 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/lib/pq v1.10.9 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
+	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	github.com/ugorji/go/codec v1.3.1 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
+	golang.org/x/arch v0.22.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
+)
+````
+
+## File: API/internal/handlers/propostas.go
+````go
+// ============================================================
+// handlers/propostas.go — Handlers HTTP para o recurso Proposta
+// ============================================================
+//
+// Listar (GET /api/v1/propostas):
+//
+//	JOIN com Unidade para trazer piso/corredor/código.
+//	JOIN com Usuario para trazer nome do responsável.
+//	Filtros: id_unidade, status, segmento, piso, data_from, data_to.
+//	Campos 'unidade' e 'tipo' são aliases de codigoUnidade e tipoOperacao
+//	mantidos por compatibilidade com o frontend legado.
+//
+// Detalhe (GET /api/v1/propostas/:id):
+//
+//	Mesma query do Listar mas filtrada por ID.
+//
+// Criar (POST /api/v1/propostas):
+//
+//	Insere nova proposta. user_id vem do contexto Gin (injetado pelo middleware).
+//	Retorna 201 Created com o ID gerado.
+//
+// AtualizarStatus (PATCH /api/v1/propostas/:id/status):
+//
+//	Atualiza status_p e opcionalmente observacoes_p.
+//	Registra atualizado_em_p com time.Now().
+//
+// Historico, PlaceholderOK:
+//
+//	Historico carrega PropostaHistorico por id da proposta.
+//	PlaceholderOK retorna 200 OK para sub-recursos ainda não implementados.
+//
+// ============================================================
+package handlers
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
+
+	"go-api/internal/entities"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type PropostasHandler struct {
+	db *pgxpool.Pool
+}
+
+func NewPropostasHandler(db *pgxpool.Pool) *PropostasHandler {
+	return &PropostasHandler{db: db}
+}
+
+func (h *PropostasHandler) Listar(c *gin.Context) {
+	ctx := context.Background()
+
+	query := `
+		SELECT
+			p.id_p, p.id_unidade_p, u.codigo_un, u.piso_un, u.corredor_un,
+			p.segmento_p, p.tipo_operacao_p, p.valor_proposto_p, p.area_p, p.status_p,
+			COALESCE(p.nome_fantasia_p, ''),
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
+			COALESCE(us.nome_u, 'Gerência Comercial')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		LEFT JOIN "Usuario" us ON us.id_u = p.id_usuario_responsavel_p
+		WHERE 1=1`
+
+	args := []any{}
+	i := 1
+
+	if v := c.Query("id_unidade"); v != "" {
+		query += fmt.Sprintf(" AND p.id_unidade_p = $%d", i)
+		args = append(args, v)
+		i++
+	}
+	if v := c.Query("status"); v != "" {
+		query += fmt.Sprintf(" AND p.status_p = $%d", i)
+		args = append(args, v)
+		i++
+	}
+	if v := c.Query("segmento"); v != "" {
+		query += fmt.Sprintf(" AND p.segmento_p = $%d", i)
+		args = append(args, v)
+		i++
+	}
+	if v := c.Query("piso"); v != "" {
+		query += fmt.Sprintf(" AND u.piso_un = $%d", i)
+		args = append(args, v)
+		i++
+	}
+	if v := c.Query("data_from"); v != "" {
+		query += fmt.Sprintf(" AND p.data_criacao_p >= $%d", i)
+		args = append(args, v)
+		i++
+	}
+	if v := c.Query("data_to"); v != "" {
+		query += fmt.Sprintf(" AND p.data_criacao_p <= $%d", i)
+		args = append(args, v)
+		i++
+	}
+
+	query += " ORDER BY p.atualizado_em_p DESC"
+
+	rows, err := h.db.Query(ctx, query, args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao listar propostas"})
+		return
+	}
+	defer rows.Close()
+
+	result := []entities.PropostaResponse{}
+	for rows.Next() {
+		var p entities.PropostaResponse
+		if err := rows.Scan(
+			&p.ID, &p.IDUnidade, &p.CodigoUnidade, &p.Piso, &p.Corredor,
+			&p.Segmento, &p.TipoOperacao, &p.ValorProposto, &p.Area,
+			&p.Status, &p.NomeFantasia, &p.DataCriacao, &p.AtualizadoEm,
+			&p.DataVencimento, &p.FimContrato, &p.Responsavel,
+		); err != nil {
+			continue
+		}
+		p.Unidade = p.CodigoUnidade
+		p.Tipo = p.TipoOperacao
+		result = append(result, p)
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *PropostasHandler) Detalhe(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var p entities.PropostaResponse
+	err := h.db.QueryRow(ctx, `
+		SELECT p.id_p, p.id_unidade_p, u.codigo_un, u.piso_un, u.corredor_un,
+			p.segmento_p, p.tipo_operacao_p, p.valor_proposto_p, p.area_p, p.status_p,
+			COALESCE(p.nome_fantasia_p,''), TO_CHAR(p.data_criacao_p,'YYYY-MM-DD'),
+			TO_CHAR(p.atualizado_em_p,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+			TO_CHAR(p.data_vencimento_p,'YYYY-MM-DD'), TO_CHAR(p.fim_contrato_p,'YYYY-MM-DD'),
+			COALESCE(us.nome_u,'Gerência Comercial')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		LEFT JOIN "Usuario" us ON us.id_u = p.id_usuario_responsavel_p
+		WHERE p.id_p = $1
+	`, id).Scan(
+		&p.ID, &p.IDUnidade, &p.CodigoUnidade, &p.Piso, &p.Corredor,
+		&p.Segmento, &p.TipoOperacao, &p.ValorProposto, &p.Area,
+		&p.Status, &p.NomeFantasia, &p.DataCriacao, &p.AtualizadoEm,
+		&p.DataVencimento, &p.FimContrato, &p.Responsavel,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+	p.Unidade = p.CodigoUnidade
+	p.Tipo = p.TipoOperacao
+	c.JSON(http.StatusOK, p)
+}
+
+func (h *PropostasHandler) Criar(c *gin.Context) {
+	ctx := context.Background()
+	userID := c.GetString("user_id")
+
+	var body struct {
+		IDUnidade      string  `json:"idUnidade"`
+		Segmento       string  `json:"segmento"`
+		TipoOperacao   string  `json:"tipoOperacao"`
+		ValorProposto  float64 `json:"valorProposto"`
+		Area           float64 `json:"area"`
+		NomeFantasia   string  `json:"nomeFantasia"`
+		DataVencimento *string `json:"dataVencimento"`
+		Observacoes    string  `json:"observacoes"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	var id string
+	err := h.db.QueryRow(ctx, `
+		INSERT INTO "Proposta"
+			(id_unidade_p, id_usuario_criacao_p, segmento_p, tipo_operacao_p,
+			 valor_proposto_p, area_p, nome_fantasia_p, data_vencimento_p, observacoes_p)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id_p
+	`, body.IDUnidade, userID, body.Segmento, body.TipoOperacao,
+		body.ValorProposto, body.Area, body.NomeFantasia,
+		body.DataVencimento, body.Observacoes,
+	).Scan(&id)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao criar proposta"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func (h *PropostasHandler) AtualizarStatus(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var body struct {
+		Status      string `json:"status"`
+		Observacoes string `json:"observacoes"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	_, err := h.db.Exec(ctx, `
+		UPDATE "Proposta"
+		SET status_p = $1, observacoes_p = COALESCE($2, observacoes_p), atualizado_em_p = $3
+		WHERE id_p = $4
+	`, body.Status, body.Observacoes, time.Now(), id)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao atualizar status"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Status atualizado"})
+}
+
+func (h *PropostasHandler) Historico(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var propostaID string
+	if err := h.db.QueryRow(ctx, `
+		SELECT id_p
+		FROM "Proposta"
+		WHERE id_p = $1
+	`, id).Scan(&propostaID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar proposta"})
+		return
+	}
+
+	rows, err := h.db.Query(ctx, `
+		SELECT
+			id_ph, id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph, valor_proposto_ph,
+			area_ph, abl_ph, status_ph, data_criacao_ph, data_vencimento_ph,
+			nome_fantasia_ph, aluguel_percent_ph, prazo_locacao_meses_ph,
+			aluguel_por_m2_ph, condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		FROM "PropostaHistorico"
+		WHERE id_proposta_ph = $1
+		ORDER BY editado_em_ph DESC
+	`, propostaID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar historico"})
+		return
+	}
+	defer rows.Close()
+
+	historicos, err := pgx.CollectRows(rows, pgx.RowToStructByName[entities.PropostaHistorico])
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao processar historico"})
+		return
+	}
+	if historicos == nil {
+		historicos = []entities.PropostaHistorico{}
+	}
+
+	c.JSON(http.StatusOK, historicos)
+}
+
+func (h *PropostasHandler) GetLojaAnterior(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var exists bool
+	if err := h.db.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM "Proposta" WHERE id_p = $1)`, id,
+	).Scan(&exists); err != nil || !exists {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	var la entities.PropostaLojaAnterior
+	err := h.db.QueryRow(ctx, `
+		SELECT id_proposta_pla, nome_fantasia_pla, segmento_pla, tipo_operacao_pla,
+		       cto_pla, abl_pla, amm_pla,
+		       divida_amm_pla, divida_negociada_pla, divida_condominio_pla, divida_fpp_pla,
+		       forma_pagamento_pla
+		FROM "PropostaLojaAnterior"
+		WHERE id_proposta_pla = $1
+	`, id).Scan(
+		&la.IdProposta, &la.NomeFantasia, &la.Segmento, &la.TipoOperacao,
+		&la.Cto, &la.Abl, &la.Amm,
+		&la.DividaAmm, &la.DividaNegociada, &la.DividaCondominio, &la.DividaFpp,
+		&la.FormaPagamento,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusOK, nil)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar loja anterior"})
+		return
+	}
+
+	c.JSON(http.StatusOK, la)
+}
+
+func (h *PropostasHandler) SalvarLojaAnterior(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+
+	type propostaSnap struct {
+		codigoUnidade   string
+		segmento        string
+		tipoOperacao    string
+		valorProposto   float64
+		area            float64
+		abl             *float64
+		status          string
+		dataCriacao     string
+		dataVencimento  *string
+		nomeFantasia    *string
+		aluguelPercent  *float64
+		prazoLocacao    *int
+		aluguelPorM2    *float64
+		condominioAprox *float64
+		fppAprox        *float64
+		inicioContrato  *string
+		fimContrato     *string
+		dataInauguracao *string
+		observacoes     *string
+		atualizadoEm    *string
+	}
+
+	var snap propostaSnap
+	err := h.db.QueryRow(ctx, `
+		SELECT
+			u.codigo_un,
+			p.segmento_p, p.tipo_operacao_p,
+			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
+			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p,
+			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		WHERE p.id_p = $1
+	`, id).Scan(
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
+		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
+		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox,
+		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.observacoes, &snap.atualizadoEm,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	var body struct {
+		NomeFantasia     *string  `json:"nomeFantasia"`
+		Segmento         *string  `json:"segmento"`
+		TipoOperacao     *string  `json:"tipoOperacao"`
+		Cto              *float64 `json:"cto"`
+		Abl              *float64 `json:"abl"`
+		Amm              *float64 `json:"amm"`
+		DividaAmm        *float64 `json:"dividaAmm"`
+		DividaNegociada  *float64 `json:"dividaNegociada"`
+		DividaCondominio *float64 `json:"dividaCondominio"`
+		DividaFpp        *float64 `json:"dividaFpp"`
+		FormaPagamento   *string  `json:"formaPagamento"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transação"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var idPH string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO "PropostaHistorico" (
+			id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
+			valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
+			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
+			condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES (
+			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+		) RETURNING id_ph
+	`,
+		id, userID,
+		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
+		snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
+		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
+		snap.condominioAprox, snap.fppAprox,
+		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
+		snap.observacoes, snap.atualizadoEm,
+	).Scan(&idPH)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaLojaAnterior" (
+			id_proposta_pla, nome_fantasia_pla, segmento_pla, tipo_operacao_pla,
+			cto_pla, abl_pla, amm_pla,
+			divida_amm_pla, divida_negociada_pla, divida_condominio_pla, divida_fpp_pla,
+			forma_pagamento_pla
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+		ON CONFLICT (id_proposta_pla) DO UPDATE SET
+			nome_fantasia_pla     = EXCLUDED.nome_fantasia_pla,
+			segmento_pla          = EXCLUDED.segmento_pla,
+			tipo_operacao_pla     = EXCLUDED.tipo_operacao_pla,
+			cto_pla               = EXCLUDED.cto_pla,
+			abl_pla               = EXCLUDED.abl_pla,
+			amm_pla               = EXCLUDED.amm_pla,
+			divida_amm_pla        = EXCLUDED.divida_amm_pla,
+			divida_negociada_pla  = EXCLUDED.divida_negociada_pla,
+			divida_condominio_pla = EXCLUDED.divida_condominio_pla,
+			divida_fpp_pla        = EXCLUDED.divida_fpp_pla,
+			forma_pagamento_pla   = EXCLUDED.forma_pagamento_pla
+	`,
+		id,
+		body.NomeFantasia, body.Segmento, body.TipoOperacao,
+		body.Cto, body.Abl, body.Amm,
+		body.DividaAmm, body.DividaNegociada, body.DividaCondominio, body.DividaFpp,
+		body.FormaPagamento,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar loja anterior"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaLojaAnteriorHistorico" (
+			id_historico_plah,
+			nome_fantasia_plah, segmento_plah, tipo_operacao_plah,
+			cto_plah, abl_plah, amm_plah,
+			divida_amm_plah, divida_negociada_plah, divida_condominio_plah, divida_fpp_plah,
+			forma_pagamento_plah
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+	`,
+		idPH,
+		body.NomeFantasia, body.Segmento, body.TipoOperacao,
+		body.Cto, body.Abl, body.Amm,
+		body.DividaAmm, body.DividaNegociada, body.DividaCondominio, body.DividaFpp,
+		body.FormaPagamento,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico da loja anterior"})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar transação"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Loja anterior salva com sucesso"})
+}
+
+func (h *PropostasHandler) GetNecessidadesTecnicas(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var exists bool
+	if err := h.db.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM "Proposta" WHERE id_p = $1)`, id,
+	).Scan(&exists); err != nil || !exists {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	var nt entities.PropostaNecessidadesTecnicas
+	err := h.db.QueryRow(ctx, `
+		SELECT id_proposta_pnt,
+		       demanda_eletrica_kva_pnt, tensao_necessaria_pnt, circuitos_especiais_pnt, obs_eletrica_pnt,
+		       ponto_agua_pnt, quantidade_pontos_agua_pnt, ponto_esgoto_pnt, vazao_necessaria_lmin_pnt,
+		       caixa_gordura_pnt, obs_hidraulica_pnt,
+		       necessita_gas_pnt, tipo_gas_pnt, consumo_gas_m3h_pnt, obs_gas_pnt,
+		       necessita_exaustao_pnt, vazao_exaustao_m3h_pnt, necessita_make_up_ar_pnt, obs_ventilacao_pnt,
+		       area_minima_m2_pnt, area_maxima_m2_pnt, pe_direito_minimo_m_pnt,
+		       carga_piso_kgm2_pnt, necessita_mezanino_pnt, obs_estrutura_pnt,
+		       frente_minima_m_pnt, tipo_fachada_pnt, comunicacao_visual_led_pnt, obs_fachada_pnt,
+		       pontos_dados_pnt, necessita_fibra_pnt, obs_telecom_pnt,
+		       status_pnt, id_usuario_responsavel_pnt::text,
+		       TO_CHAR(criado_em_pnt, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+		       TO_CHAR(atualizado_em_pnt, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "PropostaNecessidadesTecnicas"
+		WHERE id_proposta_pnt = $1
+	`, id).Scan(
+		&nt.IdProposta,
+		&nt.DemandaEletricaKva, &nt.TensaoNecessaria, &nt.CircuitosEspeciais, &nt.ObsEletrica,
+		&nt.PontoAgua, &nt.QuantidadePontosAgua, &nt.PontoEsgoto, &nt.VazaoNecessariaLmin,
+		&nt.CaixaGordura, &nt.ObsHidraulica,
+		&nt.NecessitaGas, &nt.TipoGas, &nt.ConsumoGasM3h, &nt.ObsGas,
+		&nt.NecessitaExaustao, &nt.VazaoExaustaoM3h, &nt.NecessitaMakeUpAr, &nt.ObsVentilacao,
+		&nt.AreaMinimaM2, &nt.AreaMaximaM2, &nt.PeDireitoMinimoM,
+		&nt.CargaPisoKgm2, &nt.NecessitaMezanino, &nt.ObsEstrutura,
+		&nt.FrenteMinimaM, &nt.TipoFachada, &nt.ComunicacaoVisualLed, &nt.ObsFachada,
+		&nt.PontosDados, &nt.NecessitaFibra, &nt.ObsTelecom,
+		&nt.Status, &nt.IdUsuarioResponsavel,
+		&nt.CriadoEm, &nt.AtualizadoEm,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusOK, nil)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar necessidades técnicas"})
+		return
+	}
+
+	c.JSON(http.StatusOK, nt)
+}
+
+func (h *PropostasHandler) SalvarNecessidadesTecnicas(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+
+	type propostaSnap struct {
+		codigoUnidade   string
+		segmento        string
+		tipoOperacao    string
+		valorProposto   float64
+		area            float64
+		abl             *float64
+		status          string
+		dataCriacao     string
+		dataVencimento  *string
+		nomeFantasia    *string
+		aluguelPercent  *float64
+		prazoLocacao    *int
+		aluguelPorM2    *float64
+		condominioAprox *float64
+		fppAprox        *float64
+		inicioContrato  *string
+		fimContrato     *string
+		dataInauguracao *string
+		observacoes     *string
+		atualizadoEm    *string
+	}
+
+	var snap propostaSnap
+	err := h.db.QueryRow(ctx, `
+		SELECT
+			u.codigo_un,
+			p.segmento_p, p.tipo_operacao_p,
+			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
+			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p,
+			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		WHERE p.id_p = $1
+	`, id).Scan(
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
+		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
+		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox,
+		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.observacoes, &snap.atualizadoEm,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	var body struct {
+		DemandaEletricaKva   *float64 `json:"demandaEletricaKva"`
+		TensaoNecessaria     *string  `json:"tensaoNecessaria"`
+		CircuitosEspeciais   *bool    `json:"circuitosEspeciais"`
+		ObsEletrica          *string  `json:"obsEletrica"`
+		PontoAgua            *bool    `json:"pontoAgua"`
+		QuantidadePontosAgua *int     `json:"quantidadePontosAgua"`
+		PontoEsgoto          *bool    `json:"pontoEsgoto"`
+		VazaoNecessariaLmin  *float64 `json:"vazaoNecessariaLmin"`
+		CaixaGordura         *bool    `json:"caixaGordura"`
+		ObsHidraulica        *string  `json:"obsHidraulica"`
+		NecessitaGas         *bool    `json:"necessitaGas"`
+		TipoGas              *string  `json:"tipoGas"`
+		ConsumoGasM3h        *float64 `json:"consumoGasM3h"`
+		ObsGas               *string  `json:"obsGas"`
+		NecessitaExaustao    *bool    `json:"necessitaExaustao"`
+		VazaoExaustaoM3h     *float64 `json:"vazaoExaustaoM3h"`
+		NecessitaMakeUpAr    *bool    `json:"necessitaMakeUpAr"`
+		ObsVentilacao        *string  `json:"obsVentilacao"`
+		AreaMinimaM2         *float64 `json:"areaMinimaM2"`
+		AreaMaximaM2         *float64 `json:"areaMaximaM2"`
+		PeDireitoMinimoM     *float64 `json:"peDireitoMinimoM"`
+		CargaPisoKgm2        *float64 `json:"cargaPisoKgm2"`
+		NecessitaMezanino    *bool    `json:"necessitaMezanino"`
+		ObsEstrutura         *string  `json:"obsEstrutura"`
+		FrenteMinimaM        *float64 `json:"frenteMinimaM"`
+		TipoFachada          *string  `json:"tipoFachada"`
+		ComunicacaoVisualLed *bool    `json:"comunicacaoVisualLed"`
+		ObsFachada           *string  `json:"obsFachada"`
+		PontosDados          *int     `json:"pontosDados"`
+		NecessitaFibra       *bool    `json:"necessitaFibra"`
+		ObsTelecom           *string  `json:"obsTelecom"`
+		Status               *string  `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	boolVal := func(p *bool) bool {
+		if p == nil {
+			return false
+		}
+		return *p
+	}
+
+	circuitosEspeciais := boolVal(body.CircuitosEspeciais)
+	pontoAgua := boolVal(body.PontoAgua)
+	pontoEsgoto := boolVal(body.PontoEsgoto)
+	caixaGordura := boolVal(body.CaixaGordura)
+	necessitaGas := boolVal(body.NecessitaGas)
+	necessitaExaustao := boolVal(body.NecessitaExaustao)
+	necessitaMakeUpAr := boolVal(body.NecessitaMakeUpAr)
+	necessitaMezanino := boolVal(body.NecessitaMezanino)
+	comunicacaoVisualLed := boolVal(body.ComunicacaoVisualLed)
+	necessitaFibra := boolVal(body.NecessitaFibra)
+
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transação"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var idPH string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO "PropostaHistorico" (
+			id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
+			valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
+			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
+			condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES (
+			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+		) RETURNING id_ph
+	`,
+		id, userID,
+		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
+		snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
+		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
+		snap.condominioAprox, snap.fppAprox,
+		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
+		snap.observacoes, snap.atualizadoEm,
+	).Scan(&idPH)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaNecessidadesTecnicas" (
+			id_proposta_pnt,
+			demanda_eletrica_kva_pnt, tensao_necessaria_pnt, circuitos_especiais_pnt, obs_eletrica_pnt,
+			ponto_agua_pnt, quantidade_pontos_agua_pnt, ponto_esgoto_pnt, vazao_necessaria_lmin_pnt,
+			caixa_gordura_pnt, obs_hidraulica_pnt,
+			necessita_gas_pnt, tipo_gas_pnt, consumo_gas_m3h_pnt, obs_gas_pnt,
+			necessita_exaustao_pnt, vazao_exaustao_m3h_pnt, necessita_make_up_ar_pnt, obs_ventilacao_pnt,
+			area_minima_m2_pnt, area_maxima_m2_pnt, pe_direito_minimo_m_pnt,
+			carga_piso_kgm2_pnt, necessita_mezanino_pnt, obs_estrutura_pnt,
+			frente_minima_m_pnt, tipo_fachada_pnt, comunicacao_visual_led_pnt, obs_fachada_pnt,
+			pontos_dados_pnt, necessita_fibra_pnt, obs_telecom_pnt,
+			status_pnt, id_usuario_responsavel_pnt,
+			criado_em_pnt
+		) VALUES (
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,NOW()
+		) ON CONFLICT (id_proposta_pnt) DO UPDATE SET
+			demanda_eletrica_kva_pnt   = EXCLUDED.demanda_eletrica_kva_pnt,
+			tensao_necessaria_pnt      = EXCLUDED.tensao_necessaria_pnt,
+			circuitos_especiais_pnt    = EXCLUDED.circuitos_especiais_pnt,
+			obs_eletrica_pnt           = EXCLUDED.obs_eletrica_pnt,
+			ponto_agua_pnt             = EXCLUDED.ponto_agua_pnt,
+			quantidade_pontos_agua_pnt = EXCLUDED.quantidade_pontos_agua_pnt,
+			ponto_esgoto_pnt           = EXCLUDED.ponto_esgoto_pnt,
+			vazao_necessaria_lmin_pnt  = EXCLUDED.vazao_necessaria_lmin_pnt,
+			caixa_gordura_pnt          = EXCLUDED.caixa_gordura_pnt,
+			obs_hidraulica_pnt         = EXCLUDED.obs_hidraulica_pnt,
+			necessita_gas_pnt          = EXCLUDED.necessita_gas_pnt,
+			tipo_gas_pnt               = EXCLUDED.tipo_gas_pnt,
+			consumo_gas_m3h_pnt        = EXCLUDED.consumo_gas_m3h_pnt,
+			obs_gas_pnt                = EXCLUDED.obs_gas_pnt,
+			necessita_exaustao_pnt     = EXCLUDED.necessita_exaustao_pnt,
+			vazao_exaustao_m3h_pnt     = EXCLUDED.vazao_exaustao_m3h_pnt,
+			necessita_make_up_ar_pnt   = EXCLUDED.necessita_make_up_ar_pnt,
+			obs_ventilacao_pnt         = EXCLUDED.obs_ventilacao_pnt,
+			area_minima_m2_pnt         = EXCLUDED.area_minima_m2_pnt,
+			area_maxima_m2_pnt         = EXCLUDED.area_maxima_m2_pnt,
+			pe_direito_minimo_m_pnt    = EXCLUDED.pe_direito_minimo_m_pnt,
+			carga_piso_kgm2_pnt        = EXCLUDED.carga_piso_kgm2_pnt,
+			necessita_mezanino_pnt     = EXCLUDED.necessita_mezanino_pnt,
+			obs_estrutura_pnt          = EXCLUDED.obs_estrutura_pnt,
+			frente_minima_m_pnt        = EXCLUDED.frente_minima_m_pnt,
+			tipo_fachada_pnt           = EXCLUDED.tipo_fachada_pnt,
+			comunicacao_visual_led_pnt = EXCLUDED.comunicacao_visual_led_pnt,
+			obs_fachada_pnt            = EXCLUDED.obs_fachada_pnt,
+			pontos_dados_pnt           = EXCLUDED.pontos_dados_pnt,
+			necessita_fibra_pnt        = EXCLUDED.necessita_fibra_pnt,
+			obs_telecom_pnt            = EXCLUDED.obs_telecom_pnt,
+			status_pnt                 = EXCLUDED.status_pnt,
+			id_usuario_responsavel_pnt = EXCLUDED.id_usuario_responsavel_pnt,
+			atualizado_em_pnt          = NOW()
+	`,
+		id,
+		body.DemandaEletricaKva, body.TensaoNecessaria, circuitosEspeciais, body.ObsEletrica,
+		pontoAgua, body.QuantidadePontosAgua, pontoEsgoto, body.VazaoNecessariaLmin,
+		caixaGordura, body.ObsHidraulica,
+		necessitaGas, body.TipoGas, body.ConsumoGasM3h, body.ObsGas,
+		necessitaExaustao, body.VazaoExaustaoM3h, necessitaMakeUpAr, body.ObsVentilacao,
+		body.AreaMinimaM2, body.AreaMaximaM2, body.PeDireitoMinimoM,
+		body.CargaPisoKgm2, necessitaMezanino, body.ObsEstrutura,
+		body.FrenteMinimaM, body.TipoFachada, comunicacaoVisualLed, body.ObsFachada,
+		body.PontosDados, necessitaFibra, body.ObsTelecom,
+		body.Status, userID,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar necessidades técnicas"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaNecessidadesTecnicasHistorico" (
+			id_historico_pnth,
+			demanda_eletrica_kva_pnth, tensao_necessaria_pnth, circuitos_especiais_pnth, obs_eletrica_pnth,
+			ponto_agua_pnth, quantidade_pontos_agua_pnth, ponto_esgoto_pnth, vazao_necessaria_lmin_pnth,
+			caixa_gordura_pnth, obs_hidraulica_pnth,
+			necessita_gas_pnth, tipo_gas_pnth, consumo_gas_m3h_pnth, obs_gas_pnth,
+			necessita_exaustao_pnth, vazao_exaustao_m3h_pnth, necessita_make_up_ar_pnth, obs_ventilacao_pnth,
+			area_minima_m2_pnth, area_maxima_m2_pnth, pe_direito_minimo_m_pnth,
+			carga_piso_kgm2_pnth, necessita_mezanino_pnth, obs_estrutura_pnth,
+			frente_minima_m_pnth, tipo_fachada_pnth, comunicacao_visual_led_pnth, obs_fachada_pnth,
+			pontos_dados_pnth, necessita_fibra_pnth, obs_telecom_pnth,
+			status_pnth, id_usuario_responsavel_pnth,
+			criado_em_pnth, atualizado_em_pnth
+		) VALUES (
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,NOW(),NOW()
+		)
+	`,
+		idPH,
+		body.DemandaEletricaKva, body.TensaoNecessaria, circuitosEspeciais, body.ObsEletrica,
+		pontoAgua, body.QuantidadePontosAgua, pontoEsgoto, body.VazaoNecessariaLmin,
+		caixaGordura, body.ObsHidraulica,
+		necessitaGas, body.TipoGas, body.ConsumoGasM3h, body.ObsGas,
+		necessitaExaustao, body.VazaoExaustaoM3h, necessitaMakeUpAr, body.ObsVentilacao,
+		body.AreaMinimaM2, body.AreaMaximaM2, body.PeDireitoMinimoM,
+		body.CargaPisoKgm2, necessitaMezanino, body.ObsEstrutura,
+		body.FrenteMinimaM, body.TipoFachada, comunicacaoVisualLed, body.ObsFachada,
+		body.PontosDados, necessitaFibra, body.ObsTelecom,
+		body.Status, userID,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico de necessidades técnicas"})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar transação"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Necessidades técnicas salvas com sucesso"})
+}
+
+func (h *PropostasHandler) GetCessaoDireitos(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var tipoOperacao string
+	err := h.db.QueryRow(ctx,
+		`SELECT tipo_operacao_p FROM "Proposta" WHERE id_p = $1`, id,
+	).Scan(&tipoOperacao)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar proposta"})
+		return
+	}
+
+	if tipoOperacao != "Cessão" && tipoOperacao != "Transferência" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Operação não permite cessão de direitos"})
+		return
+	}
+
+	var cd entities.PropostaCessaoDireitos
+	err = h.db.QueryRow(ctx, `
+		SELECT id_proposta_pcd,
+		       res_sperata_proposta_pcd, referencia_mercado_por_m2_pcd,
+		       sinal_res_sperata_pcd, forma_pagamento_saldo_pcd, num_parcelas_pcd,
+		       status_res_sperata_pcd, observacoes_pcd
+		FROM "PropostaCessaoDireitos"
+		WHERE id_proposta_pcd = $1
+	`, id).Scan(
+		&cd.IdProposta,
+		&cd.ResSperataProposta, &cd.ReferenciaMercadoPorM2,
+		&cd.SinalResSperata, &cd.FormaPagamentoSaldo, &cd.NumParcelas,
+		&cd.StatusResSperata, &cd.Observacoes,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusOK, nil)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar cessão de direitos"})
+		return
+	}
+
+	c.JSON(http.StatusOK, cd)
+}
+
+func (h *PropostasHandler) SalvarCessaoDireitos(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+
+	type propostaSnap struct {
+		codigoUnidade   string
+		segmento        string
+		tipoOperacao    string
+		valorProposto   float64
+		area            float64
+		abl             *float64
+		status          string
+		dataCriacao     string
+		dataVencimento  *string
+		nomeFantasia    *string
+		aluguelPercent  *float64
+		prazoLocacao    *int
+		aluguelPorM2    *float64
+		condominioAprox *float64
+		fppAprox        *float64
+		inicioContrato  *string
+		fimContrato     *string
+		dataInauguracao *string
+		observacoes     *string
+		atualizadoEm    *string
+	}
+
+	var snap propostaSnap
+	err := h.db.QueryRow(ctx, `
+		SELECT
+			u.codigo_un,
+			p.segmento_p, p.tipo_operacao_p,
+			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
+			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p,
+			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		WHERE p.id_p = $1
+	`, id).Scan(
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
+		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
+		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox,
+		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.observacoes, &snap.atualizadoEm,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	if snap.tipoOperacao != "Cessão" && snap.tipoOperacao != "Transferência" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Operação não permite cessão de direitos"})
+		return
+	}
+
+	var body struct {
+		ResSperataProposta     *float64 `json:"resSperataProposta"`
+		ReferenciaMercadoPorM2 *float64 `json:"referenciaMercadoPorM2"`
+		SinalResSperata        *float64 `json:"sinalResSperata"`
+		FormaPagamentoSaldo    *string  `json:"formaPagamentoSaldo"`
+		NumParcelas            *int     `json:"numParcelas"`
+		StatusResSperata       *string  `json:"statusResSperata"`
+		Observacoes            *string  `json:"observacoes"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transação"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var idPH string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO "PropostaHistorico" (
+			id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
+			valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
+			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
+			condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES (
+			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+		) RETURNING id_ph
+	`,
+		id, userID,
+		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
+		snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
+		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
+		snap.condominioAprox, snap.fppAprox,
+		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
+		snap.observacoes, snap.atualizadoEm,
+	).Scan(&idPH)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaCessaoDireitos" (
+			id_proposta_pcd,
+			res_sperata_proposta_pcd, referencia_mercado_por_m2_pcd,
+			sinal_res_sperata_pcd, forma_pagamento_saldo_pcd, num_parcelas_pcd,
+			status_res_sperata_pcd, observacoes_pcd
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+		ON CONFLICT (id_proposta_pcd) DO UPDATE SET
+			res_sperata_proposta_pcd      = EXCLUDED.res_sperata_proposta_pcd,
+			referencia_mercado_por_m2_pcd = EXCLUDED.referencia_mercado_por_m2_pcd,
+			sinal_res_sperata_pcd         = EXCLUDED.sinal_res_sperata_pcd,
+			forma_pagamento_saldo_pcd     = EXCLUDED.forma_pagamento_saldo_pcd,
+			num_parcelas_pcd              = EXCLUDED.num_parcelas_pcd,
+			status_res_sperata_pcd        = EXCLUDED.status_res_sperata_pcd,
+			observacoes_pcd               = EXCLUDED.observacoes_pcd
+	`,
+		id,
+		body.ResSperataProposta, body.ReferenciaMercadoPorM2,
+		body.SinalResSperata, body.FormaPagamentoSaldo, body.NumParcelas,
+		body.StatusResSperata, body.Observacoes,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar cessão de direitos"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaCessaoDireitosHistorico" (
+			id_historico_pcdh,
+			res_sperata_proposta_pcdh, referencia_mercado_por_m2_pcdh,
+			sinal_res_sperata_pcdh, forma_pagamento_saldo_pcdh, num_parcelas_pcdh,
+			status_res_sperata_pcdh, observacoes_pcdh
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+	`,
+		idPH,
+		body.ResSperataProposta, body.ReferenciaMercadoPorM2,
+		body.SinalResSperata, body.FormaPagamentoSaldo, body.NumParcelas,
+		body.StatusResSperata, body.Observacoes,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico da cessão de direitos"})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar transação"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Cessão de direitos salva com sucesso"})
+}
+
+func (h *PropostasHandler) GetParecerComite(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+
+	var status string
+	err := h.db.QueryRow(ctx,
+		`SELECT status_p FROM "Proposta" WHERE id_p = $1`, id,
+	).Scan(&status)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar proposta"})
+		return
+	}
+
+	if status != "Aguardando análise do comitê" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Parecer disponível apenas para propostas aguardando análise do comitê"})
+		return
+	}
+
+	var pc entities.PropostaParecerComite
+	err = h.db.QueryRow(ctx, `
+		SELECT id_proposta_ppc,
+		       presidente_ppc, presidente_data_ppc,
+		       diretoria_comp1_ppc, diretoria_comp1_data_ppc,
+		       diretoria_comp2_ppc, diretoria_comp2_data_ppc,
+		       superintendente_ppc, superintendente_data_ppc,
+		       in_networking_ppc, in_networking_data_ppc
+		FROM "PropostaParecerComite"
+		WHERE id_proposta_ppc = $1
+	`, id).Scan(
+		&pc.IdProposta,
+		&pc.Presidente, &pc.PresidenteData,
+		&pc.DiretoriaComp1, &pc.DiretoriaComp1Data,
+		&pc.DiretoriaComp2, &pc.DiretoriaComp2Data,
+		&pc.Superintendente, &pc.SuperintendenteData,
+		&pc.InNetworking, &pc.InNetworkingData,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusOK, nil)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar parecer do comitê"})
+		return
+	}
+
+	c.JSON(http.StatusOK, pc)
+}
+
+func (h *PropostasHandler) SalvarParecerComite(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+
+	type propostaSnap struct {
+		codigoUnidade   string
+		segmento        string
+		tipoOperacao    string
+		valorProposto   float64
+		area            float64
+		abl             *float64
+		status          string
+		dataCriacao     string
+		dataVencimento  *string
+		nomeFantasia    *string
+		aluguelPercent  *float64
+		prazoLocacao    *int
+		aluguelPorM2    *float64
+		condominioAprox *float64
+		fppAprox        *float64
+		inicioContrato  *string
+		fimContrato     *string
+		dataInauguracao *string
+		observacoes     *string
+		atualizadoEm    *string
+	}
+
+	var snap propostaSnap
+	err := h.db.QueryRow(ctx, `
+		SELECT
+			u.codigo_un,
+			p.segmento_p, p.tipo_operacao_p,
+			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
+			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p,
+			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		WHERE p.id_p = $1
+	`, id).Scan(
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
+		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
+		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox,
+		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.observacoes, &snap.atualizadoEm,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	if snap.status != "Aguardando análise do comitê" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Parecer disponível apenas para propostas aguardando análise do comitê"})
+		return
+	}
+
+	var body struct {
+		Presidente          *bool   `json:"presidente"`
+		PresidenteData      *string `json:"presidenteData"`
+		DiretoriaComp1      *bool   `json:"diretoriaComp1"`
+		DiretoriaComp1Data  *string `json:"diretoriaComp1Data"`
+		DiretoriaComp2      *bool   `json:"diretoriaComp2"`
+		DiretoriaComp2Data  *string `json:"diretoriaComp2Data"`
+		Superintendente     *bool   `json:"superintendente"`
+		SuperintendenteData *string `json:"superintendenteData"`
+		InNetworking        *bool   `json:"inNetworking"`
+		InNetworkingData    *string `json:"inNetworkingData"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	boolVal := func(p *bool) bool {
+		if p == nil {
+			return false
+		}
+		return *p
+	}
+
+	presidente := boolVal(body.Presidente)
+	diretoriaComp1 := boolVal(body.DiretoriaComp1)
+	diretoriaComp2 := boolVal(body.DiretoriaComp2)
+	superintendente := boolVal(body.Superintendente)
+	inNetworking := boolVal(body.InNetworking)
+
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transação"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var idPH string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO "PropostaHistorico" (
+			id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
+			valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
+			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
+			condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES (
+			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+		) RETURNING id_ph
+	`,
+		id, userID,
+		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
+		snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
+		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
+		snap.condominioAprox, snap.fppAprox,
+		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
+		snap.observacoes, snap.atualizadoEm,
+	).Scan(&idPH)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaParecerComite" (
+			id_proposta_ppc,
+			presidente_ppc, presidente_data_ppc,
+			diretoria_comp1_ppc, diretoria_comp1_data_ppc,
+			diretoria_comp2_ppc, diretoria_comp2_data_ppc,
+			superintendente_ppc, superintendente_data_ppc,
+			in_networking_ppc, in_networking_data_ppc
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+		ON CONFLICT (id_proposta_ppc) DO UPDATE SET
+			presidente_ppc           = EXCLUDED.presidente_ppc,
+			presidente_data_ppc      = EXCLUDED.presidente_data_ppc,
+			diretoria_comp1_ppc      = EXCLUDED.diretoria_comp1_ppc,
+			diretoria_comp1_data_ppc = EXCLUDED.diretoria_comp1_data_ppc,
+			diretoria_comp2_ppc      = EXCLUDED.diretoria_comp2_ppc,
+			diretoria_comp2_data_ppc = EXCLUDED.diretoria_comp2_data_ppc,
+			superintendente_ppc      = EXCLUDED.superintendente_ppc,
+			superintendente_data_ppc = EXCLUDED.superintendente_data_ppc,
+			in_networking_ppc        = EXCLUDED.in_networking_ppc,
+			in_networking_data_ppc   = EXCLUDED.in_networking_data_ppc
+	`,
+		id,
+		presidente, body.PresidenteData,
+		diretoriaComp1, body.DiretoriaComp1Data,
+		diretoriaComp2, body.DiretoriaComp2Data,
+		superintendente, body.SuperintendenteData,
+		inNetworking, body.InNetworkingData,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar parecer do comitê"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaParecerComiteHistorico" (
+			id_historico_ppch,
+			presidente_ppch, presidente_data_ppch,
+			diretoria_comp1_ppch, diretoria_comp1_data_ppch,
+			diretoria_comp2_ppch, diretoria_comp2_data_ppch,
+			superintendente_ppch, superintendente_data_ppch,
+			in_networking_ppch, in_networking_data_ppch
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+	`,
+		idPH,
+		presidente, body.PresidenteData,
+		diretoriaComp1, body.DiretoriaComp1Data,
+		diretoriaComp2, body.DiretoriaComp2Data,
+		superintendente, body.SuperintendenteData,
+		inNetworking, body.InNetworkingData,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico do parecer do comitê"})
+		return
+	}
+
+	if presidente && diretoriaComp1 && diretoriaComp2 && superintendente && inNetworking {
+		_, err = tx.Exec(ctx,
+			`UPDATE "Proposta" SET status_p = 'Aprovado', atualizado_em_p = NOW() WHERE id_p = $1`, id,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao atualizar status da proposta"})
+			return
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar transação"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Parecer do comitê salvo com sucesso"})
+}
+
+func (h *PropostasHandler) PlaceholderOK(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}
+
+func (h *PropostasHandler) PlaceholderList(c *gin.Context) {
+	c.JSON(http.StatusOK, []any{})
+}
 ````
 
 ## File: Figma/package.json
@@ -14863,6 +15481,77 @@ export function useComercialAvailability() {
     manutencaoUnidade, setManutencaoUnidade,
     refetch,
   };
+}
+````
+
+## File: API/internal/routes/routes.go
+````go
+// ============================================================
+// routes/routes.go — Registro de todas as rotas da API
+// ============================================================
+package routes
+
+import (
+	"net/http"
+
+	"go-api/internal/config"     // <-- Corrigido usando o nome do módulo
+	"go-api/internal/handlers"   // <-- Certifique-se de que está assim
+	"go-api/internal/middleware" // <-- Certifique-se de que está assim
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
+
+	authHandler := handlers.NewAuthHandler(db, cfg.JwtSecret, cfg.JwtDuration)
+	unidadesHandler := handlers.NewUnidadesHandler(db)
+	propostasHandler := handlers.NewPropostasHandler(db)
+
+	// Rotas públicas
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
+
+	r.POST("/api/v1/auth/login", authHandler.Login)
+
+	api := r.Group("/api/v1")
+	// <-- 2. AJUSTADO: Agora o middleware lê a chave de dentro da struct cfg
+	api.Use(middleware.Auth(db, cfg.JwtSecret))
+	{
+		// Auth
+		api.POST("/auth/logout", authHandler.Logout)
+		api.GET("/auth/me", authHandler.Me)
+
+		// Unidades
+		api.GET("/unidades", unidadesHandler.Listar)
+		api.GET("/unidades/:id", unidadesHandler.Detalhe)
+
+		// Propostas
+		api.GET("/propostas", propostasHandler.Listar)
+		api.GET("/propostas/:id", propostasHandler.Detalhe)
+		api.POST("/propostas", propostasHandler.Criar)
+		api.PUT("/propostas/:id", propostasHandler.PlaceholderOK)
+		api.PATCH("/propostas/:id/status", propostasHandler.AtualizarStatus)
+		api.POST("/propostas/check-vencidas", propostasHandler.PlaceholderOK)
+
+		api.GET("/propostas/:id/historico", propostasHandler.Historico)
+		api.GET("/propostas/:id/loja-anterior", propostasHandler.GetLojaAnterior)
+		api.PUT("/propostas/:id/loja-anterior", propostasHandler.SalvarLojaAnterior)
+		api.GET("/propostas/:id/necessidades-tecnicas", propostasHandler.GetNecessidadesTecnicas)
+		api.PUT("/propostas/:id/necessidades-tecnicas", propostasHandler.SalvarNecessidadesTecnicas)
+		api.GET("/propostas/:id/cessao-direitos", propostasHandler.GetCessaoDireitos)
+		api.PUT("/propostas/:id/cessao-direitos", propostasHandler.SalvarCessaoDireitos)
+		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.PlaceholderOK)
+		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.PlaceholderOK)
+		api.GET("/propostas/:id/parecer-comite", propostasHandler.GetParecerComite)
+		api.PUT("/propostas/:id/parecer-comite", propostasHandler.SalvarParecerComite)
+
+		// Documentos
+		api.GET("/documentos", propostasHandler.PlaceholderList)
+		api.POST("/documentos", propostasHandler.PlaceholderOK)
+		api.DELETE("/documentos/:id", propostasHandler.PlaceholderOK)
+	}
 }
 ````
 
@@ -16549,208 +17238,7 @@ export function ComercialAvailability() {
 
 ## File: README.md
 ````markdown
-# 🏗️ Arquitetura do Projeto Flamboyant
-
-> Documento gerado automaticamente a partir do código-fonte. Explica o fluxo completo, a ordem de execução e como cada camada se conecta.
-
----
-
-## 1. Visão Geral das Camadas
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  docker-compose.yml                      │
-│  ┌──────────────┐  ┌───────────────┐  ┌──────────────┐ │
-│  │  postgres:16  │  │  API (Go/Gin) │  │  Frontend    │ │
-│  │  porta 5432   │◄─│  porta 8080   │◄─│  nginx :80   │ │
-│  └──────────────┘  └───────────────┘  └──────────────┘ │
-└─────────────────────────────────────────────────────────┘
-         ▲                   ▲
-         │                   │
-    migrations SQL      codegen/generate.go
-    (fonte da verdade)  (gera structs .go e .ts)
-```
-
-O projeto é dividido em três serviços Docker orquestrados pelo `docker-compose.yml`:
-
-| Serviço    | Tecnologia            | Porta | Papel                                      |
-|------------|-----------------------|-------|--------------------------------------------|
-| `postgres` | PostgreSQL 16 Alpine  | 5432  | Banco de dados relacional                  |
-| `api`      | Go 1.23 + Gin         | 8080  | REST API com autenticação JWT              |
-| `frontend` | React/Vite + nginx    | 80    | SPA servida como estática via nginx        |
-
----
-
-## 2. Geração Automática de Entidades (Codegen)
-
-O projeto possui um mecanismo que **garante que Go e TypeScript nunca fiquem dessincronizados**:
-
-```mermaid
-flowchart LR
-    A["migrations/*.sql\n(CREATE TABLE)"] -->|lê schema| B["codegen/generate.go"]
-    B -->|gera| C["entities/*.go\n(structs Go)"]
-    B -->|gera| D["entities/*.ts\n(interfaces TS)"]
-    C -->|copiado para| E["API/internal/entities/"]
-    D -->|copiado para| F["Figma/src/app/entities/"]
-```
-
-**Como rodar:**
-```powershell
-# Na raiz do projeto
-.\ajustar entidades via migration.ps1
-```
-
-**Por que isso existe?**  
-Cada `CREATE TABLE` nas migrations é a única fonte da verdade. O codegen lê o SQL, extrai os campos e tipos, e gera structs Go e interfaces TypeScript espelhados. Nunca edite os arquivos `entities/` manualmente — eles têm o comentário `// Code generated — DO NOT EDIT`.
-
----
-
-## 3. Fluxo de uma Requisição na API (Go/Gin)
-
-```mermaid
-flowchart TD
-    REQ["Cliente HTTP"] --> MAIN["cmd/main.go\nInicializa DB + registra rotas"]
-    MAIN --> DB_INIT["database/database.go\nConecta pgxpool\nRoda migrations automáticas"]
-    MAIN --> ROUTES["routes/routes.go\nGrupo /api/v1\nRegistra todos os endpoints"]
-    ROUTES --> MW["middleware/auth.go\nValida JWT do header\nAuthorization: Bearer token\nInjeta user_id no contexto Gin"]
-    MW --> H1["handlers/auth.go\nPOST /login → bcrypt + JWT\nPOST /logout\nGET  /me"]
-    MW --> H2["handlers/propostas.go\nCRUD completo\nSub-recursos: cessão, TT\ncomitê, documentos"]
-    MW --> H3["handlers/unidades.go\nGET /unidades\nStatus calculado via subquery SQL"]
-    H1 & H2 & H3 --> PG["PostgreSQL\npgxpool — pool de conexões\nSQL direto via pgx/v5"]
-```
-
-**Ordem de inicialização no `main.go`:**
-1. Carrega variáveis de ambiente (`config/config.go`)
-2. Conecta ao PostgreSQL via `pgxpool`
-3. Executa migrations pendentes via `golang-migrate`
-4. Cria os handlers (`AuthHandler`, `PropostasHandler`, `UnidadesHandler`)
-5. Registra todas as rotas no Gin
-6. Sobe o servidor HTTP na porta configurada
-
----
-
-## 4. Autenticação JWT
-
-```mermaid
-sequenceDiagram
-    participant F as Frontend
-    participant A as API (auth.go)
-    participant DB as PostgreSQL
-
-    F->>A: POST /api/v1/auth/login { email, senha }
-    A->>DB: SELECT senha_hash_u FROM Usuario WHERE email_u = ?
-    DB-->>A: hash bcrypt
-    A->>A: bcrypt.CompareHashAndPassword()
-    A->>A: jwt.NewWithClaims() — expira em 24h
-    A->>DB: UPDATE Usuario SET token_ativo_u = token
-    A-->>F: { token, usuario: { id, nome, email, setor } }
-    
-    F->>F: AuthContext salva token
-    F->>A: GET /api/v1/propostas\nAuthorization: Bearer <token>
-    A->>A: middleware/auth.go valida JWT
-    A->>A: Injeta user_id, user_email no ctx Gin
-    A-->>F: 200 OK — dados da resposta
-```
-
-**Nota sobre o modo protótipo:** O `middleware/auth.go` está atualmente com a validação **desabilitada** — injeta um usuário fixo (`proto-001`) para facilitar o desenvolvimento. Para produção, o comentário no arquivo explica os 6 passos necessários para ativar a validação real.
-
----
-
-## 5. Arquitetura Frontend — MVVM
-
-O frontend segue o padrão **MVVM (Model-View-ViewModel)** de forma explícita:
-
-```mermaid
-flowchart TD
-    subgraph VIEW["View (pages/ + components/)"]
-        P1["ComercialDashboard.tsx"]
-        P2["ComercialProposals.tsx"]
-        P3["ComercialAvailability.tsx"]
-        P4["PropostaManutencaoModal/"]
-    end
-
-    subgraph VM["ViewModel (viewmodels/)"]
-        VM1["useComercialDashboard()\nKPIs, filtros, charts"]
-        VM2["useComercialProposals()\nFiltros, ordenação, paginação"]
-        VM3["useComercialAvailability()\nMapa de unidades"]
-    end
-
-    subgraph MODEL["Model (services/)"]
-        S1["PropostasService\nlistar / detalhe / criar / atualizarStatus"]
-        S2["UnidadesService\nlistar / detalhe"]
-    end
-
-    subgraph HTTP["HTTP Layer (data/apiClient.ts)"]
-        AC["fetch() + Authorization: Bearer token\nbaseURL = import.meta.env.VITE_API_URL"]
-    end
-
-    P1 & P2 & P3 --> VM1 & VM2 & VM3
-    VM1 & VM2 & VM3 --> S1 & S2
-    S1 & S2 --> AC
-    AC -->|JSON| API["API Go :8080"]
-```
-
-**Por que três camadas separadas?**
-
-- **View** não sabe de HTTP — só recebe dados e dispara eventos
-- **ViewModel** contém toda a lógica de negócio do frontend (filtros, cálculos, ordenação). Usa `usePersistedState` para manter filtros no `sessionStorage` entre navegações
-- **Service** isola a URL da API — se o endpoint mudar, só o service muda
-- **apiClient** é o único ponto que faz `fetch()` real
-
----
-
-## 6. Como o apiClient se Liga à API
-
-```
-VITE_API_URL=http://localhost:8080/api/v1   ← definido no .env
-         ↓
-Figma/src/vite-env.d.ts declara o tipo
-         ↓
-data/apiClient.ts usa import.meta.env.VITE_API_URL
-         ↓
-No build de produção (Figma/Dockerfile):
-  nginx serve os arquivos estáticos na porta 80
-  as chamadas fetch() vão para http://localhost:8080/api/v1
-         ↓
-API Go responde com CORS permitindo ALLOWED_ORIGIN=http://localhost
-```
-
-**Tipagem ponta a ponta:**  
-Os tipos das respostas (`PropostaResumo`, `Unidade`, etc.) em `apiClient.ts` espelham exatamente as structs Go em `entities/responses.go` — garantido pelo codegen.
-
----
-
-## 7. Ciclo de Vida de uma Proposta
-
-```mermaid
-stateDiagram-v2
-    [*] --> Criada : POST /propostas
-    Criada --> AguardandoFinanceira : PATCH /status
-    AguardandoFinanceira --> AguardandoComite : PATCH /status
-    AguardandoComite --> Aprovado : Parecer do Comitê completo
-    AguardandoComite --> Reprovado : PATCH /status
-    AguardandoFinanceira --> Cancelado : PATCH /status
-    Aprovado --> [*] : unidade fica Ocupada
-    Reprovado --> [*]
-    Cancelado --> [*]
-```
-
-**Sub-recursos de uma proposta** (cada um tem tabela própria + tabela `*Historico`):
-
-| Sub-recurso              | Endpoint                            | Quando ativo               |
-|--------------------------|-------------------------------------|----------------------------|
-| Loja Proposta            | Dados da proposta principal         | Sempre                     |
-| Loja Anterior            | `/propostas/:id/loja-anterior`      | Sempre                     |
-| Necessidades Técnicas    | `/propostas/:id/necessidades-tecnicas` | Sempre                  |
-| Cessão de Direitos       | `/propostas/:id/cessao`             | tipoOperacao = Cessão/TT   |
-| Taxa de Transferência    | `/propostas/:id/taxa-transferencia` | tipoOperacao = Transferência |
-| Parecer do Comitê        | `/propostas/:id/parecer-comite`     | Status = Aguardando comitê |
-| Documentos (upload)      | `POST /documentos` multipart        | Sempre                     |
-| Histórico                | `/propostas/:id/historico`          | Leitura / auditoria        |
-
----
-
-## 8. Estrutura de Pastas Resumida
+## . Estrutura de Pastas Resumida
 
 ```
 Projeto-Flamboyant/
@@ -16787,40 +17275,360 @@ Projeto-Flamboyant/
 └── postman/                  ← coleções, specs OpenAPI, mocks para testes
 ```
 
+
+# 🏛️ Arquitetura C4 — Projeto Flamboyant - JP MALL
+
+> Este documento descreve a arquitetura do **Projeto Flamboyant** usando o **C4 Model**, 
 ---
 
-## 9. Fluxo Completo de Ponta a Ponta
+## 📖 O que é o JP MALL
+
+O **JP MALL** é um sistema de **gestão de propostas comerciais** de um shopping center.
+
+Sobre a gestão de propostas comerciais do grupo 6:
+De forma resumida: imagine um shopping com várias **lojas/unidades**. Quando um lojista quer alugar um espaço, é criada uma **proposta comercial**. Essa proposta passa por várias etapas — análise financeira, aprovação de um comitê — até ser aprovada ou recusada. O sistema serve para **acompanhar e gerenciar todo esse caminho**.
+
+---
+
+## 🧭 O que é o C4 Model? (resumo rápido)
+
+O C4 é como o **Google Maps de um software**. Você começa vendo o "mundo" e vai dando zoom diminuindo o escopo:
+
+| Nível | Nome | Pergunta que responde |
+|-------|------|------------------------|
+| 1 | **Contexto** | Quem usa o sistema e com o que ele conversa? |
+| 2 | **Contêiner** | Quais são as "peças grandes" (apps, bancos) que formam o sistema? |
+| 3 | **Componente** | O que tem dentro de cada peça? |
+| 4 | **Código** | Como o código está organizado lá no fundo? |
+
+Além desses 4 níveis principais, este documento também traz diagramas extras (paisagem, dinâmico e implantação) para completar a visão.
+
+---
+
+## 1. 🌍 Diagrama de Contexto do Sistema
+> **Visão mais distante.** Mostra o sistema como uma caixa única e quem interage com ele.
+
+```mermaid
+flowchart TB
+    USER["👤 Usuário Comercial<br/>(funcionário do shopping)<br/>cria e acompanha propostas"]
+
+    subgraph SISTEMA[" "]
+        FLAMB["🏛️ Sistema Flamboyant<br/>Gestão de Propostas Comerciais<br/>do Shopping (BES-2026)"]
+    end
+
+    USER -->|"usa pelo navegador"| FLAMB
+    FLAMB -->|"mostra propostas,<br/>unidades e relatórios"| USER
+```
+
+**Resumindo:**
+- O **usuário comercial** acessa o sistema pelo navegador.
+- O **Sistema Flamboyant** guarda e organiza todas as propostas e unidades do shopping.
+- Hoje o sistema é "fechado" — não depende de outros sistemas externos para funcionar (ele cuida do seu próprio login e do seu próprio banco de dados).
+
+---
+
+## 2. 📦 Diagrama de Contêiner
+> **Dando um zoom.** Abrimos a "caixa única" e vemos as **3 grandes peças** que formam o sistema. Cada peça roda dentro do Docker.
+
+```mermaid
+flowchart TB
+    USER["👤 Usuário<br/>(navegador)"]
+
+    subgraph DOCKER["🐳 Docker Compose (tudo roda junto)"]
+        FRONT["🖥️ Frontend<br/>React + Vite + nginx<br/>porta 80<br/>(a tela que o usuário vê)"]
+        API["⚙️ API<br/>Go + Gin<br/>porta 8080<br/>(o cérebro: regras e dados)"]
+        DB[("🗄️ Banco de Dados<br/>PostgreSQL 16<br/>porta 5432<br/>(onde tudo fica guardado)")]
+    end
+
+    USER -->|"HTTP"| FRONT
+    FRONT -->|"chamadas /api/v1<br/>(JSON + token)"| API
+    API -->|"SQL"| DB
+```
+
+**As 3 peças (contêineres):**
+
+| Peça | Tecnologia | Para que serve |
+|------|-----------|----------------|
+| **Frontend** | React 18 + Vite + Tailwind, servido pelo nginx | É a interface visual — telas, botões, gráficos e tabelas. |
+| **API** | Go 1.25 + Gin | É o "cérebro": recebe pedidos, aplica regras e fala com o banco. |
+| **Banco de Dados** | PostgreSQL 16 | Guarda permanentemente propostas, unidades e usuários. |
+
+Tudo é iniciado junto com um único comando: `docker compose up --build`.
+
+---
+
+## 3. 🧩 Diagrama de Componentes
+> **Mais zoom ainda.** Agora abrimos as peças "Frontend" e "API" para ver o que existe dentro de cada uma.
+
+### 3.1 Componentes da API (Go)
+
+```mermaid
+flowchart TB
+    REQ["Pedido vindo do Frontend"]
+
+    subgraph APICONT["⚙️ API (Go + Gin)"]
+        ROUTES["📍 Routes<br/>define os endereços (/api/v1/...)"]
+        MW["🔒 Middleware<br/>confere o login (token JWT)"]
+        H_AUTH["🔑 Handler Auth<br/>login, logout, /me"]
+        H_PROP["📄 Handler Propostas<br/>criar, listar, atualizar,<br/>sub-recursos (cessão, comitê...)"]
+        H_UNID["🏪 Handler Unidades<br/>lista lojas e seus status"]
+        DBPOOL["🔌 Database<br/>pool de conexões (pgx)"]
+    end
+
+    DB[("🗄️ PostgreSQL")]
+
+    REQ --> ROUTES --> MW
+    MW --> H_AUTH & H_PROP & H_UNID
+    H_AUTH & H_PROP & H_UNID --> DBPOOL --> DB
+```
+
+**Resumindo:**
+- **Routes**: a "lista de endereços" da API (ex: `/api/v1/propostas`).
+- **Middleware**: o "porteiro" que confere se o usuário está logado antes de deixar passar.
+- **Handlers**: cada um cuida de um assunto — login, propostas ou unidades.
+- **Database**: o canal que conversa com o banco de dados.
+
+### 3.2 Componentes do Frontend (React — padrão MVVM)
+
+O frontend é organizado em camadas separadas (padrão MVVM), cada uma com uma responsabilidade clara:
+
+```mermaid
+flowchart TB
+    subgraph FE["🖥️ Frontend (React)"]
+        VIEW["👁️ View<br/>pages/ + components/<br/>(só mostra a tela)"]
+        VM["🧠 ViewModel<br/>viewmodels/use*.ts<br/>(lógica: filtros, cálculos)"]
+        SVC["📦 Service<br/>services/*.service.ts<br/>(organiza os dados)"]
+        HTTP["🌐 apiClient<br/>data/apiClient.ts<br/>(único que faz fetch)"]
+    end
+
+    API["⚙️ API Go"]
+
+    VIEW --> VM --> SVC --> HTTP -->|"HTTP + token"| API
+```
+
+| Camada | Papel (analogia) |
+|--------|------------------|
+| **View** | O "rosto" — só exibe e recebe cliques, não pensa. |
+| **ViewModel** | O "raciocínio" — filtra, ordena, calcula KPIs. |
+| **Service** | O "organizador" — arruma os dados vindos da API. |
+| **apiClient** | O "carteiro" — o único que realmente envia pedidos à API. |
+
+Vantagem: se a API mudar de endereço, **só o apiClient muda**. O resto continua igual.
+
+---
+
+## 4. 🔬 Diagrama de Código
+> **O nível mais profundo.** Mostra como o código está organizado por dentro — pastas e arquivos principais. Aqui usamos o exemplo do fluxo de uma **Proposta**.
 
 ```mermaid
 flowchart LR
-    U["Usuário\n(browser :80)"]
-    FE["Frontend\nnginx serve SPA"]
-    VM["ViewModel\nhook React"]
-    SVC["Service\nPropostasService"]
-    API_C["apiClient\nfetch + JWT"]
-    GIN["API Gin\n:8080"]
-    MW["Middleware\nJWT auth"]
-    H["Handler\nGo function"]
-    DB["PostgreSQL\n:5432"]
+    subgraph BACK["API (Go)"]
+        MAIN["cmd/main.go<br/>ponto de partida"]
+        PROP_H["handlers/propostas.go"]
+        ENT["entities/proposta.go<br/>(struct GERADA)"]
+    end
 
-    U -->|clica| FE
-    FE -->|chama| VM
-    VM -->|chama| SVC
-    SVC -->|delega| API_C
-    API_C -->|HTTP + Bearer| GIN
-    GIN -->|verifica| MW
-    MW -->|passa| H
-    H -->|SQL via pgx| DB
-    DB -->|rows| H
-    H -->|JSON| API_C
-    API_C -->|data| VM
-    VM -->|state| FE
-    FE -->|renderiza| U
+    subgraph GEN["Codegen"]
+        SQL["migrations/*.up.sql<br/>(CREATE TABLE = fonte da verdade)"]
+        GENGO["codegen/generate.go"]
+    end
+
+    subgraph FRONT["Frontend (TS)"]
+        ENTTS["entities/proposta.ts<br/>(interface GERADA)"]
+    end
+
+    SQL -->|"lê o schema"| GENGO
+    GENGO -->|"gera struct Go"| ENT
+    GENGO -->|"gera interface TS"| ENTTS
+    MAIN --> PROP_H --> ENT
+```
+
+**Geração automática (Codegen)**
+
+Existe um mecanismo para **Go e TypeScript nunca ficarem fora de sincronia**:
+1. Cada tabela é definida uma única vez no SQL (`migrations/*.up.sql`) — essa é a **fonte da verdade**.
+2. O programa `codegen/generate.go` lê esse SQL.
+3. Ele gera automaticamente as `structs` em Go **e** as `interfaces` em TypeScript.
+
+Por isso, os arquivos dentro de `entities/` **nunca devem ser editados à mão** — eles têm o aviso `// Code generated — DO NOT EDIT`. Para mudar algo, muda-se o SQL e roda-se o script `ajustar entidades via migration.ps1`.
+
+---
+
+## 5. 🗺️ Diagrama da Paisagem do Sistema (System Landscape)
+> Uma visão "de cima" mostrando o sistema dentro do seu ambiente, incluindo as ferramentas de apoio usadas pela equipe (mesmo que não façam parte do que roda em produção).
+
+```mermaid
+flowchart TB
+    USER["👤 Usuário Comercial"]
+
+    subgraph PROD["🟢 O que roda (produção)"]
+        FRONT["🖥️ Frontend"]
+        API["⚙️ API"]
+        DB[("🗄️ PostgreSQL")]
+    end
+
+    subgraph DEV["🛠️ Ferramentas da equipe de desenvolvimento"]
+        POSTMAN["📮 Postman<br/>testar e documentar a API"]
+        CODEGEN["🔁 Codegen<br/>gerar entidades"]
+        DOCKER["🐳 Docker Compose<br/>subir tudo junto"]
+    end
+
+    USER --> FRONT --> API --> DB
+    POSTMAN -.testa.-> API
+    CODEGEN -.gera código.-> API
+    CODEGEN -.gera código.-> FRONT
+    DOCKER -.orquestra.-> PROD
+```
+
+**Em palavras simples:** além das 3 peças que rodam de verdade, a equipe usa o **Postman** (para testar a API), o **Codegen** (para gerar código) e o **Docker** (para ligar tudo de uma vez).
+
+---
+
+## 6. 🔄 Diagrama Dinâmico
+> Mostra o **passo a passo de uma ação real**, na ordem em que as coisas acontecem. Aqui: o usuário faz **login** e depois **lista as propostas**.
+
+```mermaid
+sequenceDiagram
+    participant U as 👤 Usuário
+    participant F as 🖥️ Frontend
+    participant A as ⚙️ API
+    participant DB as 🗄️ PostgreSQL
+
+    Note over U,DB: 1) Login
+    U->>F: Digita email e senha
+    F->>A: POST /api/v1/auth/login
+    A->>DB: Busca o usuário e a senha (hash)
+    DB-->>A: Devolve os dados
+    A->>A: Confere a senha e gera um token (JWT)
+    A-->>F: Retorna o token + dados do usuário
+    F->>F: Guarda o token
+
+    Note over U,DB: 2) Ver propostas
+    U->>F: Abre a tela de propostas
+    F->>A: GET /api/v1/propostas (com o token)
+    A->>A: Porteiro (middleware) confere o token
+    A->>DB: Consulta as propostas
+    DB-->>A: Devolve a lista
+    A-->>F: Retorna em JSON
+    F-->>U: Mostra a tabela na tela
+```
+
+**Observação importante (modo protótipo):** atualmente, para facilitar o desenvolvimento, a conferência de login está **temporariamente desligada** — o sistema usa um usuário fixo (`proto-001`). O login real (com senha criptografada e token) já está pronto e pode ser reativado quando for para produção.
+
+### Ciclo de vida de uma proposta
+
+Como bônus do fluxo dinâmico, veja os estados pelos quais uma proposta passa:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Criada
+    Criada --> AguardandoFinanceira
+    AguardandoFinanceira --> AguardandoComite
+    AguardandoFinanceira --> Cancelado
+    AguardandoComite --> Aprovado
+    AguardandoComite --> Reprovado
+    Aprovado --> [*]
+    Reprovado --> [*]
+    Cancelado --> [*]
 ```
 
 ---
 
-*Gerado a partir do código em `repomix-output.md`. Para manter atualizado, rode o codegen após cada nova migration.*
+## 7. 🚀 Diagrama de Implantação (Deployment)
+> Mostra **onde** cada peça realmente roda — em qual máquina, em qual contêiner e em qual porta.
+
+```mermaid
+flowchart TB
+    subgraph HOST["💻 Servidor / Máquina (com Docker)"]
+        subgraph C1["🐳 Contêiner: frontend"]
+            NGINX["nginx<br/>serve a SPA React<br/>porta 80"]
+        end
+        subgraph C2["🐳 Contêiner: api"]
+            GOAPP["App Go (Gin)<br/>porta 8080"]
+        end
+        subgraph C3["🐳 Contêiner: postgres"]
+            PG[("PostgreSQL 16<br/>porta 5432<br/>volume persistente")]
+        end
+    end
+
+    NAVEGADOR["🌐 Navegador do usuário"]
+
+    NAVEGADOR -->|"http://localhost"| NGINX
+    NGINX -->|"http://localhost:8080/api/v1"| GOAPP
+    GOAPP -->|"conexão SQL"| PG
+```
+
+**Resumindo:**
+- Tudo é empacotado em **3 contêineres Docker** que rodam na mesma máquina.
+- O usuário acessa o **frontend** em `http://localhost` (porta 80).
+- O frontend conversa com a **API** na porta 8080.
+- A API guarda os dados no **PostgreSQL** (porta 5432), que tem um volume para não perder os dados quando reinicia.
+
+---
+
+## 8. 🎨 Notação (legenda dos diagramas)
+
+Para ler os diagramas deste documento, use esta legenda simples:
+
+| Símbolo / Forma | Significado |
+|-----------------|-------------|
+| 👤 (ator) | Uma **pessoa** que usa o sistema |
+| Caixa retangular | Uma **peça de software** (app, serviço ou componente) |
+| Cilindro `[( )]` | Um **banco de dados** |
+| `subgraph` (caixa em volta) | Um **agrupamento** (ex: tudo dentro do Docker) |
+| Seta cheia `-->` | Um **fluxo / chamada direta** entre duas peças |
+| Seta tracejada `-.->` | Uma **relação de apoio** (ferramenta, geração, orquestração) |
+| Texto na seta | **O que** está sendo enviado (ex: "JSON + token") |
+
+**Cores/emojis usados:** 🖥️ frontend · ⚙️ API · 🗄️ banco · 🔒 segurança · 🐳 Docker · 🛠️ ferramentas. São apenas para ajudar a leitura, não têm significado técnico extra.
+
+---
+
+## 9. ✅ Lista de Verificação de Revisão
+Use esta lista para conferir se a arquitetura está bem entendida e bem documentada:
+
+- [x] **Contexto claro** — está explícito quem usa o sistema (usuário comercial) e para quê.
+- [x] **Peças identificadas** — os 3 contêineres (frontend, API, banco) estão descritos com tecnologia e porta.
+- [x] **Componentes mapeados** — API (routes, middleware, handlers) e frontend (View, ViewModel, Service, apiClient).
+- [x] **Fluxo de dados** — está claro como um pedido viaja do navegador até o banco e volta.
+- [x] **Segurança** — autenticação por token JWT documentada (e a nota do modo protótipo).
+- [x] **Geração de código** — o mecanismo de codegen e a regra "não editar entities" estão explicados.
+- [x] **Implantação** — como rodar (Docker Compose) e em quais portas.
+- [ ] **Pontos a evoluir** — reativar a validação real de JWT antes de ir para produção.
+- [ ] **Pontos a evoluir** — definir variáveis sensíveis (`JWT_SECRET`, `DB_PASSWORD`) fora do código em produção.
+
+---
+
+## 10. ❓ Perguntas Frequentes (FAQ)
+**1. O que o Projeto Flamboyant faz, em uma frase?**
+Gerencia propostas comerciais de lojas de um shopping, do momento em que são criadas até a aprovação ou recusa.
+
+**2. Quais tecnologias o projeto usa?**
+Backend em **Go (Gin)**, frontend em **React (Vite + Tailwind)** e banco de dados **PostgreSQL**, tudo rodando em **Docker**.
+
+**3. Preciso instalar Go, Node e PostgreSQL para rodar?**
+Não. Basta ter o **Docker** e rodar `docker compose up --build`. O Docker cuida de tudo.
+
+**4. Por que não posso editar os arquivos da pasta `entities/`?**
+Porque eles são **gerados automaticamente** a partir do SQL das migrations. Se você editar à mão, sua mudança será apagada na próxima geração. O certo é mudar o SQL e rodar o codegen.
+
+**5. O sistema tem login de verdade?**
+Sim, o login com senha criptografada e token JWT já está implementado. Porém, no momento, ele está **temporariamente desligado** (modo protótipo) usando um usuário fixo, para facilitar o desenvolvimento da interface.
+
+**6. O que é o padrão MVVM usado no frontend?**
+É uma forma de **separar responsabilidades**: a tela (View) só mostra, a lógica (ViewModel) pensa, o serviço (Service) organiza os dados e o apiClient faz a comunicação. Isso deixa o código mais fácil de manter.
+
+**7. Onde os dados ficam guardados?**
+No banco **PostgreSQL**, dentro de um contêiner Docker com um volume — ou seja, os dados continuam salvos mesmo se a aplicação reiniciar.
+
+**8. Como faço para acessar a aplicação depois de subir?**
+- Site (frontend): `http://localhost`
+- API: `http://localhost:8080`
+- Healthcheck da API: `http://localhost:8080/health`
+
+---
+
+*Documento C4 elaborado com base no `README.md` e no `repomix-output.md` do projeto. Para mantê-lo atualizado, revise-o sempre que a arquitetura mudar (novos serviços, novas peças ou mudança no fluxo).*
 
 ## 🛠️ Construído com
 
@@ -16839,7 +17647,6 @@ flowchart LR
 ---
 
 ## ✒️ Autores
-
 - **DanielNovaiz** — [github.com/DanielNovaiz](https://github.com/DanielNovaiz)
 - **Felipe Fernandes** — [github.com/FELIIPE505](https://github.com/FELIIPE505)
 - **Herlison Silva Assunção** — [github.com/herli-son-ufg](https://github.com/herli-son-ufg)
@@ -16849,36 +17656,30 @@ flowchart LR
 
 
 # Projeto-Flamboyant — Guia de execução com Docker
-
 Este repositório contém:
 - `API/`: backend em Go
 - `Figma/`: frontend React/Vite
 - `docker-compose.yml`: orquestração Docker para PostgreSQL, API e frontend
 
 ## Visão geral
-
 A forma recomendada de executar o projeto é usando Docker e Docker Compose. O compose já define:
 - um banco PostgreSQL em `postgres:16-alpine`
 - a API Go em `API/Dockerfile`
 - o frontend estático servido por nginx a partir de `Figma/Dockerfile`
 
 ## Requisitos
-
 - Docker instalado
 - Docker Compose disponível (`docker compose` ou `docker-compose`)
 - Git instalado
-
 > Não é necessário ter Go, Node ou PostgreSQL instalados localmente para rodar o projeto via Docker.
 
 ## Passo 1 — Clonar o repositório
-
 ```bash
 git clone <URL-do-repositório>
 cd Projeto-Flamboyant
 ```
 
 ## Passo 2 — Configurar variáveis de ambiente
-
 O compose usa variáveis de ambiente do shell. As principais são:
 
 - `DB_USER` (padrão: `postgres`)
@@ -16889,7 +17690,6 @@ O compose usa variáveis de ambiente do shell. As principais são:
 - `VITE_API_URL` (padrão: `http://localhost:8080/api/v1`)
 
 ### Exemplo de arquivo `.env`
-
 Crie um arquivo `.env` na raiz do projeto com:
 
 ```env
@@ -16904,7 +17704,6 @@ VITE_API_URL=http://localhost:8080/api/v1
 > Se não houver arquivo `.env`, o compose usará os valores padrão para `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `SERVER_PORT` e `VITE_API_URL`, mas `JWT_SECRET` deverá estar definido no ambiente ou no `.env`.
 
 ## Passo 3 — Executar com Docker Compose
-
 No terminal, na pasta raiz do repositório:
 
 ```bash
@@ -16917,7 +17716,6 @@ Isso fará:
 - subir o banco PostgreSQL, o backend e o frontend
 
 ## Passo 4 — Verificar se os containers subiram
-
 Os serviços disponíveis são:
 - `postgres` → banco de dados PostgreSQL
 - `api` → backend Go na porta `8080`
@@ -16930,7 +17728,6 @@ docker compose ps
 ```
 
 ## Passo 5 — Acessar a aplicação
-
 - Frontend: `http://localhost`
 - API: `http://localhost:8080`
 
@@ -16941,7 +17738,6 @@ docker compose ps
 - `http://localhost:8080/api/v1` — prefixo da API
 
 ## Passo 6 — Parar e remover os containers
-
 Para interromper sem remover volumes:
 
 ```bash
@@ -16998,8 +17794,4 @@ npm run dev
 - `docker-compose.yml` configura os serviços `postgres`, `api` e `frontend`
 - `API/Dockerfile` constrói o backend Go
 - `Figma/Dockerfile` constrói o frontend React e serve via nginx
-
----
-
-⌨️ com ❤️ pela equipe do Projeto-Flamboyant
 ````

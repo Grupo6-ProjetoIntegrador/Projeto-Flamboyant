@@ -54,8 +54,9 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 		api.PUT("/propostas/:id/necessidades-tecnicas", propostasHandler.SalvarNecessidadesTecnicas)
 		api.GET("/propostas/:id/cessao-direitos", propostasHandler.GetCessaoDireitos)
 		api.PUT("/propostas/:id/cessao-direitos", propostasHandler.SalvarCessaoDireitos)
-		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.PlaceholderOK)
-		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.PlaceholderOK)
+
+		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.GetTaxaTransferencia)
+		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.SalvarTaxaTransferencia)
 		api.GET("/propostas/:id/parecer-comite", propostasHandler.GetParecerComite)
 		api.PUT("/propostas/:id/parecer-comite", propostasHandler.SalvarParecerComite)
 
