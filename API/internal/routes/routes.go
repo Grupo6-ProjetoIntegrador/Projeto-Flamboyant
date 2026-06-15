@@ -57,6 +57,7 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 
 		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.GetTaxaTransferencia)
 		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.SalvarTaxaTransferencia)
+		
 		api.GET("/propostas/:id/parecer-comite", propostasHandler.GetParecerComite)
 		api.PUT("/propostas/:id/parecer-comite", propostasHandler.SalvarParecerComite)
 
