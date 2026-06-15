@@ -228,54 +228,80 @@ func (h *PropostasHandler) AtualizarStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Status atualizado"})
 }
 
+// === PASSO 3: DTO do Histórico ===
+type PropostaHistoricoResponse struct {
+	entities.PropostaHistorico
+	NomeUsuario *string `json:"nomeUsuario"`
+}
+
+// === PASSO 4: Função Historico Atualizada ===
 func (h *PropostasHandler) Historico(c *gin.Context) {
 	ctx := context.Background()
 	id := c.Param("id")
 
 	var propostaID string
-	if err := h.db.QueryRow(ctx, `
-		SELECT id_p
-		FROM "Proposta"
-		WHERE id_p = $1
-	`, id).Scan(&propostaID); err != nil {
+	if err := h.db.QueryRow(ctx, `SELECT id_p FROM "Proposta" WHERE id_p = $1`, id).Scan(&propostaID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
 			return
 		}
-
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar proposta"})
 		return
 	}
 
 	rows, err := h.db.Query(ctx, `
 		SELECT
-			id_ph, id_proposta_ph, id_usuario_ph, editado_em_ph,
-			codigo_unidade_ph, segmento_ph, tipo_operacao_ph, valor_proposto_ph,
-			area_ph, abl_ph, status_ph, data_criacao_ph, data_vencimento_ph,
-			nome_fantasia_ph, aluguel_percent_ph, prazo_locacao_meses_ph,
-			aluguel_por_m2_ph, condominio_aprox_ph, fpp_aprox_ph,
-			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
-			observacoes_ph, atualizado_em_snapshot_ph
-		FROM "PropostaHistorico"
-		WHERE id_proposta_ph = $1
-		ORDER BY editado_em_ph DESC
+			ph.id_ph, ph.id_proposta_ph, ph.id_usuario_ph, u.nome_u,
+			TO_CHAR(ph.editado_em_ph, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+			ph.codigo_unidade_ph, ph.segmento_ph, ph.tipo_operacao_ph, ph.valor_proposto_ph,
+			ph.area_ph, ph.abl_ph, ph.status_ph,
+			TO_CHAR(ph.data_criacao_ph, 'YYYY-MM-DD'),
+			TO_CHAR(ph.data_vencimento_ph, 'YYYY-MM-DD'),
+			ph.nome_fantasia_ph, ph.aluguel_percent_ph, ph.prazo_locacao_meses_ph,
+			ph.aluguel_por_m2_ph, ph.condominio_aprox_ph, ph.fpp_aprox_ph,
+			TO_CHAR(ph.inicio_contrato_ph, 'YYYY-MM-DD'),
+			TO_CHAR(ph.fim_contrato_ph, 'YYYY-MM-DD'),
+			TO_CHAR(ph.data_inauguracao_ph, 'YYYY-MM-DD'),
+			ph.observacoes_ph,
+			TO_CHAR(ph.atualizado_em_snapshot_ph, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "PropostaHistorico" ph
+		JOIN "Usuario" u ON u.id_u = ph.id_usuario_ph
+		WHERE ph.id_proposta_ph = $1
+		ORDER BY ph.editado_em_ph DESC
 	`, propostaID)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar historico"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar histórico"})
 		return
 	}
 	defer rows.Close()
 
-	historicos, err := pgx.CollectRows(rows, pgx.RowToStructByName[entities.PropostaHistorico])
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao processar historico"})
-		return
-	}
-	if historicos == nil {
-		historicos = []entities.PropostaHistorico{}
+	var result []PropostaHistoricoResponse
+	for rows.Next() {
+		var item PropostaHistoricoResponse
+		err := rows.Scan(
+			&item.Id, &item.IdProposta, &item.IdUsuario, &item.NomeUsuario,
+			&item.EditadoEm,
+			&item.CodigoUnidade, &item.Segmento, &item.TipoOperacao, &item.ValorProposto,
+			&item.Area, &item.Abl, &item.Status, &item.DataCriacao, &item.DataVencimento,
+			&item.NomeFantasia, &item.AluguelPercent, &item.PrazoLocacaoMeses,
+			&item.AluguelPorM2, &item.CondominioAprox, &item.FppAprox,
+			&item.InicioContrato, &item.FimContrato, &item.DataInauguracao,
+			&item.Observacoes, &item.AtualizadoEmSnapshot,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao ler histórico"})
+			return
+		}
+		result = append(result, item)
 	}
 
-	c.JSON(http.StatusOK, historicos)
+	// Se for nil (vazio), retorna um array vazio ao invés de null para o frontend
+	if result == nil {
+		result = []PropostaHistoricoResponse{}
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *PropostasHandler) GetLojaAnterior(c *gin.Context) {
@@ -1292,9 +1318,7 @@ func (h *PropostasHandler) GetTaxaTransferencia(c *gin.Context) {
 	id := c.Param("id")
 
 	var tipoOperacao string
-	err := h.db.QueryRow(ctx,
-		`SELECT tipo_operacao_p FROM "Proposta" WHERE id_p = $1`, id,
-	).Scan(&tipoOperacao)
+	err := h.db.QueryRow(ctx, `SELECT tipo_operacao_p FROM "Proposta" WHERE id_p = $1`, id).Scan(&tipoOperacao)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
@@ -1321,6 +1345,7 @@ func (h *PropostasHandler) GetTaxaTransferencia(c *gin.Context) {
 		&tt.TtContratual, &tt.TtProposta, &tt.TtPropostaNumAmm,
 		&tt.SinalTt, &tt.FormaPagamentoTt, &tt.JustificativaTt, &tt.StatusTt,
 	)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusOK, nil)
@@ -1338,6 +1363,7 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 	id := c.Param("id")
 	userID := c.GetString("user_id")
 
+	// 1. Snapshot da proposta atual
 	type propostaSnap struct {
 		codigoUnidade   string
 		segmento        string
@@ -1360,39 +1386,30 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 		observacoes     *string
 		atualizadoEm    *string
 	}
-
 	var snap propostaSnap
 	err := h.db.QueryRow(ctx, `
 		SELECT
-			u.codigo_un,
-			p.segmento_p, p.tipo_operacao_p,
-			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
-			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
-			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
-			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
-			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
-			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
-			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
-			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
-			p.observacoes_p,
-			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+			u.codigo_un, p.segmento_p, p.tipo_operacao_p, p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'), TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p, p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'), TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'), TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p, TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM "Proposta" p
 		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
 		WHERE p.id_p = $1
 	`, id).Scan(
-		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
-		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
-		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
-		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
-		&snap.condominioAprox, &snap.fppAprox,
-		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao, &snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia, &snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox, &snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
 		&snap.observacoes, &snap.atualizadoEm,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
 		return
 	}
 
+	// Proteção principal: Retornar 422 se não for Transferência
 	if snap.tipoOperacao != "Transferência" {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Operação não permite taxa de transferência"})
 		return
@@ -1407,6 +1424,7 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 		JustificativaTt  *string  `json:"justificativaTt"`
 		StatusTt         *string  `json:"statusTt"`
 	}
+
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
 		return
@@ -1419,39 +1437,33 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 	}
 	defer tx.Rollback(ctx)
 
+	// 2. Gravar snapshot principal no Histórico
 	var idPH string
 	err = tx.QueryRow(ctx, `
 		INSERT INTO "PropostaHistorico" (
 			id_proposta_ph, id_usuario_ph, editado_em_ph,
-			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
-			valor_proposto_ph, area_ph, abl_ph, status_ph,
-			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
-			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
-			condominio_aprox_ph, fpp_aprox_ph,
-			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
-			observacoes_ph, atualizado_em_snapshot_ph
-		) VALUES (
-			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
-		) RETURNING id_ph
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph, valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph, aluguel_percent_ph, prazo_locacao_meses_ph,
+			aluguel_por_m2_ph, condominio_aprox_ph, fpp_aprox_ph, inicio_contrato_ph, fim_contrato_ph,
+			data_inauguracao_ph, observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES ($1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+		RETURNING id_ph
 	`,
-		id, userID,
-		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
-		snap.valorProposto, snap.area, snap.abl, snap.status,
-		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
-		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
-		snap.condominioAprox, snap.fppAprox,
-		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
-		snap.observacoes, snap.atualizadoEm,
+		id, userID, snap.codigoUnidade, snap.segmento, snap.tipoOperacao, snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia, snap.aluguelPercent, snap.prazoLocacao,
+		snap.aluguelPorM2, snap.condominioAprox, snap.fppAprox, snap.inicioContrato, snap.fimContrato,
+		snap.dataInauguracao, snap.observacoes, snap.atualizadoEm,
 	).Scan(&idPH)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
 		return
 	}
 
+	// 3. Criar ou Atualizar a Taxa de Transferência
 	_, err = tx.Exec(ctx, `
 		INSERT INTO "PropostaTaxaTransferencia" (
-			id_proposta_ptt,
-			tt_contratual_ptt, tt_proposta_ptt, tt_proposta_num_amm_ptt,
+			id_proposta_ptt, tt_contratual_ptt, tt_proposta_ptt, tt_proposta_num_amm_ptt,
 			sinal_tt_ptt, forma_pagamento_tt_ptt, justificativa_tt_ptt, status_tt_ptt
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 		ON CONFLICT (id_proposta_ptt) DO UPDATE SET
@@ -1463,28 +1475,40 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 			justificativa_tt_ptt     = EXCLUDED.justificativa_tt_ptt,
 			status_tt_ptt            = EXCLUDED.status_tt_ptt
 	`,
-		id,
-		body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
+		id, body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
 		body.SinalTt, body.FormaPagamentoTt, body.JustificativaTt, body.StatusTt,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar taxa de transferência"})
 		return
 	}
 
+	// 4. Salvar os mesmos dados na tabela de Histórico (PropostaTaxaTransferenciaHistorico)
 	_, err = tx.Exec(ctx, `
 		INSERT INTO "PropostaTaxaTransferenciaHistorico" (
-			id_historico_ptth,
-			tt_contratual_ptth, tt_proposta_ptth, tt_proposta_num_amm_ptth,
+			id_historico_ptth, tt_contratual_ptth, tt_proposta_ptth, tt_proposta_num_amm_ptth,
 			sinal_tt_ptth, forma_pagamento_tt_ptth, justificativa_tt_ptth, status_tt_ptth
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	`,
-		idPH,
-		body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
+		idPH, body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
 		body.SinalTt, body.FormaPagamentoTt, body.JustificativaTt, body.StatusTt,
 	)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico da taxa de transferência"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico da taxa"})
+		return
+	}
+
+	// 5. ATUALIZAR METADADOS DA PROPOSTA PRINCIPAL (CORREÇÃO FUNDAMENTAL)
+	_, err = tx.Exec(ctx, `
+		UPDATE "Proposta" 
+		SET atualizado_em_p = NOW(), id_usuario_ultima_alt_p = $1 
+		WHERE id_p = $2
+	`, userID, id)
+	
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao atualizar metadados da proposta"})
 		return
 	}
 

@@ -1,16 +1,19 @@
 import type { PropostaHistorico } from "../../entities/proposta_historico";
+
+type PropostaHistoricoRow = PropostaHistorico & { nomeUsuario?: string | null };
 import { StatusPropostaBadge } from "../StatusBadge";
 import { DataTable } from "../DataTable";
 
 interface Props {
-  historico: PropostaHistorico[];
+  historico: PropostaHistoricoRow[];   // <- aqui (era PropostaHistorico[])
   editMode: boolean;
 }
 
 const COLUMN_CONFIG = {
   id:                   { _specified: false },
   idProposta:           { _specified: false },
-  idUsuario:            { label: 'Editado por' },
+  idUsuario:   { _specified: false },
+nomeUsuario: { label: 'Editado por' },
   editadoEm:            { label: 'Data da edição' },
   codigoUnidade:        { label: 'Unidade', _allowFilter: false },
   nomeFantasia:         { label: 'Nome Fantasia' },
@@ -23,7 +26,8 @@ const COLUMN_CONFIG = {
     label: 'Status',
     _allowFilter: false,
     sortable: false,
-    render: (row: PropostaHistorico) => <StatusPropostaBadge status={row.status as any} />,
+    render: (row: PropostaHistoricoRow) => <StatusPropostaBadge status={row.status as any} />,
+  // <- aqui dentro do COLUMN_CONFIG.status, era (row: PropostaHistorico)
   },
   dataCriacao:          { label: 'Data de Criação', _allowFilter: false },
   dataVencimento:       { label: 'Data de Vencimento', _allowFilter: false },
@@ -49,10 +53,10 @@ export function HistoricoTab({ historico, editMode }: Props) {
           </p>
         </div>
       )}
-      <DataTable<PropostaHistorico>
+      <DataTable<PropostaHistoricoRow>   // <- aqui, era <DataTable<PropostaHistorico>>
         data={historico}
         columnConfig={COLUMN_CONFIG as any}
-        emptyMessage="Nenhuma edição registrada."
+        emptyMessage="Nenhuma alteração registrada"
         className={editMode ? 'opacity-50 pointer-events-none' : ''}
       />
     </div>

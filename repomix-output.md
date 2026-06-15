@@ -4057,18 +4057,21 @@ export function Field({
 ## File: Figma/src/app/components/PropostaManutencaoModal/HistoricoTab.tsx
 ````typescript
 import type { PropostaHistorico } from "../../entities/proposta_historico";
+
+type PropostaHistoricoRow = PropostaHistorico & { nomeUsuario?: string | null };
 import { StatusPropostaBadge } from "../StatusBadge";
 import { DataTable } from "../DataTable";
 
 interface Props {
-  historico: PropostaHistorico[];
+  historico: PropostaHistoricoRow[];   // <- aqui (era PropostaHistorico[])
   editMode: boolean;
 }
 
 const COLUMN_CONFIG = {
   id:                   { _specified: false },
   idProposta:           { _specified: false },
-  idUsuario:            { label: 'Editado por' },
+  idUsuario:   { _specified: false },
+nomeUsuario: { label: 'Editado por' },
   editadoEm:            { label: 'Data da edição' },
   codigoUnidade:        { label: 'Unidade', _allowFilter: false },
   nomeFantasia:         { label: 'Nome Fantasia' },
@@ -4081,7 +4084,8 @@ const COLUMN_CONFIG = {
     label: 'Status',
     _allowFilter: false,
     sortable: false,
-    render: (row: PropostaHistorico) => <StatusPropostaBadge status={row.status as any} />,
+    render: (row: PropostaHistoricoRow) => <StatusPropostaBadge status={row.status as any} />,
+  // <- aqui dentro do COLUMN_CONFIG.status, era (row: PropostaHistorico)
   },
   dataCriacao:          { label: 'Data de Criação', _allowFilter: false },
   dataVencimento:       { label: 'Data de Vencimento', _allowFilter: false },
@@ -4107,10 +4111,10 @@ export function HistoricoTab({ historico, editMode }: Props) {
           </p>
         </div>
       )}
-      <DataTable<PropostaHistorico>
+      <DataTable<PropostaHistoricoRow>   // <- aqui, era <DataTable<PropostaHistorico>>
         data={historico}
         columnConfig={COLUMN_CONFIG as any}
-        emptyMessage="Nenhuma edição registrada."
+        emptyMessage="Nenhuma alteração registrada"
         className={editMode ? 'opacity-50 pointer-events-none' : ''}
       />
     </div>
@@ -13998,6 +14002,199 @@ require (
 )
 ````
 
+## File: Figma/package.json
+````json
+{
+  "name": "@figma/my-make-file",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/icons-material": "7.3.5",
+    "@mui/material": "7.3.5",
+    "@popperjs/core": "2.11.8",
+    "@radix-ui/react-accordion": "1.2.3",
+    "@radix-ui/react-alert-dialog": "1.1.6",
+    "@radix-ui/react-aspect-ratio": "1.1.2",
+    "@radix-ui/react-avatar": "1.1.3",
+    "@radix-ui/react-checkbox": "1.1.4",
+    "@radix-ui/react-collapsible": "1.1.3",
+    "@radix-ui/react-context-menu": "2.2.6",
+    "@radix-ui/react-dialog": "1.1.6",
+    "@radix-ui/react-dropdown-menu": "2.1.6",
+    "@radix-ui/react-hover-card": "1.1.6",
+    "@radix-ui/react-label": "2.1.2",
+    "@radix-ui/react-menubar": "1.1.6",
+    "@radix-ui/react-navigation-menu": "1.2.5",
+    "@radix-ui/react-popover": "1.1.6",
+    "@radix-ui/react-progress": "1.1.2",
+    "@radix-ui/react-radio-group": "1.2.3",
+    "@radix-ui/react-scroll-area": "1.2.3",
+    "@radix-ui/react-select": "2.1.6",
+    "@radix-ui/react-separator": "1.1.2",
+    "@radix-ui/react-slider": "1.2.3",
+    "@radix-ui/react-slot": "1.1.2",
+    "@radix-ui/react-switch": "1.1.3",
+    "@radix-ui/react-tabs": "1.1.3",
+    "@radix-ui/react-toggle": "1.1.2",
+    "@radix-ui/react-toggle-group": "1.1.2",
+    "@radix-ui/react-tooltip": "1.1.8",
+    "canvas-confetti": "1.9.4",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
+    "date-fns": "3.6.0",
+    "embla-carousel-react": "8.6.0",
+    "input-otp": "1.4.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "lucide-react": "0.487.0",
+    "motion": "12.23.24",
+    "next-themes": "0.4.6",
+    "react-day-picker": "8.10.1",
+    "react-dnd": "16.0.1",
+    "react-dnd-html5-backend": "16.0.1",
+    "react-hook-form": "7.55.0",
+    "react-popper": "2.3.0",
+    "react-resizable-panels": "2.1.7",
+    "react-responsive-masonry": "2.7.1",
+    "react-router": "7.13.0",
+    "react-slick": "0.31.0",
+    "recharts": "2.15.2",
+    "sonner": "2.0.3",
+    "tailwind-merge": "3.2.0",
+    "tw-animate-css": "1.3.8",
+    "vaul": "1.1.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.12",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "4.7.0",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "4.1.12",
+    "vite": "6.3.5",
+    "vitest": "^4.1.7"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "6.3.5"
+    }
+  }
+  ,
+  "vitest": {
+    "setupFiles": ["src/tests/setup.ts"],
+    "environment": "jsdom",
+    "globals": true
+  }
+}
+````
+
+## File: Figma/src/app/viewmodels/useComercialAvailability.ts
+````typescript
+import { useState, useMemo, useEffect } from 'react';
+import { useApi } from '../data/useApi';
+import { UnidadesService } from '../services/unidades.service';
+import { PropostasService } from '../services/propostas.service';
+import { usePersistedState } from '../shared/hooks/usePersistedState';
+import { ViewMode } from '../enums';
+import type { Piso, Corredor } from '../enums';
+import type { Unidade as UnidadeEntity } from '../entities/unidade';
+
+const NS = 'disponibilidade';
+
+export function useComercialAvailability() {
+  // ── Model ────────────────────────────────────────────────
+  const { data: todasUnidades, loading: loadingUnidades, refetch: refetchUnidades } =
+    useApi(() => UnidadesService.listar(), []);
+  const { data: todasPropostasData, refetch: refetchPropostas } =
+    useApi(() => PropostasService.listar(), []);
+
+  // ── Estado persistido ────────────────────────────────────
+  const [filterPisos,      setFilterPisos]      = usePersistedState<Piso[]>(`${NS}.filterPisos`, []);
+  const [filterCorredores, setFilterCorredores] = usePersistedState<Corredor[]>(`${NS}.filterCorredores`, []);
+  const [viewMode,         setViewMode]         = usePersistedState<ViewMode>(`${NS}.viewMode`, ViewMode.Cards, v => v, v => v as ViewMode);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // ── Estado de UI ─────────────────────────────────────────
+  const [manutencaoUnidade, setManutencaoUnidade] = useState<UnidadeEntity | null>(null);
+
+  // Forçar mapa em mobile
+  useEffect(() => {
+    const handleResize = () => { if (window.innerWidth < 640) setViewMode(ViewMode.Cards); };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Navegação entre unidades via evento
+  useEffect(() => {
+    const handler = (e: any) => setManutencaoUnidade(e.detail);
+    window.addEventListener('navigate-disponibilidade', handler);
+    return () => window.removeEventListener('navigate-disponibilidade', handler);
+  }, []);
+
+  // ── Dados derivados ──────────────────────────────────────
+  const filtered = useMemo<UnidadeEntity[]>(() => {
+    return todasUnidades === null ? [] : todasUnidades?.filter(l => {
+      const matchPiso     = filterPisos.length === 0      || filterPisos.includes(l.piso as Piso);
+      const matchCorredor = filterCorredores.length === 0 || filterCorredores.includes(l.corredor as Corredor);
+      return matchPiso && matchCorredor;
+    });
+  }, [todasUnidades, filterPisos, filterCorredores]);
+
+  const mapaData = useMemo(() => {
+    const result: Record<Piso, Record<Corredor, UnidadeEntity[]>> = {
+      P: { A: [], B: [], C: [] },
+      S: { A: [], B: [], C: [] },
+      T: { A: [], B: [], C: [] },
+    };
+    filtered.forEach(l => {
+      const piso = l.piso as Piso;
+      const corredor = l.corredor as Corredor;
+      if (result[piso] && result[piso][corredor]) {
+        result[piso][corredor].push(l);
+      }
+    });
+    return result;
+  }, [filtered]);
+
+  // ── Handlers ─────────────────────────────────────────────
+  const refetch = () => { refetchUnidades(); refetchPropostas(); };
+
+  return {
+    todasUnidades, filtered, mapaData, tableRows: filtered,
+    loadingUnidades,
+    filterPisos, setFilterPisos,
+    filterCorredores, setFilterCorredores,
+    viewMode, setViewMode,
+    showMobileFilters, setShowMobileFilters,
+    manutencaoUnidade, setManutencaoUnidade,
+    refetch,
+  };
+}
+````
+
 ## File: API/internal/handlers/propostas.go
 ````go
 // ============================================================
@@ -14250,34 +14447,37 @@ func (h *PropostasHandler) Historico(c *gin.Context) {
 	}
 
 	rows, err := h.db.Query(ctx, `
-		SELECT
-			id_ph, id_proposta_ph, id_usuario_ph, editado_em_ph,
-			codigo_unidade_ph, segmento_ph, tipo_operacao_ph, valor_proposto_ph,
-			area_ph, abl_ph, status_ph, data_criacao_ph, data_vencimento_ph,
-			nome_fantasia_ph, aluguel_percent_ph, prazo_locacao_meses_ph,
-			aluguel_por_m2_ph, condominio_aprox_ph, fpp_aprox_ph,
-			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
-			observacoes_ph, atualizado_em_snapshot_ph
-		FROM "PropostaHistorico"
-		WHERE id_proposta_ph = $1
-		ORDER BY editado_em_ph DESC
-	`, propostaID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar historico"})
-		return
-	}
-	defer rows.Close()
+	SELECT
+		ph.id_ph, ph.id_proposta_ph, ph.id_usuario_ph,
+		u.nome_u AS nome_usuario,
+		ph.editado_em_ph,
+		ph.codigo_unidade_ph, ph.segmento_ph, ph.tipo_operacao_ph, ph.valor_proposto_ph,
+		ph.area_ph, ph.abl_ph, ph.status_ph, ph.data_criacao_ph, ph.data_vencimento_ph,
+		ph.nome_fantasia_ph, ph.aluguel_percent_ph, ph.prazo_locacao_meses_ph,
+		ph.aluguel_por_m2_ph, ph.condominio_aprox_ph, ph.fpp_aprox_ph,
+		ph.inicio_contrato_ph, ph.fim_contrato_ph, ph.data_inauguracao_ph,
+		ph.observacoes_ph, ph.atualizado_em_snapshot_ph
+	FROM "PropostaHistorico" ph
+	JOIN "Usuario" u ON u.id_u = ph.id_usuario_ph
+	WHERE ph.id_proposta_ph = $1
+	ORDER BY ph.editado_em_ph DESC
+`, propostaID)
+if err != nil {
+	c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar historico"})
+	return
+}
+defer rows.Close()
 
-	historicos, err := pgx.CollectRows(rows, pgx.RowToStructByName[entities.PropostaHistorico])
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao processar historico"})
-		return
-	}
-	if historicos == nil {
-		historicos = []entities.PropostaHistorico{}
-	}
+historicos, err := pgx.CollectRows(rows, pgx.RowToStructByName[PropostaHistoricoResponse])
+if err != nil {
+	c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao processar historico"})
+	return
+}
+if historicos == nil {
+	historicos = []PropostaHistoricoResponse{}
+}
 
-	c.JSON(http.StatusOK, historicos)
+c.JSON(http.StatusOK, historicos)
 }
 
 func (h *PropostasHandler) GetLojaAnterior(c *gin.Context) {
@@ -15289,269 +15489,217 @@ func (h *PropostasHandler) PlaceholderOK(c *gin.Context) {
 func (h *PropostasHandler) PlaceholderList(c *gin.Context) {
 	c.JSON(http.StatusOK, []any{})
 }
-````
+func (h *PropostasHandler) GetTaxaTransferencia(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
 
-## File: Figma/package.json
-````json
-{
-  "name": "@figma/my-make-file",
-  "private": true,
-  "version": "0.0.1",
-  "type": "module",
-  "scripts": {
-    "build": "vite build",
-    "dev": "vite"
-  },
-  "dependencies": {
-    "@emotion/react": "11.14.0",
-    "@emotion/styled": "11.14.1",
-    "@mui/icons-material": "7.3.5",
-    "@mui/material": "7.3.5",
-    "@popperjs/core": "2.11.8",
-    "@radix-ui/react-accordion": "1.2.3",
-    "@radix-ui/react-alert-dialog": "1.1.6",
-    "@radix-ui/react-aspect-ratio": "1.1.2",
-    "@radix-ui/react-avatar": "1.1.3",
-    "@radix-ui/react-checkbox": "1.1.4",
-    "@radix-ui/react-collapsible": "1.1.3",
-    "@radix-ui/react-context-menu": "2.2.6",
-    "@radix-ui/react-dialog": "1.1.6",
-    "@radix-ui/react-dropdown-menu": "2.1.6",
-    "@radix-ui/react-hover-card": "1.1.6",
-    "@radix-ui/react-label": "2.1.2",
-    "@radix-ui/react-menubar": "1.1.6",
-    "@radix-ui/react-navigation-menu": "1.2.5",
-    "@radix-ui/react-popover": "1.1.6",
-    "@radix-ui/react-progress": "1.1.2",
-    "@radix-ui/react-radio-group": "1.2.3",
-    "@radix-ui/react-scroll-area": "1.2.3",
-    "@radix-ui/react-select": "2.1.6",
-    "@radix-ui/react-separator": "1.1.2",
-    "@radix-ui/react-slider": "1.2.3",
-    "@radix-ui/react-slot": "1.1.2",
-    "@radix-ui/react-switch": "1.1.3",
-    "@radix-ui/react-tabs": "1.1.3",
-    "@radix-ui/react-toggle": "1.1.2",
-    "@radix-ui/react-toggle-group": "1.1.2",
-    "@radix-ui/react-tooltip": "1.1.8",
-    "canvas-confetti": "1.9.4",
-    "class-variance-authority": "0.7.1",
-    "clsx": "2.1.1",
-    "cmdk": "1.1.1",
-    "date-fns": "3.6.0",
-    "embla-carousel-react": "8.6.0",
-    "input-otp": "1.4.2",
-    "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.7",
-    "lucide-react": "0.487.0",
-    "motion": "12.23.24",
-    "next-themes": "0.4.6",
-    "react-day-picker": "8.10.1",
-    "react-dnd": "16.0.1",
-    "react-dnd-html5-backend": "16.0.1",
-    "react-hook-form": "7.55.0",
-    "react-popper": "2.3.0",
-    "react-resizable-panels": "2.1.7",
-    "react-responsive-masonry": "2.7.1",
-    "react-router": "7.13.0",
-    "react-slick": "0.31.0",
-    "recharts": "2.15.2",
-    "sonner": "2.0.3",
-    "tailwind-merge": "3.2.0",
-    "tw-animate-css": "1.3.8",
-    "vaul": "1.1.2",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "4.1.12",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@vitejs/plugin-react": "4.7.0",
-    "jsdom": "^29.1.1",
-    "tailwindcss": "4.1.12",
-    "vite": "6.3.5",
-    "vitest": "^4.1.7"
-  },
-  "peerDependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    }
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": "6.3.5"
-    }
-  }
-  ,
-  "vitest": {
-    "setupFiles": ["src/tests/setup.ts"],
-    "environment": "jsdom",
-    "globals": true
-  }
-}
-````
-
-## File: Figma/src/app/viewmodels/useComercialAvailability.ts
-````typescript
-import { useState, useMemo, useEffect } from 'react';
-import { useApi } from '../data/useApi';
-import { UnidadesService } from '../services/unidades.service';
-import { PropostasService } from '../services/propostas.service';
-import { usePersistedState } from '../shared/hooks/usePersistedState';
-import { ViewMode } from '../enums';
-import type { Piso, Corredor } from '../enums';
-import type { Unidade as UnidadeEntity } from '../entities/unidade';
-
-const NS = 'disponibilidade';
-
-export function useComercialAvailability() {
-  // ── Model ────────────────────────────────────────────────
-  const { data: todasUnidades, loading: loadingUnidades, refetch: refetchUnidades } =
-    useApi(() => UnidadesService.listar(), []);
-  const { data: todasPropostasData, refetch: refetchPropostas } =
-    useApi(() => PropostasService.listar(), []);
-
-  // ── Estado persistido ────────────────────────────────────
-  const [filterPisos,      setFilterPisos]      = usePersistedState<Piso[]>(`${NS}.filterPisos`, []);
-  const [filterCorredores, setFilterCorredores] = usePersistedState<Corredor[]>(`${NS}.filterCorredores`, []);
-  const [viewMode,         setViewMode]         = usePersistedState<ViewMode>(`${NS}.viewMode`, ViewMode.Cards, v => v, v => v as ViewMode);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-
-  // ── Estado de UI ─────────────────────────────────────────
-  const [manutencaoUnidade, setManutencaoUnidade] = useState<UnidadeEntity | null>(null);
-
-  // Forçar mapa em mobile
-  useEffect(() => {
-    const handleResize = () => { if (window.innerWidth < 640) setViewMode(ViewMode.Cards); };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Navegação entre unidades via evento
-  useEffect(() => {
-    const handler = (e: any) => setManutencaoUnidade(e.detail);
-    window.addEventListener('navigate-disponibilidade', handler);
-    return () => window.removeEventListener('navigate-disponibilidade', handler);
-  }, []);
-
-  // ── Dados derivados ──────────────────────────────────────
-  const filtered = useMemo<UnidadeEntity[]>(() => {
-    return todasUnidades === null ? [] : todasUnidades?.filter(l => {
-      const matchPiso     = filterPisos.length === 0      || filterPisos.includes(l.piso as Piso);
-      const matchCorredor = filterCorredores.length === 0 || filterCorredores.includes(l.corredor as Corredor);
-      return matchPiso && matchCorredor;
-    });
-  }, [todasUnidades, filterPisos, filterCorredores]);
-
-  const mapaData = useMemo(() => {
-    const result: Record<Piso, Record<Corredor, UnidadeEntity[]>> = {
-      P: { A: [], B: [], C: [] },
-      S: { A: [], B: [], C: [] },
-      T: { A: [], B: [], C: [] },
-    };
-    filtered.forEach(l => {
-      const piso = l.piso as Piso;
-      const corredor = l.corredor as Corredor;
-      if (result[piso] && result[piso][corredor]) {
-        result[piso][corredor].push(l);
-      }
-    });
-    return result;
-  }, [filtered]);
-
-  // ── Handlers ─────────────────────────────────────────────
-  const refetch = () => { refetchUnidades(); refetchPropostas(); };
-
-  return {
-    todasUnidades, filtered, mapaData, tableRows: filtered,
-    loadingUnidades,
-    filterPisos, setFilterPisos,
-    filterCorredores, setFilterCorredores,
-    viewMode, setViewMode,
-    showMobileFilters, setShowMobileFilters,
-    manutencaoUnidade, setManutencaoUnidade,
-    refetch,
-  };
-}
-````
-
-## File: API/internal/routes/routes.go
-````go
-// ============================================================
-// routes/routes.go — Registro de todas as rotas da API
-// ============================================================
-package routes
-
-import (
-	"net/http"
-
-	"go-api/internal/config"     // <-- Corrigido usando o nome do módulo
-	"go-api/internal/handlers"   // <-- Certifique-se de que está assim
-	"go-api/internal/middleware" // <-- Certifique-se de que está assim
-
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-)
-
-func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
-
-	authHandler := handlers.NewAuthHandler(db, cfg.JwtSecret, cfg.JwtDuration)
-	unidadesHandler := handlers.NewUnidadesHandler(db)
-	propostasHandler := handlers.NewPropostasHandler(db)
-
-	// Rotas públicas
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
-	})
-
-	r.POST("/api/v1/auth/login", authHandler.Login)
-
-	api := r.Group("/api/v1")
-	// <-- 2. AJUSTADO: Agora o middleware lê a chave de dentro da struct cfg
-	api.Use(middleware.Auth(db, cfg.JwtSecret))
-	{
-		// Auth
-		api.POST("/auth/logout", authHandler.Logout)
-		api.GET("/auth/me", authHandler.Me)
-
-		// Unidades
-		api.GET("/unidades", unidadesHandler.Listar)
-		api.GET("/unidades/:id", unidadesHandler.Detalhe)
-
-		// Propostas
-		api.GET("/propostas", propostasHandler.Listar)
-		api.GET("/propostas/:id", propostasHandler.Detalhe)
-		api.POST("/propostas", propostasHandler.Criar)
-		api.PUT("/propostas/:id", propostasHandler.PlaceholderOK)
-		api.PATCH("/propostas/:id/status", propostasHandler.AtualizarStatus)
-		api.POST("/propostas/check-vencidas", propostasHandler.PlaceholderOK)
-
-		api.GET("/propostas/:id/historico", propostasHandler.Historico)
-		api.GET("/propostas/:id/loja-anterior", propostasHandler.GetLojaAnterior)
-		api.PUT("/propostas/:id/loja-anterior", propostasHandler.SalvarLojaAnterior)
-		api.GET("/propostas/:id/necessidades-tecnicas", propostasHandler.GetNecessidadesTecnicas)
-		api.PUT("/propostas/:id/necessidades-tecnicas", propostasHandler.SalvarNecessidadesTecnicas)
-		api.GET("/propostas/:id/cessao-direitos", propostasHandler.GetCessaoDireitos)
-		api.PUT("/propostas/:id/cessao-direitos", propostasHandler.SalvarCessaoDireitos)
-		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.PlaceholderOK)
-		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.PlaceholderOK)
-		api.GET("/propostas/:id/parecer-comite", propostasHandler.GetParecerComite)
-		api.PUT("/propostas/:id/parecer-comite", propostasHandler.SalvarParecerComite)
-
-		// Documentos
-		api.GET("/documentos", propostasHandler.PlaceholderList)
-		api.POST("/documentos", propostasHandler.PlaceholderOK)
-		api.DELETE("/documentos/:id", propostasHandler.PlaceholderOK)
+	var tipoOperacao string
+	err := h.db.QueryRow(ctx,
+		`SELECT tipo_operacao_p FROM "Proposta" WHERE id_p = $1`, id,
+	).Scan(&tipoOperacao)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar proposta"})
+		return
 	}
+
+	if tipoOperacao != "Transferência" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Operação não permite taxa de transferência"})
+		return
+	}
+
+	var tt entities.PropostaTaxaTransferencia
+	err = h.db.QueryRow(ctx, `
+		SELECT id_proposta_ptt,
+		       tt_contratual_ptt, tt_proposta_ptt, tt_proposta_num_amm_ptt,
+		       sinal_tt_ptt, forma_pagamento_tt_ptt, justificativa_tt_ptt, status_tt_ptt
+		FROM "PropostaTaxaTransferencia"
+		WHERE id_proposta_ptt = $1
+	`, id).Scan(
+		&tt.IdProposta,
+		&tt.TtContratual, &tt.TtProposta, &tt.TtPropostaNumAmm,
+		&tt.SinalTt, &tt.FormaPagamentoTt, &tt.JustificativaTt, &tt.StatusTt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusOK, nil)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar taxa de transferência"})
+		return
+	}
+
+	c.JSON(http.StatusOK, tt)
+}
+
+func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+
+	type propostaSnap struct {
+		codigoUnidade   string
+		segmento        string
+		tipoOperacao    string
+		valorProposto   float64
+		area            float64
+		abl             *float64
+		status          string
+		dataCriacao     string
+		dataVencimento  *string
+		nomeFantasia    *string
+		aluguelPercent  *float64
+		prazoLocacao    *int
+		aluguelPorM2    *float64
+		condominioAprox *float64
+		fppAprox        *float64
+		inicioContrato  *string
+		fimContrato     *string
+		dataInauguracao *string
+		observacoes     *string
+		atualizadoEm    *string
+	}
+
+	var snap propostaSnap
+	err := h.db.QueryRow(ctx, `
+		SELECT
+			u.codigo_un,
+			p.segmento_p, p.tipo_operacao_p,
+			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
+			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
+			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p,
+			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "Proposta" p
+		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
+		WHERE p.id_p = $1
+	`, id).Scan(
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
+		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
+		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox,
+		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.observacoes, &snap.atualizadoEm,
+	)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	if snap.tipoOperacao != "Transferência" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Operação não permite taxa de transferência"})
+		return
+	}
+
+	var body struct {
+		TtContratual     *float64 `json:"ttContratual"`
+		TtProposta       *float64 `json:"ttProposta"`
+		TtPropostaNumAmm *float64 `json:"ttPropostaNumAmm"`
+		SinalTt          *float64 `json:"sinalTt"`
+		FormaPagamentoTt *string  `json:"formaPagamentoTt"`
+		JustificativaTt  *string  `json:"justificativaTt"`
+		StatusTt         *string  `json:"statusTt"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transação"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var idPH string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO "PropostaHistorico" (
+			id_proposta_ph, id_usuario_ph, editado_em_ph,
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
+			valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
+			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
+			condominio_aprox_ph, fpp_aprox_ph,
+			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+			observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES (
+			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+		) RETURNING id_ph
+	`,
+		id, userID,
+		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
+		snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
+		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
+		snap.condominioAprox, snap.fppAprox,
+		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
+		snap.observacoes, snap.atualizadoEm,
+	).Scan(&idPH)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaTaxaTransferencia" (
+			id_proposta_ptt,
+			tt_contratual_ptt, tt_proposta_ptt, tt_proposta_num_amm_ptt,
+			sinal_tt_ptt, forma_pagamento_tt_ptt, justificativa_tt_ptt, status_tt_ptt
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+		ON CONFLICT (id_proposta_ptt) DO UPDATE SET
+			tt_contratual_ptt        = EXCLUDED.tt_contratual_ptt,
+			tt_proposta_ptt          = EXCLUDED.tt_proposta_ptt,
+			tt_proposta_num_amm_ptt  = EXCLUDED.tt_proposta_num_amm_ptt,
+			sinal_tt_ptt             = EXCLUDED.sinal_tt_ptt,
+			forma_pagamento_tt_ptt   = EXCLUDED.forma_pagamento_tt_ptt,
+			justificativa_tt_ptt     = EXCLUDED.justificativa_tt_ptt,
+			status_tt_ptt            = EXCLUDED.status_tt_ptt
+	`,
+		id,
+		body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
+		body.SinalTt, body.FormaPagamentoTt, body.JustificativaTt, body.StatusTt,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar taxa de transferência"})
+		return
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaTaxaTransferenciaHistorico" (
+			id_historico_ptth,
+			tt_contratual_ptth, tt_proposta_ptth, tt_proposta_num_amm_ptth,
+			sinal_tt_ptth, forma_pagamento_tt_ptth, justificativa_tt_ptth, status_tt_ptth
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+	`,
+		idPH,
+		body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
+		body.SinalTt, body.FormaPagamentoTt, body.JustificativaTt, body.StatusTt,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico da taxa de transferência"})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar transação"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Taxa de transferência salva com sucesso"})
+}
+type PropostaHistoricoResponse struct {
+	entities.PropostaHistorico
+	NomeUsuario *string `json:"nomeUsuario" db:"nome_usuario"`
 }
 ````
 
@@ -16158,6 +16306,78 @@ export function ComercialReports() {
       )}
     </PageShell>
   );
+}
+````
+
+## File: API/internal/routes/routes.go
+````go
+// ============================================================
+// routes/routes.go — Registro de todas as rotas da API
+// ============================================================
+package routes
+
+import (
+	"net/http"
+
+	"go-api/internal/config"     // <-- Corrigido usando o nome do módulo
+	"go-api/internal/handlers"   // <-- Certifique-se de que está assim
+	"go-api/internal/middleware" // <-- Certifique-se de que está assim
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
+
+	authHandler := handlers.NewAuthHandler(db, cfg.JwtSecret, cfg.JwtDuration)
+	unidadesHandler := handlers.NewUnidadesHandler(db)
+	propostasHandler := handlers.NewPropostasHandler(db)
+
+	// Rotas públicas
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
+
+	r.POST("/api/v1/auth/login", authHandler.Login)
+
+	api := r.Group("/api/v1")
+	// <-- 2. AJUSTADO: Agora o middleware lê a chave de dentro da struct cfg
+	api.Use(middleware.Auth(db, cfg.JwtSecret))
+	{
+		// Auth
+		api.POST("/auth/logout", authHandler.Logout)
+		api.GET("/auth/me", authHandler.Me)
+
+		// Unidades
+		api.GET("/unidades", unidadesHandler.Listar)
+		api.GET("/unidades/:id", unidadesHandler.Detalhe)
+
+		// Propostas
+		api.GET("/propostas", propostasHandler.Listar)
+		api.GET("/propostas/:id", propostasHandler.Detalhe)
+		api.POST("/propostas", propostasHandler.Criar)
+		api.PUT("/propostas/:id", propostasHandler.PlaceholderOK)
+		api.PATCH("/propostas/:id/status", propostasHandler.AtualizarStatus)
+		api.POST("/propostas/check-vencidas", propostasHandler.PlaceholderOK)
+
+		api.GET("/propostas/:id/historico", propostasHandler.Historico)
+		api.GET("/propostas/:id/loja-anterior", propostasHandler.GetLojaAnterior)
+		api.PUT("/propostas/:id/loja-anterior", propostasHandler.SalvarLojaAnterior)
+		api.GET("/propostas/:id/necessidades-tecnicas", propostasHandler.GetNecessidadesTecnicas)
+		api.PUT("/propostas/:id/necessidades-tecnicas", propostasHandler.SalvarNecessidadesTecnicas)
+		api.GET("/propostas/:id/cessao-direitos", propostasHandler.GetCessaoDireitos)
+		api.PUT("/propostas/:id/cessao-direitos", propostasHandler.SalvarCessaoDireitos)
+
+		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.GetTaxaTransferencia)
+		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.SalvarTaxaTransferencia)
+		api.GET("/propostas/:id/parecer-comite", propostasHandler.GetParecerComite)
+		api.PUT("/propostas/:id/parecer-comite", propostasHandler.SalvarParecerComite)
+
+		// Documentos
+		api.GET("/documentos", propostasHandler.PlaceholderList)
+		api.POST("/documentos", propostasHandler.PlaceholderOK)
+		api.DELETE("/documentos/:id", propostasHandler.PlaceholderOK)
+	}
 }
 ````
 

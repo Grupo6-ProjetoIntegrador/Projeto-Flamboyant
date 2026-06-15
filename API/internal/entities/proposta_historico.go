@@ -30,3 +30,4 @@ type PropostaHistorico struct {
 	Observacoes                              *string      `json:"observacoes" db:"observacoes_ph"`
 	AtualizadoEmSnapshot                     *string      `json:"atualizadoEmSnapshot" db:"atualizado_em_snapshot_ph"`
 }
+
