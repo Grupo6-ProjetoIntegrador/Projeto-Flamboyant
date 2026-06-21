@@ -4054,74 +4054,6 @@ export function Field({
 }
 ````
 
-## File: Figma/src/app/components/PropostaManutencaoModal/HistoricoTab.tsx
-````typescript
-import type { PropostaHistorico } from "../../entities/proposta_historico";
-
-type PropostaHistoricoRow = PropostaHistorico & { nomeUsuario?: string | null };
-import { StatusPropostaBadge } from "../StatusBadge";
-import { DataTable } from "../DataTable";
-
-interface Props {
-  historico: PropostaHistoricoRow[];   // <- aqui (era PropostaHistorico[])
-  editMode: boolean;
-}
-
-const COLUMN_CONFIG = {
-  id:                   { _specified: false },
-  idProposta:           { _specified: false },
-  idUsuario:   { _specified: false },
-nomeUsuario: { label: 'Editado por' },
-  editadoEm:            { label: 'Data da edição' },
-  codigoUnidade:        { label: 'Unidade', _allowFilter: false },
-  nomeFantasia:         { label: 'Nome Fantasia' },
-  segmento:             { label: 'Segmento' },
-  tipoOperacao:         { label: 'Tipo de Operação' },
-  valorProposto:        { label: 'Valor Proposto', _allowFilter: false, sortable: false },
-  area:                 { label: 'Área (m²)', _allowFilter: false, sortable: false },
-  abl:                  { label: 'ABL', _allowFilter: false, sortable: false },
-  status:               {
-    label: 'Status',
-    _allowFilter: false,
-    sortable: false,
-    render: (row: PropostaHistoricoRow) => <StatusPropostaBadge status={row.status as any} />,
-  // <- aqui dentro do COLUMN_CONFIG.status, era (row: PropostaHistorico)
-  },
-  dataCriacao:          { label: 'Data de Criação', _allowFilter: false },
-  dataVencimento:       { label: 'Data de Vencimento', _allowFilter: false },
-  aluguelPercent:       { label: 'Aluguel (%)', _allowFilter: false, sortable: false },
-  prazoLocacaoMeses:    { label: 'Prazo Locação (meses)', _allowFilter: false, sortable: false },
-  aluguelPorM2:         { label: 'Aluguel/m²', _allowFilter: false, sortable: false },
-  condominioAprox:      { label: 'Condomínio Aprox.', _allowFilter: false, sortable: false },
-  fppAprox:             { label: 'FPP Aprox.', _allowFilter: false, sortable: false },
-  inicioContrato:       { label: 'Início do Contrato', _allowFilter: false },
-  fimContrato:          { label: 'Fim do Contrato', _allowFilter: false },
-  dataInauguracao:      { label: 'Data de Inauguração', _allowFilter: false },
-  observacoes:          { label: 'Observações' },
-  atualizadoEmSnapshot: { label: 'Atualizado em (Snapshot)', _allowFilter: false },
-} as const;
-
-export function HistoricoTab({ historico, editMode }: Props) {
-  return (
-    <div className="flex-1 overflow-y-auto p-6">
-      {editMode && (
-        <div className="mb-4 px-3 py-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-lg">
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            Salve ou cancele a edição atual antes de consultar o histórico.
-          </p>
-        </div>
-      )}
-      <DataTable<PropostaHistoricoRow>   // <- aqui, era <DataTable<PropostaHistorico>>
-        data={historico}
-        columnConfig={COLUMN_CONFIG as any}
-        emptyMessage="Nenhuma alteração registrada"
-        className={editMode ? 'opacity-50 pointer-events-none' : ''}
-      />
-    </div>
-  );
-}
-````
-
 ## File: Figma/src/app/components/PropostaManutencaoModal/index.tsx
 ````typescript
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -4288,6 +4220,7 @@ export function PropostaManutencaoModal({
   const handleNovo = () => {
     const propostaEmBranco: Proposta = {
       id: `PROP-NOVO-${Date.now()}`,
+      idUnidade: proposta.idUnidade,
       lojista: '',
       unidade: proposta.unidade,
       segmento: SEGMENTOS[0],
@@ -4406,7 +4339,7 @@ export function PropostaManutencaoModal({
   };
 
   const handleSelecionarDisponibilidade = async (unidade: Unidade) => {
-    setDraft(prev => ({ ...prev, unidade: unidade.codigo, area: unidade.area, lojistaId: unidade.id }));
+    setDraft(prev => ({ ...prev, idUnidade: unidade.id, unidade: unidade.codigo, area: unidade.area, lojistaId: unidade.id }));
     if (unidade.status === STATUS_OCUPADO) {
       const vinculadas = await propostasApi.listar({ idUnidade: unidade.id, status: STATUS_APROVADO }).catch(() => []);
       const propostaAtual = vinculadas?.[0];
@@ -9629,7 +9562,7 @@ export interface Usuario {
  * MODO PROTÓTIPO: não há PrivateRoute — todas as rotas são acessíveis
  * sem autenticação real. Para produção, adicionar guard de rota.
  */
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -9810,6 +9743,7 @@ export function DisponibilidadeManutencaoModal({ unidade, allUnidades, onClose }
   const abrirNovaProposta = () => {
     const novaProposta: any = {
       id: `PROP-NOVO-${Date.now()}`,
+      idUnidade: unidade.id,
       unidade: unidade.codigo,
       tipoOperacao: 'Nova Instalação',
       tipo: 'Nova Instalação',
@@ -10453,6 +10387,74 @@ export function ManutencaoModalShell({
       >
         {children}
       </div>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/components/PropostaManutencaoModal/HistoricoTab.tsx
+````typescript
+import type { PropostaHistorico } from "../../entities/proposta_historico";
+
+type PropostaHistoricoRow = PropostaHistorico & { nomeUsuario?: string | null };
+import { StatusPropostaBadge } from "../StatusBadge";
+import { DataTable } from "../DataTable";
+
+interface Props {
+  historico: PropostaHistoricoRow[];   // <- aqui (era PropostaHistorico[])
+  editMode: boolean;
+}
+
+const COLUMN_CONFIG = {
+  id:                   { _specified: false },
+  idProposta:           { _specified: false },
+  idUsuario:   { _specified: false },
+nomeUsuario: { label: 'Editado por' },
+  editadoEm:            { label: 'Data da edição' },
+  codigoUnidade:        { label: 'Unidade', _allowFilter: false },
+  nomeFantasia:         { label: 'Nome Fantasia' },
+  segmento:             { label: 'Segmento' },
+  tipoOperacao:         { label: 'Tipo de Operação' },
+  valorProposto:        { label: 'Valor Proposto', _allowFilter: false, sortable: false },
+  area:                 { label: 'Área (m²)', _allowFilter: false, sortable: false },
+  abl:                  { label: 'ABL', _allowFilter: false, sortable: false },
+  status:               {
+    label: 'Status',
+    _allowFilter: false,
+    sortable: false,
+    render: (row: PropostaHistoricoRow) => <StatusPropostaBadge status={row.status as any} />,
+  // <- aqui dentro do COLUMN_CONFIG.status, era (row: PropostaHistorico)
+  },
+  dataCriacao:          { label: 'Data de Criação', _allowFilter: false },
+  dataVencimento:       { label: 'Data de Vencimento', _allowFilter: false },
+  aluguelPercent:       { label: 'Aluguel (%)', _allowFilter: false, sortable: false },
+  prazoLocacaoMeses:    { label: 'Prazo Locação (meses)', _allowFilter: false, sortable: false },
+  aluguelPorM2:         { label: 'Aluguel/m²', _allowFilter: false, sortable: false },
+  condominioAprox:      { label: 'Condomínio Aprox.', _allowFilter: false, sortable: false },
+  fppAprox:             { label: 'FPP Aprox.', _allowFilter: false, sortable: false },
+  inicioContrato:       { label: 'Início do Contrato', _allowFilter: false },
+  fimContrato:          { label: 'Fim do Contrato', _allowFilter: false },
+  dataInauguracao:      { label: 'Data de Inauguração', _allowFilter: false },
+  observacoes:          { label: 'Observações' },
+  atualizadoEmSnapshot: { label: 'Atualizado em (Snapshot)', _allowFilter: false },
+} as const;
+
+export function HistoricoTab({ historico, editMode }: Props) {
+  return (
+    <div className="flex-1 overflow-y-auto p-6">
+      {editMode && (
+        <div className="mb-4 px-3 py-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-lg">
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            Salve ou cancele a edição atual antes de consultar o histórico.
+          </p>
+        </div>
+      )}
+      <DataTable<PropostaHistoricoRow>   // <- aqui, era <DataTable<PropostaHistorico>>
+        data={historico}
+        columnConfig={COLUMN_CONFIG as any}
+        emptyMessage="Nenhuma alteração registrada"
+        className={editMode ? 'opacity-50 pointer-events-none' : ''}
+      />
     </div>
   );
 }
@@ -11294,42 +11296,6 @@ func getJWTExpirationDuration() time.Duration {
 	}
 
 	return time.Duration(hours) * time.Hour
-}
-````
-
-## File: API/internal/entities/proposta_historico.go
-````go
-// Code generated by codegen/generate.go — DO NOT EDIT.
-// Atualize rodando: .\codegen\generate.ps1
-
-package entities
-
-// PropostaHistorico representa a tabela "PropostaHistorico" do banco de dados.
-type PropostaHistorico struct {
-	Id                                       string       `json:"id" db:"id_ph"`
-	IdProposta                               string       `json:"idProposta" db:"id_proposta_ph"`
-	IdUsuario                                string       `json:"idUsuario" db:"id_usuario_ph"`
-	EditadoEm                                string       `json:"editadoEm" db:"editado_em_ph"`
-	CodigoUnidade                            *string      `json:"codigoUnidade" db:"codigo_unidade_ph"`
-	Segmento                                 *string      `json:"segmento" db:"segmento_ph"`
-	TipoOperacao                             *string      `json:"tipoOperacao" db:"tipo_operacao_ph"`
-	ValorProposto                            *float64     `json:"valorProposto" db:"valor_proposto_ph"`
-	Area                                     *float64     `json:"area" db:"area_ph"`
-	Abl                                      *float64     `json:"abl" db:"abl_ph"`
-	Status                                   *string      `json:"status" db:"status_ph"`
-	DataCriacao                              *string      `json:"dataCriacao" db:"data_criacao_ph"`
-	DataVencimento                           *string      `json:"dataVencimento" db:"data_vencimento_ph"`
-	NomeFantasia                             *string      `json:"nomeFantasia" db:"nome_fantasia_ph"`
-	AluguelPercent                           *float64     `json:"aluguelPercent" db:"aluguel_percent_ph"`
-	PrazoLocacaoMeses                        *int         `json:"prazoLocacaoMeses" db:"prazo_locacao_meses_ph"`
-	AluguelPorM2                             *float64     `json:"aluguelPorM2" db:"aluguel_por_m2_ph"`
-	CondominioAprox                          *float64     `json:"condominioAprox" db:"condominio_aprox_ph"`
-	FppAprox                                 *float64     `json:"fppAprox" db:"fpp_aprox_ph"`
-	InicioContrato                           *string      `json:"inicioContrato" db:"inicio_contrato_ph"`
-	FimContrato                              *string      `json:"fimContrato" db:"fim_contrato_ph"`
-	DataInauguracao                          *string      `json:"dataInauguracao" db:"data_inauguracao_ph"`
-	Observacoes                              *string      `json:"observacoes" db:"observacoes_ph"`
-	AtualizadoEmSnapshot                     *string      `json:"atualizadoEmSnapshot" db:"atualizado_em_snapshot_ph"`
 }
 ````
 
@@ -13281,14 +13247,34 @@ if (-not (Test-Path "Figma\node_modules")) {
 
 # ── Arquivo .env do frontend ─────────────────────────────────
 if (-not (Test-Path "Figma\.env")) {
+    $apiPortDefault = $env:SERVER_PORT
+    if (-not $apiPortDefault) { $apiPortDefault = '8080' }
     Warn ".env nao encontrado no Figma - criando com valores padrao..."
-    "VITE_API_URL=http://localhost:8080/api/v1" | Out-File -FilePath "Figma\.env" -Encoding utf8
+    "VITE_API_URL=http://localhost:$apiPortDefault/api/v1" | Out-File -FilePath "Figma\.env" -Encoding utf8
 }
+
+# ── Carregar variáveis de ambiente da API da API\.env ────────
+if (Test-Path "API\.env") {
+    Log "Carregando variáveis de ambiente da API de API\.env..."
+    Get-Content "API\.env" | ForEach-Object {
+        if (-not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith('#')) {
+            $parts = $_ -split '=', 2
+            if ($parts.Length -eq 2) {
+                $name = $parts[0].Trim()
+                $value = $parts[1].Trim()
+                if ($name) { Set-Item -Path Env:\$name -Value $value }
+            }
+        }
+    }
+}
+
+$apiPort = $env:SERVER_PORT
+if (-not $apiPort) { $apiPort = '8080' }
 
 Write-Host ""
 
 # ── Iniciar API e Frontend em janelas separadas ──────────────
-Log "Iniciando API na porta 8080..."
+Log "Iniciando API na porta $apiPort..."
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location API; go run ./cmd/main.go" -WindowStyle Normal
 
 Log "Iniciando Frontend na porta 5173..."
@@ -13386,6 +13372,42 @@ func runMigrations(cfg *config.Config) {
 		log.Fatalf("Falha ao executar migrations: %v", err)
 	}
 	log.Println("Migrations executadas com sucesso")
+}
+````
+
+## File: API/internal/entities/proposta_historico.go
+````go
+// Code generated by codegen/generate.go — DO NOT EDIT.
+// Atualize rodando: .\codegen\generate.ps1
+
+package entities
+
+// PropostaHistorico representa a tabela "PropostaHistorico" do banco de dados.
+type PropostaHistorico struct {
+	Id                                       string       `json:"id" db:"id_ph"`
+	IdProposta                               string       `json:"idProposta" db:"id_proposta_ph"`
+	IdUsuario                                string       `json:"idUsuario" db:"id_usuario_ph"`
+	EditadoEm                                string       `json:"editadoEm" db:"editado_em_ph"`
+	CodigoUnidade                            *string      `json:"codigoUnidade" db:"codigo_unidade_ph"`
+	Segmento                                 *string      `json:"segmento" db:"segmento_ph"`
+	TipoOperacao                             *string      `json:"tipoOperacao" db:"tipo_operacao_ph"`
+	ValorProposto                            *float64     `json:"valorProposto" db:"valor_proposto_ph"`
+	Area                                     *float64     `json:"area" db:"area_ph"`
+	Abl                                      *float64     `json:"abl" db:"abl_ph"`
+	Status                                   *string      `json:"status" db:"status_ph"`
+	DataCriacao                              *string      `json:"dataCriacao" db:"data_criacao_ph"`
+	DataVencimento                           *string      `json:"dataVencimento" db:"data_vencimento_ph"`
+	NomeFantasia                             *string      `json:"nomeFantasia" db:"nome_fantasia_ph"`
+	AluguelPercent                           *float64     `json:"aluguelPercent" db:"aluguel_percent_ph"`
+	PrazoLocacaoMeses                        *int         `json:"prazoLocacaoMeses" db:"prazo_locacao_meses_ph"`
+	AluguelPorM2                             *float64     `json:"aluguelPorM2" db:"aluguel_por_m2_ph"`
+	CondominioAprox                          *float64     `json:"condominioAprox" db:"condominio_aprox_ph"`
+	FppAprox                                 *float64     `json:"fppAprox" db:"fpp_aprox_ph"`
+	InicioContrato                           *string      `json:"inicioContrato" db:"inicio_contrato_ph"`
+	FimContrato                              *string      `json:"fimContrato" db:"fim_contrato_ph"`
+	DataInauguracao                          *string      `json:"dataInauguracao" db:"data_inauguracao_ph"`
+	Observacoes                              *string      `json:"observacoes" db:"observacoes_ph"`
+	AtualizadoEmSnapshot                     *string      `json:"atualizadoEmSnapshot" db:"atualizado_em_snapshot_ph"`
 }
 ````
 
@@ -13676,7 +13698,7 @@ export const documentos = {
  *  - Habilitar/desabilitar o botão com base no useApiHealth()
  */
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Building2, Lock, Mail } from "lucide-react";
 import { useAuth } from "../AuthContext";
 
@@ -14065,6 +14087,7 @@ require (
     "react-resizable-panels": "2.1.7",
     "react-responsive-masonry": "2.7.1",
     "react-router": "7.13.0",
+    "react-router-dom": "7.13.0",
     "react-slick": "0.31.0",
     "recharts": "2.15.2",
     "sonner": "2.0.3",
@@ -14192,6 +14215,612 @@ export function useComercialAvailability() {
     manutencaoUnidade, setManutencaoUnidade,
     refetch,
   };
+}
+````
+
+## File: Figma/src/app/pages/comercial/ComercialReports.tsx
+````typescript
+/**
+ * ComercialReports.tsx — View de Relatórios Comerciais.
+ *
+ * Papel na arquitetura MVVM: camada VIEW.
+ * Toda lógica está em useComercialReports (ViewModel).
+ *
+ * O que exibe:
+ *  Desktop (2 colunas):
+ *   Esquerda: seleção de campos (árvore por categoria) + filtros
+ *   Direita:  gráficos (segmento, piso, status) + pré-visualização
+ *
+ *  Mobile: accordion separado para gráficos e campos + modal de preview
+ *
+ * Seleção de campos (árvore):
+ *  - Categorias: Disponibilidade, Proposta, Histórico
+ *  - Cada categoria é expansível/retrátil (isCategoryExpanded)
+ *  - Checkbox de categoria seleciona/deseleciona todos os campos filhos
+ *  - Histórico tem recuo visual (ml-4) indicando que é filho de Proposta
+ *
+ * Pré-visualização:
+ *  - Exibe até 8 unidades em estrutura hierárquica:
+ *    Unidade → Proposta → Histórico
+ *  - Blocos coloridos por categoria: vermelho (disp.), roxo (prop.), âmbar (hist.)
+ *
+ * Exportação:
+ *  - XLSX: usa SheetJS para gerar planilha com colunas achatadas
+ *  - PDF: usa jsPDF + autoTable com cabeçalho da marca JP Mall
+ *  - handleExportXLSX/PDF: aliases do handleExport do ViewModel,
+ *    que setam o formato antes de chamar a função de exportação
+ *
+ * Aliases locais:
+ *  isCategoryExpanded(cat) — função derivada de expandedCategories (string[])
+ *  isExpandedCat           — calculado por .map() de categoria, booleano local
+ *  fmtCurrency             — formata número como R$ para exibição
+ *  getEdicoesByProposal    — retorna [] (histórico via API futuramente)
+ *  hasDisp/hasProp/hasHist — booleanos de categoria com campo selecionado
+ */
+import React from "react";
+import {
+  Download, CheckSquare,
+  FileText, Check, ChevronDown, X, BarChart2
+} from "lucide-react";
+import { PageShell, FilterBar, FilterSeparator, FilterDateRange, MobileExpandableSection } from "../../components/PageShared";
+import { MobileCarousel } from "../../components/MobileCarousel";
+import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
+import { SEGMENTOS, PISOS, STATUS_LOJA } from "../../enums";
+import { useComercialReports, type ReportField } from "../../viewmodels/useComercialReports";
+import { DataTable } from "../../components/DataTable";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, Legend
+} from "recharts";
+
+import { ChartTooltip } from "../../components/ChartTooltip";
+
+const CHART_COLORS = ['#D93030', '#C8A882', '#8B1A1A', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
+
+// Ordem de renderização das categorias
+const CATEGORY_ORDER = ['Disponibilidade', 'Proposta', 'Dados da Loja', 'Histórico'] as const;
+
+// Cores por categoria
+const CATEGORY_COLORS: Record<string, string> = {
+  Disponibilidade: 'bg-[#D93030]/10 text-[#D93030] dark:bg-[#D93030]/20',
+  Proposta:        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  'Dados da Loja': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
+  Histórico:       'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+};
+
+const CATEGORY_BORDER: Record<string, string> = {
+  Disponibilidade: 'border-l-4 border-[#D93030]',
+  Proposta:        'border-l-4 border-purple-500',
+  'Dados da Loja': 'border-l-4 border-teal-500',
+  Histórico:       'border-l-4 border-amber-500 ml-4',
+};
+
+export function ComercialReports() {
+  const {
+    allLojistas, allPropostas, filteredLojistas, filteredPropostas,
+    segmentosChart, pisoChart, propostasChart,
+    fields, setFields, selectedFields, dispFields, propFields, lojFields, histFields,
+    expandedCategories,
+    dateFrom, setDateFrom, dateTo, setDateTo,
+    filterPisos, setFilterPisos,
+    filterStatuses, setFilterStatuses,
+    filterSegmentos, setFilterSegmentos,
+    showMobileFilters, setShowMobileFilters,
+    exportFormat, setExportFormat,
+    reportChartIndex, setReportChartIndex,
+    showPreviewModal, setShowPreviewModal,
+    mobileReportSection,
+    toggleField, toggleCategory, toggleExpanded, toggleReportSection,
+    handleExport,
+  } = useComercialReports();
+
+  // ── Aliases e variáveis locais ──────────────────────────
+  // expandedCategories era Set — agora é string[] — adaptar .has()
+  const isCategoryExpanded = (cat: string) => expandedCategories.includes(cat);
+
+  // Booleanos de categoria selecionada
+  const hasDisp = dispFields.length > 0;
+  const hasProp = propFields.length > 0;
+  const hasHist = histFields.length > 0;
+  // hasLoj removido — categoria "Dados da Loja" removida
+
+  // fmtCurrency local
+  const fmtCurrency = (v: number) =>
+    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
+
+  // getEdicoesByProposal — retorna [] pois histórico vem da API
+  const getEdicoesByProposal = (_id: string): Array<{ editadoEm: string; editadoPorNome: string; snapshot: { status: string } }> => [];
+
+  // Aliases para compatibilidade com o JSX existente
+  const handleExportXLSX = () => { const prev = exportFormat; setExportFormat('xlsx'); handleExport(); setExportFormat(prev); };
+  const handleExportPDF  = () => { const prev = exportFormat; setExportFormat('pdf');  handleExport(); setExportFormat(prev); };
+
+  return (
+    <PageShell>
+      <FilterBar isOpen={showMobileFilters} onToggle={() => setShowMobileFilters(f => !f)} hasActiveFilters={!!(dateFrom || dateTo || filterPisos.length > 0 || filterStatuses.length > 0 || filterSegmentos.length > 0)}>
+        <FilterDateRange label="Data de criação da proposta" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Piso"
+          options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
+          selected={filterPisos}
+          onToggle={p => setFilterPisos(prev =>
+            prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+          )}
+          mobileGrid="grid-cols-3"
+        />
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Status da unidade"
+          options={STATUS_LOJA}
+          selected={filterStatuses}
+          onToggle={s => setFilterStatuses(prev =>
+            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+          )}
+        />
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Segmento"
+          options={SEGMENTOS}
+          selected={filterSegmentos}
+          onToggle={s => setFilterSegmentos(prev =>
+            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+          )}
+        />
+      </FilterBar>
+
+      {/* Área principal — flex-1 com scroll */}
+      <div className="flex-1 overflow-hidden flex flex-col gap-4">
+
+        {/* Grid Campos + Preview */}
+        {/* Desktop */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-4 flex-1 overflow-hidden min-h-0">
+
+          {/* Campos a Exportar — 1/3 */}
+          <div className="lg:col-span-1 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4 flex flex-col overflow-hidden">
+            <div className="flex items-center mb-3 flex-shrink-0">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] flex items-center gap-2">
+                <CheckSquare className="w-4 h-4 text-[#D93030]" /> Campos a Exportar
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+              {/* Linha de controle — dentro do scroll */}
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#2E3447] mb-2 mt-3">
+                <span className="text-[10px] text-gray-400 dark:text-[#64748B]">{selectedFields.length} de {fields.length} selecionados</span>
+                <div className="flex gap-2">
+                  <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: true })))} className="text-[10px] text-[#D93030] hover:underline">Todos</button>
+                  <span className="text-[10px] text-gray-300 dark:text-[#3E4557]">|</span>
+                  <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: false })))} className="text-[10px] text-gray-500 hover:underline">Nenhum</button>
+                </div>
+              </div>
+
+              {CATEGORY_ORDER.map(category => {
+                const catFields = fields.filter(f => f.category === category);
+                const allSel = catFields.every(f => f.selected);
+                const someSel = catFields.some(f => f.selected);
+                const isHistorico = category === 'Histórico';
+                const isExpandedCat = isCategoryExpanded(category);
+
+                return (
+                  <div key={category} className={isHistorico ? 'ml-4' : ''}>
+                    {/* Linha do nó pai (categoria) — clique no chevron expande, clique no checkbox seleciona */}
+                    <div className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors
+                      ${isHistorico ? 'border-l-2 border-amber-400 pl-3' : ''}`}>
+
+                      {/* Chevron de expand/collapse */}
+                      <button
+                        onClick={() => toggleExpanded(category)}
+                        className="flex-shrink-0 w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-[#F1F5F9] transition-colors"
+                      >
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isExpandedCat ? '' : '-rotate-90'}`} />
+                      </button>
+
+                      {/* Checkbox da categoria */}
+                      <button
+                        onClick={() => toggleCategory(category)}
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
+                          ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-[#D93030]/30 border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
+                      >
+                        {allSel && <Check className="w-2.5 h-2.5 text-white" />}
+                        {someSel && !allSel && <div className="w-2 h-0.5 bg-[#D93030] rounded" />}
+                      </button>
+
+                      {/* Badge da categoria + indicação filho */}
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${CATEGORY_COLORS[category]}`}>
+                          {category}
+                        </span>
+                        {isHistorico && (
+                          <span className="text-[9px] text-amber-500/70 whitespace-nowrap">↳ Proposta</span>
+                        )}
+                        <span className="text-[10px] text-gray-400 dark:text-[#64748B] ml-auto flex-shrink-0">
+                          {catFields.filter(f => f.selected).length}/{catFields.length}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Filhos — colapsáveis */}
+                    {isExpandedCat && (
+                      <div className="ml-7 mt-0.5 space-y-0.5">
+                        {catFields.map(field => (
+                          <label
+                            key={field.id}
+                            className="flex items-center gap-2 py-1 px-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors group"
+                          >
+                            <button
+                              onClick={() => toggleField(field.id)}
+                              className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
+                                ${field.selected ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
+                            >
+                              {field.selected && <Check className="w-2 h-2 text-white" />}
+                            </button>
+                            <span className="text-xs text-gray-700 dark:text-[#CBD5E1] group-hover:text-[#D93030] transition-colors leading-tight">
+                              {field.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Preview hierárquico — 2/3 */}
+          <div className="lg:col-span-2 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-[#2E3447] flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#D93030]" />
+                <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">
+                  Pré-visualização ({filteredLojistas.length} unidades)
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {/* Legenda de categorias */}
+                {CATEGORY_ORDER.filter(c => selectedFields.some(f => f.category === c)).map(c => (
+                  <span key={c} className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${CATEGORY_COLORS[c]}`}>{c}</span>
+                ))}
+              </div>
+            </div>
+
+            {selectedFields.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-[#64748B]">
+                <div className="text-center">
+                  <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">Selecione ao menos um campo para pré-visualizar</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {filteredLojistas.slice(0, 8).map(l => {
+                  const props = allPropostas.filter(p => p.unidade === l.unidade);
+                  const dispExpanded = true;
+
+                  return (
+                    <div key={l.id} className="border border-red-200 dark:border-red-900/30 rounded-xl overflow-hidden">
+
+                      {/* ══ CABEÇALHO DISPONIBILIDADE ══ */}
+                      <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/20">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
+                          Disponibilidade
+                        </span>
+                      </div>
+
+                      {/* ══ TABELA DISPONIBILIDADE ══ */}
+                      {dispFields.length > 0 && (
+                        <DataTable
+                          data={[{
+                            ...Object.fromEntries(dispFields.map(f => [f.id, 
+                              f.id === 'unidade' ? l.unidade :
+                              f.id === 'piso' ? (l.piso === 'P' ? 'Primeiro Piso' : l.piso === 'S' ? 'Segundo Piso' : 'Terceiro Piso') :
+                              f.id === 'corredor' ? l.corredor :
+                              f.id === 'area' ? `${l.area} m²` :
+                              f.id === 'statusUnidade' ? l.status : '—'
+                            ]))
+                          }]}
+                          columnConfig={Object.fromEntries(dispFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
+                        />
+                      )}
+
+                      {/* ══ SUB-RELATÓRIOS DE PROPOSTA (só quando expandido) ══ */}
+                      {dispExpanded && (
+                        <div className="p-3 space-y-2 bg-white dark:bg-[#1A1F2E]">
+                          {props.length === 0 ? (
+                            <p className="text-xs text-gray-400 dark:text-[#64748B] text-center py-2">
+                              Nenhuma proposta vinculada
+                            </p>
+                          ) : props.map(p => {
+                            const propExpanded = true;
+                            // Buscar lojista pelo lojistaId da proposta (não pela unidade)
+                            // Dados da loja vêm de nomeFantasia/segmento/responsavel da Proposta
+                            const edicoes = histFields.length > 0
+                              ? getEdicoesByProposal(p.id)
+                              : [];
+                            const hasChildren =
+                              (false) ||
+                              edicoes.length > 0;
+
+                            return (
+                              <div key={p.id} className="border border-purple-200 dark:border-purple-800/40 rounded-lg overflow-hidden">
+
+                                {/* — CABEÇALHO PROPOSTA — */}
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30">
+                                  <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
+                                    Proposta
+                                  </span>
+                                </div>
+
+                                {/* — TABELA PROPOSTA — */}
+                                {propFields.length > 0 && (
+                                  <DataTable
+                                    data={[{
+                                      ...Object.fromEntries(propFields.map(f => [f.id,
+                                        f.id === 'propCodigo' ? p.id :
+                                        f.id === 'propTipo' ? p.tipo :
+                                        f.id === 'propValor' ? fmtCurrency(p.valorProposto) :
+                                        f.id === 'propStatus' ? p.status :
+                                        f.id === 'propCriacao' ? p.dataCriacao :
+                                        f.id === 'propVencimento' ? (p.dataVencimento || '—') :
+                                        f.id === 'propResponsavel' ? (p.responsavel || '—') : '—'
+                                      ]))
+                                    }]}
+                                    columnConfig={Object.fromEntries(propFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
+                                  />
+                                )}
+
+                                {/* — SUB-BLOCOS LOJISTA E HISTÓRICO (só quando proposta expandida) — */}
+                                {propExpanded && (
+                                  <div className="p-2 space-y-2 bg-white dark:bg-[#1A1F2E]">
+
+                                    {/* LOJISTA — só renderiza se p.nomeFantasia || '—'Id existir e lojista for encontrado */}
+                                    {false && (
+                                      <div className="border border-teal-200 dark:border-teal-800/40 rounded-lg overflow-hidden">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 border-b border-teal-100 dark:border-teal-800/30">
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-teal-700 dark:text-teal-400">
+                                            Dados da Loja
+                                          </span>
+                                        </div>
+
+                                      </div>
+                                    )}
+
+                                    {/* HISTÓRICO — só renderiza se houver edições e campos selecionados */}
+                                    {edicoes.length > 0 && histFields.length > 0 && (
+                                      <div className="border border-amber-200 dark:border-amber-800/40 rounded-lg overflow-hidden">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800/30">
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
+                                            Histórico
+                                          </span>
+                                        </div>
+                                        <DataTable
+                                          data={edicoes.slice(0, 5).map(e => ({
+                                            ...Object.fromEntries(histFields.map(f => [f.id,
+                                              f.id === 'histData'       ? new Date(e.editadoEm).toLocaleString('pt-BR') :
+                                              f.id === 'histEditor'     ? e.editadoPorNome :
+                                              f.id === 'histStatusAnt'  ? e.snapshot.status :
+                                              f.id === 'histStatusNovo' ? p.status : '—'
+                                            ]))
+                                          }))}
+                                          columnConfig={Object.fromEntries(histFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
+                                        />
+                                      </div>
+                                    )}
+
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex-shrink-0 px-5 py-3 bg-gray-50/50 dark:bg-[#1A1F2E] border-t border-gray-100 dark:border-[#2E3447] flex items-center justify-between">
+              <p className="text-xs text-gray-500 dark:text-[#64748B]">
+                Exibindo prévia de {Math.min(8, filteredLojistas.length)} de {filteredLojistas.length} unidades
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => exportFormat === 'xlsx' ? handleExportXLSX() : handleExportPDF()}
+                  disabled={selectedFields.length === 0}
+                  className="flex items-center gap-1.5 bg-[#D93030] hover:bg-[#c02828] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 py-2 text-xs font-medium transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" /> Exportar
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <MobileExpandableSection
+          icon={CheckSquare}
+          title="Campos a Exportar"
+          badge={<span className="text-[10px] text-gray-400 dark:text-[#64748B] font-normal">({selectedFields.length}/{fields.length})</span>}
+          isOpen={mobileReportSection === 'campos'}
+          onToggle={() => toggleReportSection('campos')}
+          contentClassName="flex-1 overflow-y-auto space-y-1 px-4 pb-4"
+        >
+          {/* Linha de controle */}
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#2E3447] mb-2 mt-3">
+            <span className="text-[10px] text-gray-400 dark:text-[#64748B]">{selectedFields.length} de {fields.length} selecionados</span>
+            <div className="flex gap-2">
+              <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: true })))} className="text-[10px] text-[#D93030] hover:underline">Todos</button>
+              <span className="text-[10px] text-gray-300 dark:text-[#3E4557]">|</span>
+              <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: false })))} className="text-[10px] text-gray-500 hover:underline">Nenhum</button>
+            </div>
+          </div>
+
+          {CATEGORY_ORDER.map(category => {
+            const catFields = fields.filter(f => f.category === category);
+            const allSel = catFields.every(f => f.selected);
+            const someSel = catFields.some(f => f.selected);
+            const isHistorico = category === 'Histórico';
+            const isExpandedCat = isCategoryExpanded(category);
+
+            return (
+              <div key={category} className={isHistorico ? 'ml-4' : ''}>
+                <div className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors
+                  ${isHistorico ? 'border-l-2 border-amber-400 pl-3' : ''}`}>
+                  <button onClick={() => toggleExpanded(category)} className="flex-shrink-0">
+                    <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isExpandedCat ? '' : '-rotate-90'}`} />
+                  </button>
+                  <div
+                    onClick={() => toggleCategory(category)}
+                    className={`w-3.5 h-3.5 border rounded flex items-center justify-center flex-shrink-0 cursor-pointer transition-colors
+                      ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-gray-300 dark:bg-[#3E4557] border-gray-400 dark:border-[#64748B]' : 'border-gray-400 dark:border-[#64748B]'}`}
+                  >
+                    {allSel && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                    {someSel && !allSel && <div className="w-1.5 h-0.5 bg-gray-700 dark:bg-[#CBD5E1]" />}
+                  </div>
+                  <span className={`text-xs font-semibold flex-1 ${CATEGORY_COLORS[category]}`}>{category}</span>
+                  <span className="text-[10px] text-gray-400 dark:text-[#64748B] font-mono">{catFields.filter(f => f.selected).length}/{catFields.length}</span>
+                </div>
+                {isExpandedCat && (
+                  <div className="ml-6 space-y-0.5 mt-0.5">
+                    {catFields.map(field => (
+                      <div key={field.id}
+                        onClick={() => toggleField(field.id)}
+                        className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50 dark:hover:bg-[#1A1F2E] cursor-pointer transition-colors">
+                        <div className={`w-3 h-3 border rounded flex items-center justify-center flex-shrink-0
+                          ${field.selected ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#64748B]'}`}>
+                          {field.selected && <Check className="w-2 h-2 text-white" strokeWidth={3} />}
+                        </div>
+                        <span className="text-xs text-gray-700 dark:text-[#CBD5E1] flex-1">{field.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </MobileExpandableSection>
+
+      </div>
+
+      {/* FAB — mobile only */}
+      <button
+        onClick={() => setShowPreviewModal(true)}
+        className="sm:hidden fixed bottom-20 right-4 z-[70] w-14 h-14 bg-[#D93030] hover:bg-[#c02828] text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+        title="Pré-visualizar relatório"
+      >
+        <FileText className="w-6 h-6" />
+      </button>
+
+      {/* Modal Preview — mobile only */}
+      {showPreviewModal && (
+        <div className="sm:hidden fixed inset-0 z-[80] flex flex-col bg-white dark:bg-[#1E2435]">
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#8B1A1A] to-[#D93030]">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-white" />
+              <span className="text-sm font-semibold text-white">
+                Pré-visualização ({filteredLojistas.length} unidades)
+              </span>
+            </div>
+            <button
+              onClick={() => setShowPreviewModal(false)}
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {selectedFields.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-[#64748B]">
+                <CheckSquare className="w-8 h-8 mb-2 opacity-40" />
+                <p className="text-sm">Selecione ao menos um campo</p>
+              </div>
+            ) : (
+              filteredLojistas.slice(0, 8).map(l => {
+                const props = allPropostas.filter(p => p.unidade === l.unidade);
+                return (
+                  <div key={l.id} className={`flex flex-col rounded-xl overflow-hidden bg-white dark:bg-[#242938] border ${CATEGORY_BORDER.Disponibilidade}`}>
+                    {hasDisp && (
+                      <div>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/20">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
+                            Disponibilidade
+                          </span>
+                        </div>
+                        <div className="p-3 space-y-1.5">
+                          {dispFields.map(f => (
+                            <div key={f.id} className="flex items-center justify-between text-xs">
+                              <span className="text-gray-500 dark:text-[#94A3B8]">{f.label}:</span>
+                              <span className="font-medium text-gray-900 dark:text-[#F1F5F9]">
+                                {f.id === 'unidade' ? l.unidade : f.id === 'piso' ? (l.piso === 'P' ? 'Primeiro' : l.piso === 'S' ? 'Segundo' : 'Terceiro') : f.id === 'corredor' ? l.corredor : f.id === 'area' ? `${l.area} m²` : l.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {props.map(p => {
+                      const lojista: { nome: string; cnpj: string; segmento: string; responsavel: string; email: string; telefone: string } | undefined = undefined; // lojistaId não disponível na API
+                      const edicoes = histFields.length > 0 ? getEdicoesByProposal(p.id) : [];
+                      return (
+                        <div key={p.id}>
+                          {hasProp && (
+                            <div className={`ml-3 rounded-lg overflow-hidden ${CATEGORY_BORDER.Proposta}`}>
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
+                                  Proposta
+                                </span>
+                              </div>
+                              <div className="p-3 space-y-1.5">
+                                {propFields.map(f => (
+                                  <div key={f.id} className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-500 dark:text-[#94A3B8]">{f.label}:</span>
+                                    <span className="font-medium text-gray-900 dark:text-[#F1F5F9]">
+                                      {f.id === 'propCodigo' ? p.id : f.id === 'propTipo' ? p.tipo : f.id === 'propValor' ? fmtCurrency(p.valorProposto) : f.id === 'propStatus' ? p.status : f.id === 'propCriacao' ? p.dataCriacao : f.id === 'propVencimento' ? p.dataVencimento : p.responsavel}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 dark:border-[#2E3447] bg-gray-50 dark:bg-[#1A1F2E] flex items-center justify-between gap-3">
+            <div className="flex border border-gray-200 dark:border-[#2E3447] rounded-lg overflow-hidden">
+              {(['xlsx', 'pdf'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setExportFormat(f)}
+                  className={`px-3 py-2 text-xs font-medium transition-colors
+                    ${exportFormat === f ? 'bg-[#D93030] text-white' : 'text-gray-600 dark:text-[#94A3B8]'}`}
+                >
+                  {f.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { exportFormat === 'xlsx' ? handleExportXLSX() : handleExportPDF(); setShowPreviewModal(false); }}
+              disabled={selectedFields.length === 0}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#D93030] hover:bg-[#c02828] disabled:opacity-50 text-white rounded-lg px-4 py-2 text-xs font-medium transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Exportar
+            </button>
+          </div>
+        </div>
+      )}
+    </PageShell>
+  );
 }
 ````
 
@@ -14383,6 +15012,11 @@ func (h *PropostasHandler) Criar(c *gin.Context) {
 		return
 	}
 
+	if body.IDUnidade == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "É necessário informar idUnidade"})
+		return
+	}
+
 	var id string
 	err := h.db.QueryRow(ctx, `
 		INSERT INTO "Proposta"
@@ -14395,7 +15029,7 @@ func (h *PropostasHandler) Criar(c *gin.Context) {
 	).Scan(&id)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao criar proposta"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Erro ao criar proposta: %v", err)})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"id": id})
@@ -14427,57 +15061,80 @@ func (h *PropostasHandler) AtualizarStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Status atualizado"})
 }
 
+// === PASSO 3: DTO do Histórico ===
+type PropostaHistoricoResponse struct {
+	entities.PropostaHistorico
+	NomeUsuario *string `json:"nomeUsuario"`
+}
+
+// === PASSO 4: Função Historico Atualizada ===
 func (h *PropostasHandler) Historico(c *gin.Context) {
 	ctx := context.Background()
 	id := c.Param("id")
 
 	var propostaID string
-	if err := h.db.QueryRow(ctx, `
-		SELECT id_p
-		FROM "Proposta"
-		WHERE id_p = $1
-	`, id).Scan(&propostaID); err != nil {
+	if err := h.db.QueryRow(ctx, `SELECT id_p FROM "Proposta" WHERE id_p = $1`, id).Scan(&propostaID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
 			return
 		}
-
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar proposta"})
 		return
 	}
 
 	rows, err := h.db.Query(ctx, `
-	SELECT
-		ph.id_ph, ph.id_proposta_ph, ph.id_usuario_ph,
-		u.nome_u AS nome_usuario,
-		ph.editado_em_ph,
-		ph.codigo_unidade_ph, ph.segmento_ph, ph.tipo_operacao_ph, ph.valor_proposto_ph,
-		ph.area_ph, ph.abl_ph, ph.status_ph, ph.data_criacao_ph, ph.data_vencimento_ph,
-		ph.nome_fantasia_ph, ph.aluguel_percent_ph, ph.prazo_locacao_meses_ph,
-		ph.aluguel_por_m2_ph, ph.condominio_aprox_ph, ph.fpp_aprox_ph,
-		ph.inicio_contrato_ph, ph.fim_contrato_ph, ph.data_inauguracao_ph,
-		ph.observacoes_ph, ph.atualizado_em_snapshot_ph
-	FROM "PropostaHistorico" ph
-	JOIN "Usuario" u ON u.id_u = ph.id_usuario_ph
-	WHERE ph.id_proposta_ph = $1
-	ORDER BY ph.editado_em_ph DESC
-`, propostaID)
-if err != nil {
-	c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao consultar historico"})
-	return
-}
-defer rows.Close()
+		SELECT
+			ph.id_ph, ph.id_proposta_ph, ph.id_usuario_ph, u.nome_u,
+			TO_CHAR(ph.editado_em_ph, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+			ph.codigo_unidade_ph, ph.segmento_ph, ph.tipo_operacao_ph, ph.valor_proposto_ph,
+			ph.area_ph, ph.abl_ph, ph.status_ph,
+			TO_CHAR(ph.data_criacao_ph, 'YYYY-MM-DD'),
+			TO_CHAR(ph.data_vencimento_ph, 'YYYY-MM-DD'),
+			ph.nome_fantasia_ph, ph.aluguel_percent_ph, ph.prazo_locacao_meses_ph,
+			ph.aluguel_por_m2_ph, ph.condominio_aprox_ph, ph.fpp_aprox_ph,
+			TO_CHAR(ph.inicio_contrato_ph, 'YYYY-MM-DD'),
+			TO_CHAR(ph.fim_contrato_ph, 'YYYY-MM-DD'),
+			TO_CHAR(ph.data_inauguracao_ph, 'YYYY-MM-DD'),
+			ph.observacoes_ph,
+			TO_CHAR(ph.atualizado_em_snapshot_ph, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "PropostaHistorico" ph
+		JOIN "Usuario" u ON u.id_u = ph.id_usuario_ph
+		WHERE ph.id_proposta_ph = $1
+		ORDER BY ph.editado_em_ph DESC
+	`, propostaID)
 
-historicos, err := pgx.CollectRows(rows, pgx.RowToStructByName[PropostaHistoricoResponse])
-if err != nil {
-	c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao processar historico"})
-	return
-}
-if historicos == nil {
-	historicos = []PropostaHistoricoResponse{}
-}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar histórico"})
+		return
+	}
+	defer rows.Close()
 
-c.JSON(http.StatusOK, historicos)
+	var result []PropostaHistoricoResponse
+	for rows.Next() {
+		var item PropostaHistoricoResponse
+		err := rows.Scan(
+			&item.Id, &item.IdProposta, &item.IdUsuario, &item.NomeUsuario,
+			&item.EditadoEm,
+			&item.CodigoUnidade, &item.Segmento, &item.TipoOperacao, &item.ValorProposto,
+			&item.Area, &item.Abl, &item.Status, &item.DataCriacao, &item.DataVencimento,
+			&item.NomeFantasia, &item.AluguelPercent, &item.PrazoLocacaoMeses,
+			&item.AluguelPorM2, &item.CondominioAprox, &item.FppAprox,
+			&item.InicioContrato, &item.FimContrato, &item.DataInauguracao,
+			&item.Observacoes, &item.AtualizadoEmSnapshot,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao ler histórico"})
+			return
+		}
+		result = append(result, item)
+	}
+
+	// Se for nil (vazio), retorna um array vazio ao invés de null para o frontend
+	if result == nil {
+		result = []PropostaHistoricoResponse{}
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *PropostasHandler) GetLojaAnterior(c *gin.Context) {
@@ -15494,9 +16151,7 @@ func (h *PropostasHandler) GetTaxaTransferencia(c *gin.Context) {
 	id := c.Param("id")
 
 	var tipoOperacao string
-	err := h.db.QueryRow(ctx,
-		`SELECT tipo_operacao_p FROM "Proposta" WHERE id_p = $1`, id,
-	).Scan(&tipoOperacao)
+	err := h.db.QueryRow(ctx, `SELECT tipo_operacao_p FROM "Proposta" WHERE id_p = $1`, id).Scan(&tipoOperacao)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
@@ -15523,6 +16178,7 @@ func (h *PropostasHandler) GetTaxaTransferencia(c *gin.Context) {
 		&tt.TtContratual, &tt.TtProposta, &tt.TtPropostaNumAmm,
 		&tt.SinalTt, &tt.FormaPagamentoTt, &tt.JustificativaTt, &tt.StatusTt,
 	)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusOK, nil)
@@ -15540,6 +16196,7 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 	id := c.Param("id")
 	userID := c.GetString("user_id")
 
+	// 1. Snapshot da proposta atual
 	type propostaSnap struct {
 		codigoUnidade   string
 		segmento        string
@@ -15562,39 +16219,30 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 		observacoes     *string
 		atualizadoEm    *string
 	}
-
 	var snap propostaSnap
 	err := h.db.QueryRow(ctx, `
 		SELECT
-			u.codigo_un,
-			p.segmento_p, p.tipo_operacao_p,
-			p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
-			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'),
-			TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
-			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p,
-			p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
-			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'),
-			TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'),
-			TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
-			p.observacoes_p,
-			TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+			u.codigo_un, p.segmento_p, p.tipo_operacao_p, p.valor_proposto_p, p.area_p, p.abl_p, p.status_p,
+			TO_CHAR(p.data_criacao_p, 'YYYY-MM-DD'), TO_CHAR(p.data_vencimento_p, 'YYYY-MM-DD'),
+			p.nome_fantasia_p, p.aluguel_percent_p, p.prazo_locacao_meses_p, p.aluguel_por_m2_p, p.condominio_aprox_p, p.fpp_aprox_p,
+			TO_CHAR(p.inicio_contrato_p, 'YYYY-MM-DD'), TO_CHAR(p.fim_contrato_p, 'YYYY-MM-DD'), TO_CHAR(p.data_inauguracao_p, 'YYYY-MM-DD'),
+			p.observacoes_p, TO_CHAR(p.atualizado_em_p, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM "Proposta" p
 		JOIN "Unidade" u ON u.id_un = p.id_unidade_p
 		WHERE p.id_p = $1
 	`, id).Scan(
-		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao,
-		&snap.valorProposto, &snap.area, &snap.abl, &snap.status,
-		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia,
-		&snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
-		&snap.condominioAprox, &snap.fppAprox,
-		&snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
+		&snap.codigoUnidade, &snap.segmento, &snap.tipoOperacao, &snap.valorProposto, &snap.area, &snap.abl, &snap.status,
+		&snap.dataCriacao, &snap.dataVencimento, &snap.nomeFantasia, &snap.aluguelPercent, &snap.prazoLocacao, &snap.aluguelPorM2,
+		&snap.condominioAprox, &snap.fppAprox, &snap.inicioContrato, &snap.fimContrato, &snap.dataInauguracao,
 		&snap.observacoes, &snap.atualizadoEm,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
 		return
 	}
 
+	// Proteção principal: Retornar 422 se não for Transferência
 	if snap.tipoOperacao != "Transferência" {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Operação não permite taxa de transferência"})
 		return
@@ -15609,6 +16257,7 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 		JustificativaTt  *string  `json:"justificativaTt"`
 		StatusTt         *string  `json:"statusTt"`
 	}
+
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
 		return
@@ -15621,39 +16270,33 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 	}
 	defer tx.Rollback(ctx)
 
+	// 2. Gravar snapshot principal no Histórico
 	var idPH string
 	err = tx.QueryRow(ctx, `
 		INSERT INTO "PropostaHistorico" (
 			id_proposta_ph, id_usuario_ph, editado_em_ph,
-			codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
-			valor_proposto_ph, area_ph, abl_ph, status_ph,
-			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
-			aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
-			condominio_aprox_ph, fpp_aprox_ph,
-			inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
-			observacoes_ph, atualizado_em_snapshot_ph
-		) VALUES (
-			$1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
-		) RETURNING id_ph
+			codigo_unidade_ph, segmento_ph, tipo_operacao_ph, valor_proposto_ph, area_ph, abl_ph, status_ph,
+			data_criacao_ph, data_vencimento_ph, nome_fantasia_ph, aluguel_percent_ph, prazo_locacao_meses_ph,
+			aluguel_por_m2_ph, condominio_aprox_ph, fpp_aprox_ph, inicio_contrato_ph, fim_contrato_ph,
+			data_inauguracao_ph, observacoes_ph, atualizado_em_snapshot_ph
+		) VALUES ($1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+		RETURNING id_ph
 	`,
-		id, userID,
-		snap.codigoUnidade, snap.segmento, snap.tipoOperacao,
-		snap.valorProposto, snap.area, snap.abl, snap.status,
-		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia,
-		snap.aluguelPercent, snap.prazoLocacao, snap.aluguelPorM2,
-		snap.condominioAprox, snap.fppAprox,
-		snap.inicioContrato, snap.fimContrato, snap.dataInauguracao,
-		snap.observacoes, snap.atualizadoEm,
+		id, userID, snap.codigoUnidade, snap.segmento, snap.tipoOperacao, snap.valorProposto, snap.area, snap.abl, snap.status,
+		snap.dataCriacao, snap.dataVencimento, snap.nomeFantasia, snap.aluguelPercent, snap.prazoLocacao,
+		snap.aluguelPorM2, snap.condominioAprox, snap.fppAprox, snap.inicioContrato, snap.fimContrato,
+		snap.dataInauguracao, snap.observacoes, snap.atualizadoEm,
 	).Scan(&idPH)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico"})
 		return
 	}
 
+	// 3. Criar ou Atualizar a Taxa de Transferência
 	_, err = tx.Exec(ctx, `
 		INSERT INTO "PropostaTaxaTransferencia" (
-			id_proposta_ptt,
-			tt_contratual_ptt, tt_proposta_ptt, tt_proposta_num_amm_ptt,
+			id_proposta_ptt, tt_contratual_ptt, tt_proposta_ptt, tt_proposta_num_amm_ptt,
 			sinal_tt_ptt, forma_pagamento_tt_ptt, justificativa_tt_ptt, status_tt_ptt
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 		ON CONFLICT (id_proposta_ptt) DO UPDATE SET
@@ -15665,28 +16308,40 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 			justificativa_tt_ptt     = EXCLUDED.justificativa_tt_ptt,
 			status_tt_ptt            = EXCLUDED.status_tt_ptt
 	`,
-		id,
-		body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
+		id, body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
 		body.SinalTt, body.FormaPagamentoTt, body.JustificativaTt, body.StatusTt,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar taxa de transferência"})
 		return
 	}
 
+	// 4. Salvar os mesmos dados na tabela de Histórico (PropostaTaxaTransferenciaHistorico)
 	_, err = tx.Exec(ctx, `
 		INSERT INTO "PropostaTaxaTransferenciaHistorico" (
-			id_historico_ptth,
-			tt_contratual_ptth, tt_proposta_ptth, tt_proposta_num_amm_ptth,
+			id_historico_ptth, tt_contratual_ptth, tt_proposta_ptth, tt_proposta_num_amm_ptth,
 			sinal_tt_ptth, forma_pagamento_tt_ptth, justificativa_tt_ptth, status_tt_ptth
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	`,
-		idPH,
-		body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
+		idPH, body.TtContratual, body.TtProposta, body.TtPropostaNumAmm,
 		body.SinalTt, body.FormaPagamentoTt, body.JustificativaTt, body.StatusTt,
 	)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico da taxa de transferência"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar histórico da taxa"})
+		return
+	}
+
+	// 5. ATUALIZAR METADADOS DA PROPOSTA PRINCIPAL (CORREÇÃO FUNDAMENTAL)
+	_, err = tx.Exec(ctx, `
+		UPDATE "Proposta" 
+		SET atualizado_em_p = NOW(), id_usuario_ultima_alt_p = $1 
+		WHERE id_p = $2
+	`, userID, id)
+	
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao atualizar metadados da proposta"})
 		return
 	}
 
@@ -15696,688 +16351,6 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Taxa de transferência salva com sucesso"})
-}
-type PropostaHistoricoResponse struct {
-	entities.PropostaHistorico
-	NomeUsuario *string `json:"nomeUsuario" db:"nome_usuario"`
-}
-````
-
-## File: Figma/src/app/pages/comercial/ComercialReports.tsx
-````typescript
-/**
- * ComercialReports.tsx — View de Relatórios Comerciais.
- *
- * Papel na arquitetura MVVM: camada VIEW.
- * Toda lógica está em useComercialReports (ViewModel).
- *
- * O que exibe:
- *  Desktop (2 colunas):
- *   Esquerda: seleção de campos (árvore por categoria) + filtros
- *   Direita:  gráficos (segmento, piso, status) + pré-visualização
- *
- *  Mobile: accordion separado para gráficos e campos + modal de preview
- *
- * Seleção de campos (árvore):
- *  - Categorias: Disponibilidade, Proposta, Histórico
- *  - Cada categoria é expansível/retrátil (isCategoryExpanded)
- *  - Checkbox de categoria seleciona/deseleciona todos os campos filhos
- *  - Histórico tem recuo visual (ml-4) indicando que é filho de Proposta
- *
- * Pré-visualização:
- *  - Exibe até 8 unidades em estrutura hierárquica:
- *    Unidade → Proposta → Histórico
- *  - Blocos coloridos por categoria: vermelho (disp.), roxo (prop.), âmbar (hist.)
- *
- * Exportação:
- *  - XLSX: usa SheetJS para gerar planilha com colunas achatadas
- *  - PDF: usa jsPDF + autoTable com cabeçalho da marca JP Mall
- *  - handleExportXLSX/PDF: aliases do handleExport do ViewModel,
- *    que setam o formato antes de chamar a função de exportação
- *
- * Aliases locais:
- *  isCategoryExpanded(cat) — função derivada de expandedCategories (string[])
- *  isExpandedCat           — calculado por .map() de categoria, booleano local
- *  fmtCurrency             — formata número como R$ para exibição
- *  getEdicoesByProposal    — retorna [] (histórico via API futuramente)
- *  hasDisp/hasProp/hasHist — booleanos de categoria com campo selecionado
- */
-import React from "react";
-import {
-  Download, CheckSquare,
-  FileText, Check, ChevronDown, X, BarChart2
-} from "lucide-react";
-import { PageShell, FilterBar, FilterSeparator, FilterDateRange, MobileExpandableSection } from "../../components/PageShared";
-import { MobileCarousel } from "../../components/MobileCarousel";
-import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
-import { SEGMENTOS, PISOS, STATUS_LOJA } from "../../enums";
-import { useComercialReports, type ReportField } from "../../viewmodels/useComercialReports";
-import { DataTable } from "../../components/DataTable";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend
-} from "recharts";
-
-import { ChartTooltip } from "../../components/ChartTooltip";
-
-const CHART_COLORS = ['#D93030', '#C8A882', '#8B1A1A', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
-
-// Ordem de renderização das categorias
-const CATEGORY_ORDER = ['Disponibilidade', 'Proposta', 'Dados da Loja', 'Histórico'] as const;
-
-// Cores por categoria
-const CATEGORY_COLORS: Record<string, string> = {
-  Disponibilidade: 'bg-[#D93030]/10 text-[#D93030] dark:bg-[#D93030]/20',
-  Proposta:        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-  'Dados da Loja': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
-  Histórico:       'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-};
-
-const CATEGORY_BORDER: Record<string, string> = {
-  Disponibilidade: 'border-l-4 border-[#D93030]',
-  Proposta:        'border-l-4 border-purple-500',
-  'Dados da Loja': 'border-l-4 border-teal-500',
-  Histórico:       'border-l-4 border-amber-500 ml-4',
-};
-
-export function ComercialReports() {
-  const {
-    allLojistas, allPropostas, filteredLojistas, filteredPropostas,
-    segmentosChart, pisoChart, propostasChart,
-    fields, setFields, selectedFields, dispFields, propFields, lojFields, histFields,
-    expandedCategories,
-    dateFrom, setDateFrom, dateTo, setDateTo,
-    filterPisos, setFilterPisos,
-    filterStatuses, setFilterStatuses,
-    filterSegmentos, setFilterSegmentos,
-    showMobileFilters, setShowMobileFilters,
-    exportFormat, setExportFormat,
-    reportChartIndex, setReportChartIndex,
-    showPreviewModal, setShowPreviewModal,
-    mobileReportSection,
-    toggleField, toggleCategory, toggleExpanded, toggleReportSection,
-    handleExport,
-  } = useComercialReports();
-
-  // ── Aliases e variáveis locais ──────────────────────────
-  // expandedCategories era Set — agora é string[] — adaptar .has()
-  const isCategoryExpanded = (cat: string) => expandedCategories.includes(cat);
-
-  // Booleanos de categoria selecionada
-  const hasDisp = dispFields.length > 0;
-  const hasProp = propFields.length > 0;
-  const hasHist = histFields.length > 0;
-  // hasLoj removido — categoria "Dados da Loja" removida
-
-  // fmtCurrency local
-  const fmtCurrency = (v: number) =>
-    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
-
-  // getEdicoesByProposal — retorna [] pois histórico vem da API
-  const getEdicoesByProposal = (_id: string): Array<{ editadoEm: string; editadoPorNome: string; snapshot: { status: string } }> => [];
-
-  // Aliases para compatibilidade com o JSX existente
-  const handleExportXLSX = () => { const prev = exportFormat; setExportFormat('xlsx'); handleExport(); setExportFormat(prev); };
-  const handleExportPDF  = () => { const prev = exportFormat; setExportFormat('pdf');  handleExport(); setExportFormat(prev); };
-
-  return (
-    <PageShell>
-      <FilterBar isOpen={showMobileFilters} onToggle={() => setShowMobileFilters(f => !f)} hasActiveFilters={!!(dateFrom || dateTo || filterPisos.length > 0 || filterStatuses.length > 0 || filterSegmentos.length > 0)}>
-        <FilterDateRange label="Data de criação da proposta" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
-        <FilterSeparator />
-        <EnumCheckboxFilter
-          label="Piso"
-          options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
-          selected={filterPisos}
-          onToggle={p => setFilterPisos(prev =>
-            prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
-          )}
-          mobileGrid="grid-cols-3"
-        />
-        <FilterSeparator />
-        <EnumCheckboxFilter
-          label="Status da unidade"
-          options={STATUS_LOJA}
-          selected={filterStatuses}
-          onToggle={s => setFilterStatuses(prev =>
-            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
-          )}
-        />
-        <FilterSeparator />
-        <EnumCheckboxFilter
-          label="Segmento"
-          options={SEGMENTOS}
-          selected={filterSegmentos}
-          onToggle={s => setFilterSegmentos(prev =>
-            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
-          )}
-        />
-      </FilterBar>
-
-      {/* Área principal — flex-1 com scroll */}
-      <div className="flex-1 overflow-hidden flex flex-col gap-4">
-
-        {/* Grid Campos + Preview */}
-        {/* Desktop */}
-        <div className="hidden sm:grid sm:grid-cols-3 gap-4 flex-1 overflow-hidden min-h-0">
-
-          {/* Campos a Exportar — 1/3 */}
-          <div className="lg:col-span-1 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4 flex flex-col overflow-hidden">
-            <div className="flex items-center mb-3 flex-shrink-0">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9] flex items-center gap-2">
-                <CheckSquare className="w-4 h-4 text-[#D93030]" /> Campos a Exportar
-              </h3>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-              {/* Linha de controle — dentro do scroll */}
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#2E3447] mb-2 mt-3">
-                <span className="text-[10px] text-gray-400 dark:text-[#64748B]">{selectedFields.length} de {fields.length} selecionados</span>
-                <div className="flex gap-2">
-                  <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: true })))} className="text-[10px] text-[#D93030] hover:underline">Todos</button>
-                  <span className="text-[10px] text-gray-300 dark:text-[#3E4557]">|</span>
-                  <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: false })))} className="text-[10px] text-gray-500 hover:underline">Nenhum</button>
-                </div>
-              </div>
-
-              {CATEGORY_ORDER.map(category => {
-                const catFields = fields.filter(f => f.category === category);
-                const allSel = catFields.every(f => f.selected);
-                const someSel = catFields.some(f => f.selected);
-                const isHistorico = category === 'Histórico';
-                const isExpandedCat = isCategoryExpanded(category);
-
-                return (
-                  <div key={category} className={isHistorico ? 'ml-4' : ''}>
-                    {/* Linha do nó pai (categoria) — clique no chevron expande, clique no checkbox seleciona */}
-                    <div className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors
-                      ${isHistorico ? 'border-l-2 border-amber-400 pl-3' : ''}`}>
-
-                      {/* Chevron de expand/collapse */}
-                      <button
-                        onClick={() => toggleExpanded(category)}
-                        className="flex-shrink-0 w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-[#F1F5F9] transition-colors"
-                      >
-                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isExpandedCat ? '' : '-rotate-90'}`} />
-                      </button>
-
-                      {/* Checkbox da categoria */}
-                      <button
-                        onClick={() => toggleCategory(category)}
-                        className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
-                          ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-[#D93030]/30 border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
-                      >
-                        {allSel && <Check className="w-2.5 h-2.5 text-white" />}
-                        {someSel && !allSel && <div className="w-2 h-0.5 bg-[#D93030] rounded" />}
-                      </button>
-
-                      {/* Badge da categoria + indicação filho */}
-                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${CATEGORY_COLORS[category]}`}>
-                          {category}
-                        </span>
-                        {isHistorico && (
-                          <span className="text-[9px] text-amber-500/70 whitespace-nowrap">↳ Proposta</span>
-                        )}
-                        <span className="text-[10px] text-gray-400 dark:text-[#64748B] ml-auto flex-shrink-0">
-                          {catFields.filter(f => f.selected).length}/{catFields.length}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Filhos — colapsáveis */}
-                    {isExpandedCat && (
-                      <div className="ml-7 mt-0.5 space-y-0.5">
-                        {catFields.map(field => (
-                          <label
-                            key={field.id}
-                            className="flex items-center gap-2 py-1 px-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors group"
-                          >
-                            <button
-                              onClick={() => toggleField(field.id)}
-                              className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
-                                ${field.selected ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
-                            >
-                              {field.selected && <Check className="w-2 h-2 text-white" />}
-                            </button>
-                            <span className="text-xs text-gray-700 dark:text-[#CBD5E1] group-hover:text-[#D93030] transition-colors leading-tight">
-                              {field.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Preview hierárquico — 2/3 */}
-          <div className="lg:col-span-2 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-[#2E3447] flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#D93030]" />
-                <span className="text-sm font-semibold text-gray-900 dark:text-[#F1F5F9]">
-                  Pré-visualização ({filteredLojistas.length} unidades)
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {/* Legenda de categorias */}
-                {CATEGORY_ORDER.filter(c => selectedFields.some(f => f.category === c)).map(c => (
-                  <span key={c} className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${CATEGORY_COLORS[c]}`}>{c}</span>
-                ))}
-              </div>
-            </div>
-
-            {selectedFields.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-[#64748B]">
-                <div className="text-center">
-                  <CheckSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Selecione ao menos um campo para pré-visualizar</p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {filteredLojistas.slice(0, 8).map(l => {
-                  const props = allPropostas.filter(p => p.unidade === l.unidade);
-                  const dispExpanded = true;
-
-                  return (
-                    <div key={l.id} className="border border-red-200 dark:border-red-900/30 rounded-xl overflow-hidden">
-
-                      {/* ══ CABEÇALHO DISPONIBILIDADE ══ */}
-                      <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/20">
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
-                          Disponibilidade
-                        </span>
-                      </div>
-
-                      {/* ══ TABELA DISPONIBILIDADE ══ */}
-                      {dispFields.length > 0 && (
-                        <DataTable
-                          data={[{
-                            ...Object.fromEntries(dispFields.map(f => [f.id, 
-                              f.id === 'unidade' ? l.unidade :
-                              f.id === 'piso' ? (l.piso === 'P' ? 'Primeiro Piso' : l.piso === 'S' ? 'Segundo Piso' : 'Terceiro Piso') :
-                              f.id === 'corredor' ? l.corredor :
-                              f.id === 'area' ? `${l.area} m²` :
-                              f.id === 'statusUnidade' ? l.status : '—'
-                            ]))
-                          }]}
-                          columnConfig={Object.fromEntries(dispFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
-                        />
-                      )}
-
-                      {/* ══ SUB-RELATÓRIOS DE PROPOSTA (só quando expandido) ══ */}
-                      {dispExpanded && (
-                        <div className="p-3 space-y-2 bg-white dark:bg-[#1A1F2E]">
-                          {props.length === 0 ? (
-                            <p className="text-xs text-gray-400 dark:text-[#64748B] text-center py-2">
-                              Nenhuma proposta vinculada
-                            </p>
-                          ) : props.map(p => {
-                            const propExpanded = true;
-                            // Buscar lojista pelo lojistaId da proposta (não pela unidade)
-                            // Dados da loja vêm de nomeFantasia/segmento/responsavel da Proposta
-                            const edicoes = histFields.length > 0
-                              ? getEdicoesByProposal(p.id)
-                              : [];
-                            const hasChildren =
-                              (false) ||
-                              edicoes.length > 0;
-
-                            return (
-                              <div key={p.id} className="border border-purple-200 dark:border-purple-800/40 rounded-lg overflow-hidden">
-
-                                {/* — CABEÇALHO PROPOSTA — */}
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30">
-                                  <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
-                                    Proposta
-                                  </span>
-                                </div>
-
-                                {/* — TABELA PROPOSTA — */}
-                                {propFields.length > 0 && (
-                                  <DataTable
-                                    data={[{
-                                      ...Object.fromEntries(propFields.map(f => [f.id,
-                                        f.id === 'propCodigo' ? p.id :
-                                        f.id === 'propTipo' ? p.tipo :
-                                        f.id === 'propValor' ? fmtCurrency(p.valorProposto) :
-                                        f.id === 'propStatus' ? p.status :
-                                        f.id === 'propCriacao' ? p.dataCriacao :
-                                        f.id === 'propVencimento' ? (p.dataVencimento || '—') :
-                                        f.id === 'propResponsavel' ? (p.responsavel || '—') : '—'
-                                      ]))
-                                    }]}
-                                    columnConfig={Object.fromEntries(propFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
-                                  />
-                                )}
-
-                                {/* — SUB-BLOCOS LOJISTA E HISTÓRICO (só quando proposta expandida) — */}
-                                {propExpanded && (
-                                  <div className="p-2 space-y-2 bg-white dark:bg-[#1A1F2E]">
-
-                                    {/* LOJISTA — só renderiza se p.nomeFantasia || '—'Id existir e lojista for encontrado */}
-                                    {false && (
-                                      <div className="border border-teal-200 dark:border-teal-800/40 rounded-lg overflow-hidden">
-                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 dark:bg-teal-900/20 border-b border-teal-100 dark:border-teal-800/30">
-                                          <span className="text-[9px] font-bold uppercase tracking-widest text-teal-700 dark:text-teal-400">
-                                            Dados da Loja
-                                          </span>
-                                        </div>
-
-                                      </div>
-                                    )}
-
-                                    {/* HISTÓRICO — só renderiza se houver edições e campos selecionados */}
-                                    {edicoes.length > 0 && histFields.length > 0 && (
-                                      <div className="border border-amber-200 dark:border-amber-800/40 rounded-lg overflow-hidden">
-                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800/30">
-                                          <span className="text-[9px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
-                                            Histórico
-                                          </span>
-                                        </div>
-                                        <DataTable
-                                          data={edicoes.slice(0, 5).map(e => ({
-                                            ...Object.fromEntries(histFields.map(f => [f.id,
-                                              f.id === 'histData'       ? new Date(e.editadoEm).toLocaleString('pt-BR') :
-                                              f.id === 'histEditor'     ? e.editadoPorNome :
-                                              f.id === 'histStatusAnt'  ? e.snapshot.status :
-                                              f.id === 'histStatusNovo' ? p.status : '—'
-                                            ]))
-                                          }))}
-                                          columnConfig={Object.fromEntries(histFields.map(f => [f.id, { label: f.label, _allowFilter: false, sortable: false }]))}
-                                        />
-                                      </div>
-                                    )}
-
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="flex-shrink-0 px-5 py-3 bg-gray-50/50 dark:bg-[#1A1F2E] border-t border-gray-100 dark:border-[#2E3447] flex items-center justify-between">
-              <p className="text-xs text-gray-500 dark:text-[#64748B]">
-                Exibindo prévia de {Math.min(8, filteredLojistas.length)} de {filteredLojistas.length} unidades
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => exportFormat === 'xlsx' ? handleExportXLSX() : handleExportPDF()}
-                  disabled={selectedFields.length === 0}
-                  className="flex items-center gap-1.5 bg-[#D93030] hover:bg-[#c02828] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-4 py-2 text-xs font-medium transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5" /> Exportar
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <MobileExpandableSection
-          icon={CheckSquare}
-          title="Campos a Exportar"
-          badge={<span className="text-[10px] text-gray-400 dark:text-[#64748B] font-normal">({selectedFields.length}/{fields.length})</span>}
-          isOpen={mobileReportSection === 'campos'}
-          onToggle={() => toggleReportSection('campos')}
-          contentClassName="flex-1 overflow-y-auto space-y-1 px-4 pb-4"
-        >
-          {/* Linha de controle */}
-          <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-[#2E3447] mb-2 mt-3">
-            <span className="text-[10px] text-gray-400 dark:text-[#64748B]">{selectedFields.length} de {fields.length} selecionados</span>
-            <div className="flex gap-2">
-              <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: true })))} className="text-[10px] text-[#D93030] hover:underline">Todos</button>
-              <span className="text-[10px] text-gray-300 dark:text-[#3E4557]">|</span>
-              <button onClick={() => setFields(prev => prev.map(f => ({ ...f, selected: false })))} className="text-[10px] text-gray-500 hover:underline">Nenhum</button>
-            </div>
-          </div>
-
-          {CATEGORY_ORDER.map(category => {
-            const catFields = fields.filter(f => f.category === category);
-            const allSel = catFields.every(f => f.selected);
-            const someSel = catFields.some(f => f.selected);
-            const isHistorico = category === 'Histórico';
-            const isExpandedCat = isCategoryExpanded(category);
-
-            return (
-              <div key={category} className={isHistorico ? 'ml-4' : ''}>
-                <div className={`flex items-center gap-1.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors
-                  ${isHistorico ? 'border-l-2 border-amber-400 pl-3' : ''}`}>
-                  <button onClick={() => toggleExpanded(category)} className="flex-shrink-0">
-                    <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isExpandedCat ? '' : '-rotate-90'}`} />
-                  </button>
-                  <div
-                    onClick={() => toggleCategory(category)}
-                    className={`w-3.5 h-3.5 border rounded flex items-center justify-center flex-shrink-0 cursor-pointer transition-colors
-                      ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-gray-300 dark:bg-[#3E4557] border-gray-400 dark:border-[#64748B]' : 'border-gray-400 dark:border-[#64748B]'}`}
-                  >
-                    {allSel && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
-                    {someSel && !allSel && <div className="w-1.5 h-0.5 bg-gray-700 dark:bg-[#CBD5E1]" />}
-                  </div>
-                  <span className={`text-xs font-semibold flex-1 ${CATEGORY_COLORS[category]}`}>{category}</span>
-                  <span className="text-[10px] text-gray-400 dark:text-[#64748B] font-mono">{catFields.filter(f => f.selected).length}/{catFields.length}</span>
-                </div>
-                {isExpandedCat && (
-                  <div className="ml-6 space-y-0.5 mt-0.5">
-                    {catFields.map(field => (
-                      <div key={field.id}
-                        onClick={() => toggleField(field.id)}
-                        className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50 dark:hover:bg-[#1A1F2E] cursor-pointer transition-colors">
-                        <div className={`w-3 h-3 border rounded flex items-center justify-center flex-shrink-0
-                          ${field.selected ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#64748B]'}`}>
-                          {field.selected && <Check className="w-2 h-2 text-white" strokeWidth={3} />}
-                        </div>
-                        <span className="text-xs text-gray-700 dark:text-[#CBD5E1] flex-1">{field.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </MobileExpandableSection>
-
-      </div>
-
-      {/* FAB — mobile only */}
-      <button
-        onClick={() => setShowPreviewModal(true)}
-        className="sm:hidden fixed bottom-20 right-4 z-[70] w-14 h-14 bg-[#D93030] hover:bg-[#c02828] text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
-        title="Pré-visualizar relatório"
-      >
-        <FileText className="w-6 h-6" />
-      </button>
-
-      {/* Modal Preview — mobile only */}
-      {showPreviewModal && (
-        <div className="sm:hidden fixed inset-0 z-[80] flex flex-col bg-white dark:bg-[#1E2435]">
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#8B1A1A] to-[#D93030]">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-white" />
-              <span className="text-sm font-semibold text-white">
-                Pré-visualização ({filteredLojistas.length} unidades)
-              </span>
-            </div>
-            <button
-              onClick={() => setShowPreviewModal(false)}
-              className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {selectedFields.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-[#64748B]">
-                <CheckSquare className="w-8 h-8 mb-2 opacity-40" />
-                <p className="text-sm">Selecione ao menos um campo</p>
-              </div>
-            ) : (
-              filteredLojistas.slice(0, 8).map(l => {
-                const props = allPropostas.filter(p => p.unidade === l.unidade);
-                return (
-                  <div key={l.id} className={`flex flex-col rounded-xl overflow-hidden bg-white dark:bg-[#242938] border ${CATEGORY_BORDER.Disponibilidade}`}>
-                    {hasDisp && (
-                      <div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/20">
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-red-600 dark:text-red-400">
-                            Disponibilidade
-                          </span>
-                        </div>
-                        <div className="p-3 space-y-1.5">
-                          {dispFields.map(f => (
-                            <div key={f.id} className="flex items-center justify-between text-xs">
-                              <span className="text-gray-500 dark:text-[#94A3B8]">{f.label}:</span>
-                              <span className="font-medium text-gray-900 dark:text-[#F1F5F9]">
-                                {f.id === 'unidade' ? l.unidade : f.id === 'piso' ? (l.piso === 'P' ? 'Primeiro' : l.piso === 'S' ? 'Segundo' : 'Terceiro') : f.id === 'corredor' ? l.corredor : f.id === 'area' ? `${l.area} m²` : l.status}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {props.map(p => {
-                      const lojista: { nome: string; cnpj: string; segmento: string; responsavel: string; email: string; telefone: string } | undefined = undefined; // lojistaId não disponível na API
-                      const edicoes = histFields.length > 0 ? getEdicoesByProposal(p.id) : [];
-                      return (
-                        <div key={p.id}>
-                          {hasProp && (
-                            <div className={`ml-3 rounded-lg overflow-hidden ${CATEGORY_BORDER.Proposta}`}>
-                              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30">
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
-                                  Proposta
-                                </span>
-                              </div>
-                              <div className="p-3 space-y-1.5">
-                                {propFields.map(f => (
-                                  <div key={f.id} className="flex items-center justify-between text-xs">
-                                    <span className="text-gray-500 dark:text-[#94A3B8]">{f.label}:</span>
-                                    <span className="font-medium text-gray-900 dark:text-[#F1F5F9]">
-                                      {f.id === 'propCodigo' ? p.id : f.id === 'propTipo' ? p.tipo : f.id === 'propValor' ? fmtCurrency(p.valorProposto) : f.id === 'propStatus' ? p.status : f.id === 'propCriacao' ? p.dataCriacao : f.id === 'propVencimento' ? p.dataVencimento : p.responsavel}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 dark:border-[#2E3447] bg-gray-50 dark:bg-[#1A1F2E] flex items-center justify-between gap-3">
-            <div className="flex border border-gray-200 dark:border-[#2E3447] rounded-lg overflow-hidden">
-              {(['xlsx', 'pdf'] as const).map(f => (
-                <button
-                  key={f}
-                  onClick={() => setExportFormat(f)}
-                  className={`px-3 py-2 text-xs font-medium transition-colors
-                    ${exportFormat === f ? 'bg-[#D93030] text-white' : 'text-gray-600 dark:text-[#94A3B8]'}`}
-                >
-                  {f.toUpperCase()}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => { exportFormat === 'xlsx' ? handleExportXLSX() : handleExportPDF(); setShowPreviewModal(false); }}
-              disabled={selectedFields.length === 0}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#D93030] hover:bg-[#c02828] disabled:opacity-50 text-white rounded-lg px-4 py-2 text-xs font-medium transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Exportar
-            </button>
-          </div>
-        </div>
-      )}
-    </PageShell>
-  );
-}
-````
-
-## File: API/internal/routes/routes.go
-````go
-// ============================================================
-// routes/routes.go — Registro de todas as rotas da API
-// ============================================================
-package routes
-
-import (
-	"net/http"
-
-	"go-api/internal/config"     // <-- Corrigido usando o nome do módulo
-	"go-api/internal/handlers"   // <-- Certifique-se de que está assim
-	"go-api/internal/middleware" // <-- Certifique-se de que está assim
-
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-)
-
-func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
-
-	authHandler := handlers.NewAuthHandler(db, cfg.JwtSecret, cfg.JwtDuration)
-	unidadesHandler := handlers.NewUnidadesHandler(db)
-	propostasHandler := handlers.NewPropostasHandler(db)
-
-	// Rotas públicas
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
-	})
-
-	r.POST("/api/v1/auth/login", authHandler.Login)
-
-	api := r.Group("/api/v1")
-	// <-- 2. AJUSTADO: Agora o middleware lê a chave de dentro da struct cfg
-	api.Use(middleware.Auth(db, cfg.JwtSecret))
-	{
-		// Auth
-		api.POST("/auth/logout", authHandler.Logout)
-		api.GET("/auth/me", authHandler.Me)
-
-		// Unidades
-		api.GET("/unidades", unidadesHandler.Listar)
-		api.GET("/unidades/:id", unidadesHandler.Detalhe)
-
-		// Propostas
-		api.GET("/propostas", propostasHandler.Listar)
-		api.GET("/propostas/:id", propostasHandler.Detalhe)
-		api.POST("/propostas", propostasHandler.Criar)
-		api.PUT("/propostas/:id", propostasHandler.PlaceholderOK)
-		api.PATCH("/propostas/:id/status", propostasHandler.AtualizarStatus)
-		api.POST("/propostas/check-vencidas", propostasHandler.PlaceholderOK)
-
-		api.GET("/propostas/:id/historico", propostasHandler.Historico)
-		api.GET("/propostas/:id/loja-anterior", propostasHandler.GetLojaAnterior)
-		api.PUT("/propostas/:id/loja-anterior", propostasHandler.SalvarLojaAnterior)
-		api.GET("/propostas/:id/necessidades-tecnicas", propostasHandler.GetNecessidadesTecnicas)
-		api.PUT("/propostas/:id/necessidades-tecnicas", propostasHandler.SalvarNecessidadesTecnicas)
-		api.GET("/propostas/:id/cessao-direitos", propostasHandler.GetCessaoDireitos)
-		api.PUT("/propostas/:id/cessao-direitos", propostasHandler.SalvarCessaoDireitos)
-
-		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.GetTaxaTransferencia)
-		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.SalvarTaxaTransferencia)
-		api.GET("/propostas/:id/parecer-comite", propostasHandler.GetParecerComite)
-		api.PUT("/propostas/:id/parecer-comite", propostasHandler.SalvarParecerComite)
-
-		// Documentos
-		api.GET("/documentos", propostasHandler.PlaceholderList)
-		api.POST("/documentos", propostasHandler.PlaceholderOK)
-		api.DELETE("/documentos/:id", propostasHandler.PlaceholderOK)
-	}
 }
 ````
 
@@ -16868,6 +16841,79 @@ export function ComercialProposals() {
 }
 ````
 
+## File: API/internal/routes/routes.go
+````go
+// ============================================================
+// routes/routes.go — Registro de todas as rotas da API
+// ============================================================
+package routes
+
+import (
+	"net/http"
+
+	"go-api/internal/config"     // <-- Corrigido usando o nome do módulo
+	"go-api/internal/handlers"   // <-- Certifique-se de que está assim
+	"go-api/internal/middleware" // <-- Certifique-se de que está assim
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
+
+	authHandler := handlers.NewAuthHandler(db, cfg.JwtSecret, cfg.JwtDuration)
+	unidadesHandler := handlers.NewUnidadesHandler(db)
+	propostasHandler := handlers.NewPropostasHandler(db)
+
+	// Rotas públicas
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
+
+	r.POST("/api/v1/auth/login", authHandler.Login)
+
+	api := r.Group("/api/v1")
+	// <-- 2. AJUSTADO: Agora o middleware lê a chave de dentro da struct cfg
+	api.Use(middleware.Auth(db, cfg.JwtSecret))
+	{
+		// Auth
+		api.POST("/auth/logout", authHandler.Logout)
+		api.GET("/auth/me", authHandler.Me)
+
+		// Unidades
+		api.GET("/unidades", unidadesHandler.Listar)
+		api.GET("/unidades/:id", unidadesHandler.Detalhe)
+
+		// Propostas
+		api.GET("/propostas", propostasHandler.Listar)
+		api.GET("/propostas/:id", propostasHandler.Detalhe)
+		api.POST("/propostas", propostasHandler.Criar)
+		api.PUT("/propostas/:id", propostasHandler.PlaceholderOK)
+		api.PATCH("/propostas/:id/status", propostasHandler.AtualizarStatus)
+		api.POST("/propostas/check-vencidas", propostasHandler.PlaceholderOK)
+
+		api.GET("/propostas/:id/historico", propostasHandler.Historico)
+		api.GET("/propostas/:id/loja-anterior", propostasHandler.GetLojaAnterior)
+		api.PUT("/propostas/:id/loja-anterior", propostasHandler.SalvarLojaAnterior)
+		api.GET("/propostas/:id/necessidades-tecnicas", propostasHandler.GetNecessidadesTecnicas)
+		api.PUT("/propostas/:id/necessidades-tecnicas", propostasHandler.SalvarNecessidadesTecnicas)
+		api.GET("/propostas/:id/cessao-direitos", propostasHandler.GetCessaoDireitos)
+		api.PUT("/propostas/:id/cessao-direitos", propostasHandler.SalvarCessaoDireitos)
+
+		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.GetTaxaTransferencia)
+		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.SalvarTaxaTransferencia)
+		
+		api.GET("/propostas/:id/parecer-comite", propostasHandler.GetParecerComite)
+		api.PUT("/propostas/:id/parecer-comite", propostasHandler.SalvarParecerComite)
+
+		// Documentos
+		api.GET("/documentos", propostasHandler.PlaceholderList)
+		api.POST("/documentos", propostasHandler.PlaceholderOK)
+		api.DELETE("/documentos/:id", propostasHandler.PlaceholderOK)
+	}
+}
+````
+
 ## File: Figma/src/app/components/Layout.tsx
 ````typescript
 /**
@@ -16887,7 +16933,7 @@ export function ComercialProposals() {
  *  [Mobile: nav bar inferior com 4 ícones]
  */
 import { useState, useEffect } from "react";
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Briefcase,
   Menu,
