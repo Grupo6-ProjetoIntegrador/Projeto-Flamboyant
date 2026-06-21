@@ -61,14 +61,34 @@ if (-not (Test-Path "Figma\node_modules")) {
 
 # ── Arquivo .env do frontend ─────────────────────────────────
 if (-not (Test-Path "Figma\.env")) {
+    $apiPortDefault = $env:SERVER_PORT
+    if (-not $apiPortDefault) { $apiPortDefault = '8080' }
     Warn ".env nao encontrado no Figma - criando com valores padrao..."
-    "VITE_API_URL=http://localhost:8080/api/v1" | Out-File -FilePath "Figma\.env" -Encoding utf8
+    "VITE_API_URL=http://localhost:$apiPortDefault/api/v1" | Out-File -FilePath "Figma\.env" -Encoding utf8
 }
+
+# ── Carregar variáveis de ambiente da API da API\.env ────────
+if (Test-Path "API\.env") {
+    Log "Carregando variáveis de ambiente da API de API\.env..."
+    Get-Content "API\.env" | ForEach-Object {
+        if (-not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith('#')) {
+            $parts = $_ -split '=', 2
+            if ($parts.Length -eq 2) {
+                $name = $parts[0].Trim()
+                $value = $parts[1].Trim()
+                if ($name) { Set-Item -Path Env:\$name -Value $value }
+            }
+        }
+    }
+}
+
+$apiPort = $env:SERVER_PORT
+if (-not $apiPort) { $apiPort = '8080' }
 
 Write-Host ""
 
 # ── Iniciar API e Frontend em janelas separadas ──────────────
-Log "Iniciando API na porta 8080..."
+Log "Iniciando API na porta $apiPort..."
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location API; go run ./cmd/main.go" -WindowStyle Normal
 
 Log "Iniciando Frontend na porta 5173..."

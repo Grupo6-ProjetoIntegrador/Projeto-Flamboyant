@@ -162,6 +162,7 @@ export function PropostaManutencaoModal({
   const handleNovo = () => {
     const propostaEmBranco: Proposta = {
       id: `PROP-NOVO-${Date.now()}`,
+      idUnidade: proposta.idUnidade,
       lojista: '',
       unidade: proposta.unidade,
       segmento: SEGMENTOS[0],
@@ -280,7 +281,7 @@ export function PropostaManutencaoModal({
   };
 
   const handleSelecionarDisponibilidade = async (unidade: Unidade) => {
-    setDraft(prev => ({ ...prev, unidade: unidade.codigo, area: unidade.area, lojistaId: unidade.id }));
+    setDraft(prev => ({ ...prev, idUnidade: unidade.id, unidade: unidade.codigo, area: unidade.area, lojistaId: unidade.id }));
     if (unidade.status === STATUS_OCUPADO) {
       const vinculadas = await propostasApi.listar({ idUnidade: unidade.id, status: STATUS_APROVADO }).catch(() => []);
       const propostaAtual = vinculadas?.[0];

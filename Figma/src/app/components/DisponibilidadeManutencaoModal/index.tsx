@@ -66,6 +66,7 @@ export function DisponibilidadeManutencaoModal({ unidade, allUnidades, onClose }
   const abrirNovaProposta = () => {
     const novaProposta: any = {
       id: `PROP-NOVO-${Date.now()}`,
+      idUnidade: unidade.id,
       unidade: unidade.codigo,
       tipoOperacao: 'Nova Instalação',
       tipo: 'Nova Instalação',

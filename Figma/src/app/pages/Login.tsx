@@ -16,7 +16,7 @@
  *  - Habilitar/desabilitar o botão com base no useApiHealth()
  */
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Building2, Lock, Mail } from "lucide-react";
 import { useAuth } from "../AuthContext";
 

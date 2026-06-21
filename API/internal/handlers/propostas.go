@@ -184,6 +184,11 @@ func (h *PropostasHandler) Criar(c *gin.Context) {
 		return
 	}
 
+	if body.IDUnidade == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "É necessário informar idUnidade"})
+		return
+	}
+
 	var id string
 	err := h.db.QueryRow(ctx, `
 		INSERT INTO "Proposta"
@@ -196,7 +201,7 @@ func (h *PropostasHandler) Criar(c *gin.Context) {
 	).Scan(&id)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao criar proposta"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprintf("Erro ao criar proposta: %v", err)})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"id": id})

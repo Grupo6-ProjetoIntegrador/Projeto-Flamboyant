@@ -18,7 +18,7 @@
  * MODO PROTÓTIPO: não há PrivateRoute — todas as rotas são acessíveis
  * sem autenticação real. Para produção, adicionar guard de rota.
  */
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
