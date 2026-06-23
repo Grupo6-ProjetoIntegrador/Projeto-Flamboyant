@@ -149,31 +149,32 @@ function PieView({ data, displayMode }: { data: DataPoint[]; displayMode: PieDis
       : String(v);
 
   return (
-    <TableLayoutContainer>
-      <TableLayoutItem>
+    <div className="flex flex-col h-full w-full justify-between gap-4">
+      {/* Área do Gráfico - Ocupa o topo com largura total */}
+      <div className="flex-1 min-h-[180px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={data} cx="50%" cy="50%" outerRadius="100%" innerRadius="50%" dataKey="value" paddingAngle={2}>
+            <Pie data={data} cx="50%" cy="50%" outerRadius="90%" innerRadius="50%" dataKey="value" paddingAngle={2}>
               {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Pie>
             <Tooltip content={<ChartTooltip />} />
           </PieChart>
         </ResponsiveContainer>
-      </TableLayoutItem>
-      <TableLayoutItem>
-        <div className="flex flex-col justify-center gap-1 h-full overflow-hidden">
-          {data.slice(0, 5).map((item, i) => (
-            <div key={i} className="flex items-center justify-between gap-1 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                <span className="text-[10px] text-gray-500 dark:text-[#94A3B8] truncate">{item.name}</span>
-              </div>
-              <span className="text-[10px] font-semibold text-gray-800 dark:text-[#F1F5F9] flex-shrink-0">{fmt(item.value)}</span>
+      </div>
+
+      {/* Área das Legendas - Alinhadas embaixo em uma grade de 2 colunas */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-gray-100 dark:border-[#2E3447]/50 pt-2.5">
+        {data.slice(0, 6).map((item, i) => (
+          <div key={i} className="flex items-center justify-between gap-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+              <span className="text-xs text-gray-500 dark:text-[#94A3B8] truncate">{item.name}</span>
             </div>
-          ))}
-        </div>
-      </TableLayoutItem>
-    </TableLayoutContainer>
+            <span className="text-xs font-semibold text-gray-800 dark:text-[#F1F5F9] flex-shrink-0">{fmt(item.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
