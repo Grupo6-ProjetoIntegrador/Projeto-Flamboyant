@@ -117,16 +117,24 @@ export function PropostaManutencaoModal({
     : allPropostas.findIndex(p => p.id === proposta.id);
 
   useEffect(() => {
+  const isNova = proposta.id.startsWith('PROP-NOVO-');
+
+  if (!isNova) {
     propostasApi.historico.listar(proposta.id).then(hist => setHistoricoEdicoes(hist || [])).catch(() => {});
     documentosApi.listar(proposta.id).then(docs => setDocumentos(Array.isArray(docs) ? docs : [])).catch(() => {});
-    setPropostaOld(structuredClone(proposta as Proposta));
-    setDraft(structuredClone(proposta as Proposta));
-    if (!proposta.unidade) {
-      setEditMode(true);
-    } else if (forceEditMode) {
-      setEditMode(true);
-    }
-  }, [proposta.id, proposta, tick]);
+  } else {
+    setHistoricoEdicoes([]);
+    setDocumentos([]);
+  }
+
+  setPropostaOld(structuredClone(proposta as Proposta));
+  setDraft(structuredClone(proposta as Proposta));
+  if (!proposta.unidade) {
+    setEditMode(true);
+  } else if (forceEditMode) {
+    setEditMode(true);
+  }
+}, [proposta.id, proposta, tick]);
 
   function derivePiso(unidade: string): string {
     if (unidade.startsWith('P')) return PISO_LABEL['P'];

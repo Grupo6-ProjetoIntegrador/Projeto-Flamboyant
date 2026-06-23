@@ -17,6 +17,7 @@ interface DataCardContainerProps<T extends Record<string, any>> {
   onClick?: (row: T) => void;
   emptyMessage?: string;
   className?: string;
+  getCardClassName?: (row: T) => string;  // ← novo
 }
 
 export function DataCardContainer<T extends Record<string, any>>({
@@ -27,6 +28,7 @@ export function DataCardContainer<T extends Record<string, any>>({
   onClick,
   emptyMessage = 'Nenhum item encontrado',
   className = '',
+  getCardClassName,  // ← novo
 }: DataCardContainerProps<T>) {
   const colsClass = COLS_CLASS[cols] ?? COLS_CLASS[3];
 
@@ -43,6 +45,7 @@ export function DataCardContainer<T extends Record<string, any>>({
             data={item}
             fieldMap={fieldMap}
             onClick={onClick}
+            className={getCardClassName?.(item) ?? ''}  // ← novo
           />
         ))
       )}
