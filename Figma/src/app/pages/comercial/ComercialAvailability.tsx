@@ -9,14 +9,15 @@ import type { Piso, Corredor } from "../../enums";
 
 export function ComercialAvailability() {
   const {
-    todasUnidades, filtered,
-    filterPisos, setFilterPisos,
-    filterCorredores, setFilterCorredores,
-    viewMode, setViewMode,
-    showMobileFilters, setShowMobileFilters,
-    manutencaoUnidade, setManutencaoUnidade,
-    refetch,
-  } = useComercialAvailability();
+  todasUnidades, filtered,
+  filterPisos, setFilterPisos,
+  filterCorredores, setFilterCorredores,
+  viewMode, setViewMode,
+  showMobileFilters, setShowMobileFilters,
+  manutencaoUnidade, setManutencaoUnidade,
+  unidadesComProposta,   
+  refetch,
+} = useComercialAvailability();
 
   return (
     <PageShell>
@@ -58,17 +59,22 @@ export function ComercialAvailability() {
         {/* Modo Cards */}
         {viewMode === ViewMode.Cards && (
           <DataCardContainer
-            cols={6}
-            data={filtered}
-            keyField="id"
-            fieldMap={{
-              title:    'codigo',
-              subtitle: { fields: ['piso', 'corredor'], format: ([piso, corredor]: any[]) => `${piso} · ${corredor}` },
-              value:    { field: 'area', format: (v: any) => `${v} m²` },
-            }}
-            onClick={u => setManutencaoUnidade(u)}
-            emptyMessage="Nenhuma unidade encontrada"
-          />
+          cols={6}
+          data={filtered}
+          keyField="id"
+          fieldMap={{
+            title:    'codigo',
+            subtitle: { fields: ['piso', 'corredor'], format: ([piso, corredor]: any[]) => `${piso} · ${corredor}` },
+            value:    { field: 'area', format: (v: any) => `${v} m²` },
+          }}
+          onClick={u => setManutencaoUnidade(u)}
+          emptyMessage="Nenhuma unidade encontrada"
+          getCardClassName={u =>                                              // ← adicione
+            unidadesComProposta.has(u.id)
+              ? '!border-red-400 !bg-red-50 dark:!bg-red-950/30 dark:!border-red-700'
+              : ''
+          }
+        />
         )}
 
         {/* Modo Tabela */}

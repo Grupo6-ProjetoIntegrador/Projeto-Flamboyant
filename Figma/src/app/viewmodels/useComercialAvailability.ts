@@ -65,12 +65,23 @@ export function useComercialAvailability() {
     return result;
   }, [filtered]);
 
+  // ── Unidades com proposta vinculada ──────────────────────
+  const unidadesComProposta = useMemo<Set<string>>(() => {
+    if (!todasPropostasData) return new Set();
+    return new Set(
+      (todasPropostasData as any[])
+        .map(p => p.idUnidade)
+        .filter(Boolean)
+    );
+  }, [todasPropostasData]);
+
   // ── Handlers ─────────────────────────────────────────────
   const refetch = () => { refetchUnidades(); refetchPropostas(); };
 
   return {
     todasUnidades, filtered, mapaData, tableRows: filtered,
     loadingUnidades,
+    unidadesComProposta,
     filterPisos, setFilterPisos,
     filterCorredores, setFilterCorredores,
     viewMode, setViewMode,
