@@ -66,18 +66,24 @@ func main() {
 }
 
 func runMigrations(cfg *config.Config) {
-	dsn := "postgres://" + cfg.Database.User + ":" + cfg.Database.Password +
-		"@" + cfg.Database.Host + ":" + cfg.Database.Port +
-		"/" + cfg.Database.Name + "?sslmode=" + cfg.Database.SSLMode + "&search_path=public"
+    dsn := os.Getenv("DATABASE_URL")
+    if dsn == "" {
+        dsn = fmt.Sprintf(
+            "postgres://%s:%s@%s:%s/%s?sslmode=%s",
+            cfg.Database.User, cfg.Database.Password,
+            cfg.Database.Host, cfg.Database.Port,
+            cfg.Database.Name, cfg.Database.SSLMode,
+        )
+    }
 
-	m, err := migrate.New("file://migrations", dsn)
-	if err != nil {
-		log.Fatalf("Falha ao inicializar migrations: %v", err)
-	}
-	defer m.Close()
+    // Remove channel_binding que o golang-migrate não suporta
+    dsn = strings.ReplaceAll(dsn, "&channel_binding=require", "")
+    dsn = strings.ReplaceAll(dsn, "channel_binding=require&", "")
+    dsn = strings.ReplaceAll(dsn, "?channel_binding=require", "")
 
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatalf("Falha ao executar migrations: %v", err)
-	}
-	log.Println("Migrations executadas com sucesso")
+    // golang-migrate exige prefixo "postgres://", não "postgresql://"
+    dsn = strings.ReplaceAll(dsn, "postgresql://", "postgres://")
+
+    m, err := migrate.New("file://migrations", dsn)
+    // ...
 }
