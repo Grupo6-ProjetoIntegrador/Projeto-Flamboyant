@@ -17,6 +17,7 @@ import (
 )
 
 func main() {
+	log.Println("=== APLICAÇÃO INICIANDO NO RENDER ===")
 	cfg := config.Load()
 	gin.SetMode(cfg.Server.Mode)
 
@@ -65,7 +66,6 @@ func main() {
 }
 
 func runMigrations(cfg *config.Config) {
-	// ADICIONADO: + "&search_path=public" no final da string abaixo
 	dsn := "postgres://" + cfg.Database.User + ":" + cfg.Database.Password +
 		"@" + cfg.Database.Host + ":" + cfg.Database.Port +
 		"/" + cfg.Database.Name + "?sslmode=" + cfg.Database.SSLMode + "&search_path=public"
