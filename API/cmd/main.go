@@ -1,21 +1,23 @@
 package main
 
 import (
-	"context"
-	"log"
-	"net/http"
+    "context"
+    "fmt"
+    "log"
+    "net/http"
+    "os"
+    "strings"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+    "github.com/gin-contrib/cors"
+    "github.com/gin-gonic/gin"
+    "github.com/golang-migrate/migrate/v4"
+    _ "github.com/golang-migrate/migrate/v4/database/postgres"
+    _ "github.com/golang-migrate/migrate/v4/source/file"
 
-	"go-api/internal/config"
-	"go-api/internal/database"
-	"go-api/internal/routes"
+    "go-api/internal/config"
+    "go-api/internal/database"
+    "go-api/internal/routes"
 )
-
 func main() {
 	log.Println("=== APLICAÇÃO INICIANDO NO RENDER ===")
 	cfg := config.Load()
@@ -76,14 +78,19 @@ func runMigrations(cfg *config.Config) {
         )
     }
 
-    // Remove channel_binding que o golang-migrate não suporta
     dsn = strings.ReplaceAll(dsn, "&channel_binding=require", "")
     dsn = strings.ReplaceAll(dsn, "channel_binding=require&", "")
     dsn = strings.ReplaceAll(dsn, "?channel_binding=require", "")
-
-    // golang-migrate exige prefixo "postgres://", não "postgresql://"
     dsn = strings.ReplaceAll(dsn, "postgresql://", "postgres://")
 
     m, err := migrate.New("file://migrations", dsn)
-    // ...
+    if err != nil {
+        log.Fatalf("Falha ao inicializar migrations: %v", err)
+    }
+    defer m.Close()
+
+    if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+        log.Fatalf("Falha ao executar migrations: %v", err)
+    }
+    log.Println("Migrations executadas com sucesso")
 }
