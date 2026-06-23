@@ -68,29 +68,43 @@ func main() {
 }
 
 func runMigrations(cfg *config.Config) {
-    dsn := os.Getenv("DATABASE_URL")
-    if dsn == "" {
-        dsn = fmt.Sprintf(
-            "postgres://%s:%s@%s:%s/%s?sslmode=%s",
-            cfg.Database.User, cfg.Database.Password,
-            cfg.Database.Host, cfg.Database.Port,
-            cfg.Database.Name, cfg.Database.SSLMode,
-        )
-    }
+	// Tenta usar DATABASE_URL primeiro, limpando parâmetros incompatíveis
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn != "" {
+		// Remove parâmetros que lib/pq não suporta
+		dsn = strings.ReplaceAll(dsn, "postgresql://", "postgres://")
+		
+		// Parse a URL para limpar os parâmetros
+		u, err := url.Parse(dsn)
+		if err == nil {
+			q := u.Query()
+			q.Del("channel_binding")
+			q.Del("options")
+			// Garante sslmode
+			if q.Get("sslmode") == "" {
+				q.Set("sslmode", "require")
+			}
+			u.RawQuery = q.Encode()
+			dsn = u.String()
+		}
+	} else {
+		dsn = fmt.Sprintf(
+			"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+			cfg.Database.User, cfg.Database.Password,
+			cfg.Database.Host, cfg.Database.Port,
+			cfg.Database.Name, cfg.Database.SSLMode,
+		)
+	}
 
-    dsn = strings.ReplaceAll(dsn, "&channel_binding=require", "")
-    dsn = strings.ReplaceAll(dsn, "channel_binding=require&", "")
-    dsn = strings.ReplaceAll(dsn, "?channel_binding=require", "")
-    dsn = strings.ReplaceAll(dsn, "postgresql://", "postgres://")
+	log.Printf("Iniciando migrations...")
+	m, err := migrate.New("file://migrations", dsn)
+	if err != nil {
+		log.Fatalf("Falha ao inicializar migrations: %v", err)
+	}
+	defer m.Close()
 
-    m, err := migrate.New("file://migrations", dsn)
-    if err != nil {
-        log.Fatalf("Falha ao inicializar migrations: %v", err)
-    }
-    defer m.Close()
-
-    if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-        log.Fatalf("Falha ao executar migrations: %v", err)
-    }
-    log.Println("Migrations executadas com sucesso")
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("Falha ao executar migrations: %v", err)
+	}
+	log.Println("Migrations executadas com sucesso")
 }
