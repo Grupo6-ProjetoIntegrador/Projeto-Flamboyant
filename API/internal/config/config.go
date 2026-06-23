@@ -38,7 +38,8 @@ func Load() *Config {
 
 	return &Config{
 		Server: ServerConfig{
-			Port:          getEnv("SERVER_PORT", "8080"),
+			// ALTERADO: Render obrigatoriamente usa a variável "PORT"
+			Port:          getEnv("PORT", "8080"), 
 			Mode:          getEnv("GIN_MODE", defaultGinMode(environment)),
 			AllowedOrigin: getEnv("ALLOWED_ORIGIN", ""),
 			Environment:   environment,
@@ -88,25 +89,26 @@ func getJWTSecret(environment string) string {
 	return getEnv("JWT_SECRET", "bes2026-secret-change-in-production")
 }
 
-// getJWTExpirationDuration lê JWT_EXPIRATION_HOURS e retorna como time.Duration
-// Padrão: 24 horas se não especificado
+// Duração do JWT otimizada e tolerante a erros para o ambiente de produção
 func getJWTExpirationDuration() time.Duration {
 	hoursStr := strings.TrimSpace(getEnv("JWT_EXPIRATION_HOURS", ""))
 	
-	// Se vazio, usa padrão de 24 horas
 	if hoursStr == "" {
 		return 24 * time.Hour
 	}
 
-	// Tenta converter para inteiro
-	hours, err := strconv.Atoi(hoursStr)
-	if err != nil {
-		log.Fatalf("Erro crítico: JWT_EXPIRATION_HOURS deve ser um número inteiro (horas), recebido '%s': %v", hoursStr, err)
+	// Tenta ler no formato de duração nativo do Go (ex: "24h", "168h")
+	if dur, err := time.ParseDuration(hoursStr); err == nil {
+		return dur
 	}
 
-	if hours <= 0 {
-		log.Fatalf("Erro crítico: JWT_EXPIRATION_HOURS deve ser maior que 0, recebido '%d'", hours)
+	// Se for digitado apenas o número puro (ex: "24"), converte para horas
+	if hours, err := strconv.Atoi(hoursStr); err == nil && hours > 0 {
+		return time.Duration(hours) * time.Hour
 	}
 
-	return time.Duration(hours) * time.Hour
+	// ALTERADO: Caso o valor seja inválido, o app NÃO morre mais. 
+	// Ele avisa no log e adota o padrão de 24h com segurança.
+	log.Printf("Aviso: Valor inválido para JWT_EXPIRATION_HOURS ('%s'). Usando padrão de 24h.", hoursStr)
+	return 24 * time.Hour
 }
