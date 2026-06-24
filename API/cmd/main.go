@@ -80,3 +80,4 @@ func runMigrations(cfg *config.Config) {
 	}
 	log.Println("Migrations executadas com sucesso")
 }
+
