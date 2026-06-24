@@ -1,26 +1,22 @@
 package main
 
 import (
-    "context"
-    "fmt"
-    "log"
-    "net/http"
-    "os"
-    "strings"
-	"net/url"
+	"context"
+	"log"
+	"net/http"
 
-    "github.com/gin-contrib/cors"
-    "github.com/gin-gonic/gin"
-    "github.com/golang-migrate/migrate/v4"
-    _ "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
-    "go-api/internal/config"
-    "go-api/internal/database"
-    "go-api/internal/routes"
+	"go-api/internal/config"
+	"go-api/internal/database"
+	"go-api/internal/routes"
 )
+
 func main() {
-	log.Println("=== APLICAÇÃO INICIANDO NO RENDER ===")
 	cfg := config.Load()
 	gin.SetMode(cfg.Server.Mode)
 
@@ -69,35 +65,10 @@ func main() {
 }
 
 func runMigrations(cfg *config.Config) {
-	// Tenta usar DATABASE_URL primeiro, limpando parâmetros incompatíveis
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn != "" {
-		// Remove parâmetros que lib/pq não suporta
-		dsn = strings.ReplaceAll(dsn, "postgresql://", "postgres://")
-		
-		// Parse a URL para limpar os parâmetros
-		u, err := url.Parse(dsn)
-		if err == nil {
-			q := u.Query()
-			q.Del("channel_binding")
-			q.Del("options")
-			// Garante sslmode
-			if q.Get("sslmode") == "" {
-				q.Set("sslmode", "require")
-			}
-			u.RawQuery = q.Encode()
-			dsn = u.String()
-		}
-	} else {
-		dsn = fmt.Sprintf(
-			"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-			cfg.Database.User, cfg.Database.Password,
-			cfg.Database.Host, cfg.Database.Port,
-			cfg.Database.Name, cfg.Database.SSLMode,
-		)
-	}
+	dsn := "postgres://" + cfg.Database.User + ":" + cfg.Database.Password +
+		"@" + cfg.Database.Host + ":" + cfg.Database.Port +
+		"/" + cfg.Database.Name + "?sslmode=" + cfg.Database.SSLMode
 
-	log.Printf("Iniciando migrations...")
 	m, err := migrate.New("file://migrations", dsn)
 	if err != nil {
 		log.Fatalf("Falha ao inicializar migrations: %v", err)
