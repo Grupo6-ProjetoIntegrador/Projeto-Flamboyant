@@ -24,6 +24,9 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
+	r.GET("/api/v1/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
 
 	r.POST("/api/v1/auth/login", authHandler.Login)
 
