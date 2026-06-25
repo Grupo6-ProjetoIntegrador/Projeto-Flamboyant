@@ -19,6 +19,9 @@ RUN apk add --no-cache ca-certificates \
 COPY --from=builder /out/api ./api
 COPY migrations ./migrations
 
+RUN mkdir -p uploads/documentos \
+    && chown -R app:app uploads
+
 USER app
 
 EXPOSE 8080

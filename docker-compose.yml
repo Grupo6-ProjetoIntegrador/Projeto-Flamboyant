@@ -37,8 +37,12 @@ services:
       DB_NAME: ${DB_NAME:-jp-mall}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-168h}
+      DOCUMENT_MAX_UPLOAD_MB: ${DOCUMENT_MAX_UPLOAD_MB:-10}
+      DOCUMENT_UPLOAD_DIR: ${DOCUMENT_UPLOAD_DIR:-uploads/documentos}
     ports:
       - "${SERVER_PORT:-8080}:8080"
+    volumes:
+      - api_uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -58,3 +62,4 @@ services:
 
 volumes:
   postgres_data:
+  api_uploads:

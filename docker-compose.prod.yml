@@ -33,11 +33,16 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_SECRET_PROD: ${JWT_SECRET}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-168h}
+      DOCUMENT_MAX_UPLOAD_MB: ${DOCUMENT_MAX_UPLOAD_MB:-10}
+      DOCUMENT_UPLOAD_DIR: ${DOCUMENT_UPLOAD_DIR:-uploads/documentos}
     ports:
       - "${API_PORT:-8080}:8080"
+    volumes:
+      - api_uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  api_uploads:

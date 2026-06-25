@@ -17,6 +17,7 @@ interface DocumentoRow {
   tamanho: string;
   dataUpload: string;
   idUsuario: string;
+  status: string;
   // campos internos ocultados
   id: string;
   idProposta: string;
@@ -31,6 +32,7 @@ export function AnexosTab({ documentos, editMode, readOnly, onAnexar, onRemover 
     tamanho:      { label: 'Tamanho',       _allowFilter: false, sortable: false },
     dataUpload:   { label: 'Data de upload', _allowFilter: false },
     idUsuario:    { label: 'Enviado por' },
+    status:       { label: 'Status',        _allowFilter: false },
     id:           { _specified: false },
     idProposta:   { _specified: false },
     codigo:       { label: 'Código', _allowFilter: false },
@@ -57,8 +59,9 @@ export function AnexosTab({ documentos, editMode, readOnly, onAnexar, onRemover 
       nomeOriginal: doc.nomeOriginal,
       tipo:         doc.tipo,
       tamanho:      doc.tamanho,
-      dataUpload:   doc.dataUpload,
-      idUsuario:    doc.idUsuario,
+      dataUpload:   (doc as any).pendente ? 'Ao salvar' : doc.dataUpload,
+      idUsuario:    (doc as any).pendente ? 'Pendente' : doc.idUsuario,
+      status:       (doc as any).pendente ? 'Pendente' : ((doc as any).local ? 'Local' : 'Salvo'),
       id:           doc.id,
       idProposta:   doc.idProposta,
       codigo:       doc.codigo,

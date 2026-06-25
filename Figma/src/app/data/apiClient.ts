@@ -248,14 +248,25 @@ export const documentos = {
     request<Documento[]>(`/documentos?id_proposta=${idProposta}`),
 
   upload: (idProposta: string, file: File, codigo: string) => {
+    const session = sessionStorage.getItem('jp-mall-session');
+    const token = session ? JSON.parse(session).token : null;
     const form = new FormData();
     form.append('file', file);
     form.append('id_proposta', idProposta);
     form.append('codigo', codigo);
     return fetch(`${API_BASE}/documentos`, {
       method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: form,
-    }).then(async r => r.json() as Promise<Documento>);
+    }).then(async r => {
+      const body = await r.json().catch(() => null);
+      if (!r.ok) {
+        throw { message: body?.message || r.statusText, status: r.status } as ApiError;
+      }
+      return body as Documento;
+    });
   },
 
   remover: (id: string) =>

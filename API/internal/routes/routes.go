@@ -18,7 +18,7 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 
 	authHandler := handlers.NewAuthHandler(db, cfg.JwtSecret, cfg.JwtDuration)
 	unidadesHandler := handlers.NewUnidadesHandler(db)
-	propostasHandler := handlers.NewPropostasHandler(db)
+	propostasHandler := handlers.NewPropostasHandler(db, cfg)
 
 	// Rotas públicas
 	r.GET("/ping", func(c *gin.Context) {
@@ -60,13 +60,13 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 
 		api.GET("/propostas/:id/taxa-transferencia", propostasHandler.GetTaxaTransferencia)
 		api.PUT("/propostas/:id/taxa-transferencia", propostasHandler.SalvarTaxaTransferencia)
-		
+
 		api.GET("/propostas/:id/parecer-comite", propostasHandler.GetParecerComite)
 		api.PUT("/propostas/:id/parecer-comite", propostasHandler.SalvarParecerComite)
 
 		// Documentos
-		api.GET("/documentos", propostasHandler.PlaceholderList)
-		api.POST("/documentos", propostasHandler.PlaceholderOK)
-		api.DELETE("/documentos/:id", propostasHandler.PlaceholderOK)
+		api.GET("/documentos", propostasHandler.ListarDocumentos)
+		api.POST("/documentos", propostasHandler.UploadDocumento)
+		api.DELETE("/documentos/:id", propostasHandler.RemoverDocumento)
 	}
 }

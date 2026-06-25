@@ -36,9 +36,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"go-api/internal/config"
 	"go-api/internal/entities"
 
 	"github.com/gin-gonic/gin"
@@ -47,11 +53,12 @@ import (
 )
 
 type PropostasHandler struct {
-	db *pgxpool.Pool
+	db  *pgxpool.Pool
+	cfg config.ServerConfig
 }
 
-func NewPropostasHandler(db *pgxpool.Pool) *PropostasHandler {
-	return &PropostasHandler{db: db}
+func NewPropostasHandler(db *pgxpool.Pool, cfg config.ServerConfig) *PropostasHandler {
+	return &PropostasHandler{db: db, cfg: cfg}
 }
 
 func (h *PropostasHandler) Listar(c *gin.Context) {
@@ -1311,6 +1318,288 @@ func (h *PropostasHandler) SalvarParecerComite(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Parecer do comitê salvo com sucesso"})
 }
 
+func (h *PropostasHandler) ListarDocumentos(c *gin.Context) {
+	ctx := context.Background()
+	idProposta := strings.TrimSpace(c.Query("id_proposta"))
+	if idProposta == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "E necessario informar id_proposta"})
+		return
+	}
+
+	rows, err := h.db.Query(ctx, `
+		SELECT id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
+		       tipo_pd, tamanho_pd, url_storage_pd,
+		       TO_CHAR(data_upload_pd, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		FROM "PropostaDocumento"
+		WHERE id_proposta_pd = $1
+		ORDER BY data_upload_pd DESC
+	`, idProposta)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao listar documentos"})
+		return
+	}
+	defer rows.Close()
+
+	result := []entities.PropostaDocumento{}
+	for rows.Next() {
+		var doc entities.PropostaDocumento
+		if err := rows.Scan(
+			&doc.Id, &doc.IdProposta, &doc.IdUsuario, &doc.Codigo, &doc.NomeOriginal,
+			&doc.Tipo, &doc.Tamanho, &doc.UrlStorage, &doc.DataUpload,
+		); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao ler documentos"})
+			return
+		}
+		result = append(result, doc)
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *PropostasHandler) UploadDocumento(c *gin.Context) {
+	ctx := context.Background()
+	userID := c.GetString("user_id")
+
+	maxBytes := h.cfg.DocumentMaxUploadBytes
+	if maxBytes <= 0 {
+		maxBytes = 10 * 1024 * 1024
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes+1024*1024)
+
+	idProposta := strings.TrimSpace(c.PostForm("id_proposta"))
+	if idProposta == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "E necessario informar id_proposta"})
+		return
+	}
+
+	var exists bool
+	if err := h.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM "Proposta" WHERE id_p = $1)`, idProposta).Scan(&exists); err != nil || !exists {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta nao encontrada"})
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Arquivo nao informado"})
+		return
+	}
+	defer file.Close()
+
+	mimeType, err := validateDocumentoUpload(file, header, maxBytes)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	var id string
+	if err := h.db.QueryRow(ctx, `SELECT gen_random_uuid()::text`).Scan(&id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gerar id do documento"})
+		return
+	}
+
+	originalName := filepath.Base(header.Filename)
+	ext := strings.ToLower(filepath.Ext(originalName))
+	destDir := filepath.Join(h.cfg.DocumentUploadDir, idProposta)
+	storagePath := filepath.Join(destDir, id+ext)
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao preparar diretorio de upload"})
+		return
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao processar arquivo"})
+		return
+	}
+	if err := saveUploadedDocumento(file, storagePath, maxBytes); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	codigoBase := strings.TrimSpace(c.PostForm("codigo"))
+	if codigoBase == "" {
+		codigoBase = "DOC"
+	}
+	codigo := fmt.Sprintf("%s-%s", codigoBase, shortID(id))
+	tamanho := formatBytes(header.Size)
+	urlStorage := filepath.ToSlash(storagePath)
+
+	var doc entities.PropostaDocumento
+	err = h.db.QueryRow(ctx, `
+		INSERT INTO "PropostaDocumento" (
+			id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
+			tipo_pd, tamanho_pd, url_storage_pd, data_upload_pd
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+		RETURNING id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
+		          tipo_pd, tamanho_pd, url_storage_pd,
+		          TO_CHAR(data_upload_pd, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+	`, id, idProposta, userID, codigo, originalName, mimeType, tamanho, urlStorage).Scan(
+		&doc.Id, &doc.IdProposta, &doc.IdUsuario, &doc.Codigo, &doc.NomeOriginal,
+		&doc.Tipo, &doc.Tamanho, &doc.UrlStorage, &doc.DataUpload,
+	)
+	if err != nil {
+		tipoLegado := documentoTipoLegado(originalName)
+		err = h.db.QueryRow(ctx, `
+			INSERT INTO "PropostaDocumento" (
+				id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
+				tipo_pd, tamanho_pd, url_storage_pd, data_upload_pd
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
+			RETURNING id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
+					  tipo_pd, tamanho_pd, url_storage_pd,
+					  TO_CHAR(data_upload_pd, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+		`, id, idProposta, userID, codigo, originalName, tipoLegado, tamanho, urlStorage).Scan(
+			&doc.Id, &doc.IdProposta, &doc.IdUsuario, &doc.Codigo, &doc.NomeOriginal,
+			&doc.Tipo, &doc.Tamanho, &doc.UrlStorage, &doc.DataUpload,
+		)
+		if err != nil {
+			_ = os.Remove(storagePath)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar metadados do documento"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, doc)
+}
+
+func (h *PropostasHandler) RemoverDocumento(c *gin.Context) {
+	ctx := context.Background()
+	id := strings.TrimSpace(c.Param("id"))
+
+	var storagePath *string
+	err := h.db.QueryRow(ctx, `
+		DELETE FROM "PropostaDocumento"
+		WHERE id_pd = $1
+		RETURNING url_storage_pd
+	`, id).Scan(&storagePath)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Documento nao encontrado"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao remover documento"})
+		return
+	}
+
+	if storagePath != nil && *storagePath != "" {
+		_ = os.Remove(filepath.Clean(*storagePath))
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func validateDocumentoUpload(file multipart.File, header *multipart.FileHeader, maxBytes int64) (string, error) {
+	if header == nil || strings.TrimSpace(header.Filename) == "" {
+		return "", errors.New("Arquivo nao informado")
+	}
+	if header.Size <= 0 {
+		return "", errors.New("Arquivo vazio nao e permitido")
+	}
+	if header.Size > maxBytes {
+		return "", fmt.Errorf("Arquivo excede o limite de %s", formatBytes(maxBytes))
+	}
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowedByExt := map[string]string{
+		".pdf":  "application/pdf",
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".png":  "image/png",
+		".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	}
+	canonicalMime, ok := allowedByExt[ext]
+	if !ok {
+		return "", errors.New("Tipo de arquivo nao permitido. Envie PDF, JPG, PNG ou DOCX")
+	}
+
+	buffer := make([]byte, 512)
+	n, err := file.Read(buffer)
+	if err != nil && err != io.EOF {
+		return "", errors.New("Erro ao ler arquivo")
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return "", errors.New("Erro ao processar arquivo")
+	}
+
+	detected := http.DetectContentType(buffer[:n])
+	switch ext {
+	case ".pdf":
+		if detected != "application/pdf" {
+			return "", errors.New("Conteudo do arquivo nao corresponde a PDF")
+		}
+	case ".jpg", ".jpeg":
+		if detected != "image/jpeg" {
+			return "", errors.New("Conteudo do arquivo nao corresponde a JPG")
+		}
+	case ".png":
+		if detected != "image/png" {
+			return "", errors.New("Conteudo do arquivo nao corresponde a PNG")
+		}
+	case ".docx":
+		if n < 4 || string(buffer[:2]) != "PK" {
+			return "", errors.New("Conteudo do arquivo nao corresponde a DOCX")
+		}
+	}
+
+	return canonicalMime, nil
+}
+
+func documentoTipoLegado(nome string) string {
+	switch strings.ToLower(filepath.Ext(nome)) {
+	case ".pdf":
+		return "PDF"
+	case ".jpg", ".jpeg":
+		return "JPG"
+	case ".png":
+		return "PNG"
+	case ".docx":
+		return "DOCX"
+	default:
+		return "PDF"
+	}
+}
+
+func saveUploadedDocumento(file multipart.File, path string, maxBytes int64) error {
+	dst, err := os.Create(path)
+	if err != nil {
+		return errors.New("Erro ao salvar arquivo")
+	}
+	defer dst.Close()
+
+	limited := &io.LimitedReader{R: file, N: maxBytes + 1}
+	written, err := io.Copy(dst, limited)
+	if err != nil {
+		_ = os.Remove(path)
+		return errors.New("Erro ao salvar arquivo")
+	}
+	if written > maxBytes {
+		_ = os.Remove(path)
+		return fmt.Errorf("Arquivo excede o limite de %s", formatBytes(maxBytes))
+	}
+	return nil
+}
+
+func formatBytes(size int64) string {
+	const unit = 1024
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	value := float64(size)
+	for _, suffix := range []string{"KB", "MB", "GB"} {
+		value = value / unit
+		if value < unit {
+			return fmt.Sprintf("%.1f %s", value, suffix)
+		}
+	}
+	return fmt.Sprintf("%.1f TB", value/unit)
+}
+
+func shortID(id string) string {
+	clean := strings.ReplaceAll(id, "-", "")
+	if len(clean) <= 8 {
+		return clean
+	}
+	return clean[:8]
+}
+
 func (h *PropostasHandler) PlaceholderOK(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
@@ -1511,7 +1800,7 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 		SET atualizado_em_p = NOW(), id_usuario_ultima_alt_p = $1 
 		WHERE id_p = $2
 	`, userID, id)
-	
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao atualizar metadados da proposta"})
 		return
