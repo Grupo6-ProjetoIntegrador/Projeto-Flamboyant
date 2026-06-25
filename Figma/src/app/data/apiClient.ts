@@ -92,7 +92,7 @@ async function request<T>(
 
 export async function checkHealth(): Promise<boolean> {
   try {
-    const res = await fetch('/api/v1/ping',
+    const res = await fetch(`${API_BASE}/ping`,
       { signal: AbortSignal.timeout(4000) }
     );
     return res.ok;
