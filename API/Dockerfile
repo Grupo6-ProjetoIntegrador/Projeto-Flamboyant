@@ -12,7 +12,9 @@ FROM alpine:3.22
 
 WORKDIR /app
 
-RUN addgroup -S app && adduser -S app -G app
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S app \
+    && adduser -S app -G app
 
 COPY --from=builder /out/api ./api
 COPY migrations ./migrations
