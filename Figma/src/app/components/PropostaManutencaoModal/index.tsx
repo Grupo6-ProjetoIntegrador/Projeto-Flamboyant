@@ -34,10 +34,6 @@ type DocumentoPendente = Documento & {
   pendente: true;
 };
 
-type DocumentoLocal = Documento & {
-  local: true;
-};
-
 function formatFileSize(size: number): string {
   if (size < 1024) return `${size} B`;
   const kb = size / 1024;
@@ -52,24 +48,6 @@ function tipoPorExtensao(nome: string): string {
   if (ext === 'png') return 'image/png';
   if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   return 'application/octet-stream';
-}
-
-function localStorageKeyDocumentos(idProposta: string): string {
-  return `jp-mall-documentos-locais-${idProposta}`;
-}
-
-function carregarDocumentosLocais(idProposta: string): DocumentoLocal[] {
-  try {
-    const raw = localStorage.getItem(localStorageKeyDocumentos(idProposta));
-    const docs = raw ? JSON.parse(raw) : [];
-    return Array.isArray(docs) ? docs : [];
-  } catch {
-    return [];
-  }
-}
-
-function salvarDocumentosLocais(idProposta: string, docs: DocumentoLocal[]) {
-  localStorage.setItem(localStorageKeyDocumentos(idProposta), JSON.stringify(docs));
 }
 
 // ── IDs de aba — fonte única de verdade para ABAS_PRINCIPAIS e renderTabContent ──
@@ -151,10 +129,11 @@ export function PropostaManutencaoModal({
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [documentosPendentes, setDocumentosPendentes] = useState<DocumentoPendente[]>([]);
   const [documentosRemovidos, setDocumentosRemovidos] = useState<string[]>([]);
-  const [documentosLocais, setDocumentosLocais] = useState<DocumentoLocal[]>([]);
   const [showSairModal, setShowSairModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const isSavingRef = useRef(false);
+  const createdPropostaIdRef = useRef<string | null>(null);
 
   const { data: unidadesData } = useApi(() => unidades.listar(), []);
   const allUnidades = (unidadesData || []) as Unidade[];
@@ -169,14 +148,14 @@ export function PropostaManutencaoModal({
   if (!isNova) {
     propostasApi.historico.listar(proposta.id).then(hist => setHistoricoEdicoes(hist || [])).catch(() => {});
     documentosApi.listar(proposta.id).then(docs => setDocumentos(Array.isArray(docs) ? docs : [])).catch(() => {});
-    setDocumentosLocais(carregarDocumentosLocais(proposta.id));
   } else {
     setHistoricoEdicoes([]);
     setDocumentos([]);
-    setDocumentosLocais([]);
   }
   setDocumentosPendentes([]);
   setDocumentosRemovidos([]);
+  setSaveError(null);
+  createdPropostaIdRef.current = null;
 
   setPropostaOld(structuredClone(proposta as Proposta));
   setDraft(structuredClone(proposta as Proposta));
@@ -275,53 +254,40 @@ export function PropostaManutencaoModal({
 
     isSavingRef.current = true;
     setIsSaving(true);
+    const docsCriados: Documento[] = [];
+    const pendentesEnviados: string[] = [];
     try {
       setAlertaAprovacao([]);
+      setSaveError(null);
       const isNovaProposta = draft.id.startsWith('PROP-NOVO-');
-      let idPropostaParaAnexos = draft.id;
-      if (isNovaProposta) {
+      let idPropostaParaAnexos = createdPropostaIdRef.current ?? draft.id;
+      if (isNovaProposta && !createdPropostaIdRef.current) {
         const { id: _tempId, ...resto } = draft;
         const criada = await propostasApi.criar(resto as any) as any;
         idPropostaParaAnexos = criada?.id ?? draft.id;
+        createdPropostaIdRef.current = idPropostaParaAnexos;
       } else {
-        await propostasApi.atualizar(draft.id, draft as any);
+        await propostasApi.atualizar(idPropostaParaAnexos, { ...draft, id: idPropostaParaAnexos } as any);
         if (draft.status !== propostaOld.status) {
-          await propostasApi.atualizarStatus(draft.id, draft.status as any);
+          await propostasApi.atualizarStatus(idPropostaParaAnexos, draft.status as any);
         }
-        const hist = await propostasApi.historico.listar(draft.id).catch(() => []);
+        const hist = await propostasApi.historico.listar(idPropostaParaAnexos).catch(() => []);
         setHistoricoEdicoes(hist || []);
         setPropostaOld(structuredClone(draft));
       }
 
       for (const docId of documentosRemovidos) {
-        if (docId.startsWith('local-')) continue;
-        await documentosApi.remover(docId).catch(() => {});
+        await documentosApi.remover(docId);
       }
 
-      const docsCriados: Documento[] = [];
-      const docsLocaisCriados: DocumentoLocal[] = [];
       for (const [index, pendente] of documentosPendentes.entries()) {
-        const nrAnexo = (documentos.length + docsCriados.length + docsLocaisCriados.length + index + 1).toString().padStart(3, '0');
+        const nrAnexo = (documentos.length + docsCriados.length + index + 1).toString().padStart(3, '0');
         const propId = idPropostaParaAnexos.replace('PROP-', '');
         const codigo = `Anexo${propId}${nrAnexo}`;
-        try {
-          const docCriado = await documentosApi.upload(idPropostaParaAnexos, pendente.file, codigo);
-          docsCriados.push(docCriado);
-        } catch {
-          docsLocaisCriados.push({
-            ...pendente,
-            id: `local-${idPropostaParaAnexos}-${Date.now()}-${index}`,
-            idProposta: idPropostaParaAnexos,
-            codigo,
-            dataUpload: new Date().toISOString(),
-            local: true,
-          });
-        }
+        const docCriado = await documentosApi.upload(idPropostaParaAnexos, pendente.file, codigo);
+        docsCriados.push(docCriado);
+        pendentesEnviados.push(pendente.id);
       }
-
-      const locaisRestantes = documentosLocais.filter(doc => !documentosRemovidos.includes(doc.id));
-      const locaisAtualizados = [...locaisRestantes, ...docsLocaisCriados];
-      salvarDocumentosLocais(idPropostaParaAnexos, locaisAtualizados);
 
       if (!isNovaProposta && (documentosRemovidos.length > 0 || docsCriados.length > 0)) {
         const docsAtualizados = await documentosApi.listar(idPropostaParaAnexos).catch(() => []);
@@ -329,12 +295,19 @@ export function PropostaManutencaoModal({
       } else if (isNovaProposta && docsCriados.length > 0) {
         setDocumentos(docsCriados);
       }
-      setDocumentosLocais(locaisAtualizados);
       setDocumentosPendentes([]);
       setDocumentosRemovidos([]);
+      createdPropostaIdRef.current = null;
       setEditMode(false);
       onClose();
       return true;
+    } catch (err: any) {
+      if (docsCriados.length > 0) {
+        setDocumentos(prev => [...prev, ...docsCriados]);
+        setDocumentosPendentes(prev => prev.filter(doc => !pendentesEnviados.includes(doc.id)));
+      }
+      setSaveError(err?.message || 'Nao foi possivel salvar a proposta ou os anexos.');
+      return false;
     } finally {
       isSavingRef.current = false;
       setIsSaving(false);
@@ -345,7 +318,8 @@ export function PropostaManutencaoModal({
     setDraft(structuredClone(propostaOld));
     setDocumentosPendentes([]);
     setDocumentosRemovidos([]);
-    setDocumentosLocais(carregarDocumentosLocais(proposta.id));
+    setSaveError(null);
+    createdPropostaIdRef.current = null;
     setEditMode(false);
   };
 
@@ -445,7 +419,6 @@ export function PropostaManutencaoModal({
   function renderTabContent() {
     const documentosVisiveis = [
       ...documentos.filter(doc => !documentosRemovidos.includes(doc.id)),
-      ...documentosLocais.filter(doc => !documentosRemovidos.includes(doc.id)),
       ...documentosPendentes,
     ];
 
@@ -479,7 +452,7 @@ export function PropostaManutencaoModal({
             <>
               <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={handleNovo} />
               <ToolbarDivider />
-              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setDocumentosPendentes([]); setDocumentosRemovidos([]); setDocumentosLocais(carregarDocumentosLocais(proposta.id)); setEditMode(true); }} />
+              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setDocumentosPendentes([]); setDocumentosRemovidos([]); setSaveError(null); createdPropostaIdRef.current = null; setEditMode(true); }} />
               {!forceEditMode && proposta.unidade && (
                 <>
                   <ToolbarDivider />
@@ -509,6 +482,14 @@ export function PropostaManutencaoModal({
             {readOnly && <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white/70 rounded-full">Somente leitura</span>}
           </div>
         </ManutencaoToolbar>
+
+        {saveError && (
+          <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-900/40">
+            <p className="text-xs font-medium text-red-700 dark:text-red-300">
+              {saveError}
+            </p>
+          </div>
+        )}
 
         <InfoHeaderBar>
           <HeaderField label="Código" value={draft.id} mono />
