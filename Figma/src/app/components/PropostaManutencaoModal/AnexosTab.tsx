@@ -61,7 +61,7 @@ export function AnexosTab({ documentos, editMode, readOnly, onAnexar, onRemover 
       tamanho:      doc.tamanho,
       dataUpload:   (doc as any).pendente ? 'Ao salvar' : doc.dataUpload,
       idUsuario:    (doc as any).pendente ? 'Pendente' : doc.idUsuario,
-      status:       (doc as any).pendente ? 'Pendente' : ((doc as any).local ? 'Local' : 'Salvo'),
+      status:       (doc as any).pendente ? 'Pendente' : 'Salvo',
       id:           doc.id,
       idProposta:   doc.idProposta,
       codigo:       doc.codigo,

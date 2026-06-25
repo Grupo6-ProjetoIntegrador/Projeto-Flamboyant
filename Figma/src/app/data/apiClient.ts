@@ -244,8 +244,10 @@ export const propostas = {
 // ── Documentos ───────────────────────────────────────────────
 
 export const documentos = {
-  listar: (idProposta: string) =>
-    request<Documento[]>(`/documentos?id_proposta=${idProposta}`),
+  listar: (idProposta: string) => {
+    const params = new URLSearchParams({ id_proposta: idProposta });
+    return request<Documento[]>(`/documentos?${params.toString()}`);
+  },
 
   upload: (idProposta: string, file: File, codigo: string) => {
     const session = sessionStorage.getItem('jp-mall-session');

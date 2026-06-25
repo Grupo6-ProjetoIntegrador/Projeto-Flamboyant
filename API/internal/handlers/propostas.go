@@ -44,6 +44,8 @@ import (
 	"strings"
 	"time"
 
+	"log"
+
 	"go-api/internal/config"
 	"go-api/internal/entities"
 
@@ -1327,8 +1329,15 @@ func (h *PropostasHandler) ListarDocumentos(c *gin.Context) {
 	}
 
 	rows, err := h.db.Query(ctx, `
-		SELECT id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
-		       tipo_pd, tamanho_pd, url_storage_pd,
+		SELECT id_pd::text, id_proposta_pd::text, id_usuario_pd::text, codigo_pd, nome_original_pd,
+		       CASE tipo_pd
+		           WHEN 'PDF' THEN 'application/pdf'
+		           WHEN 'JPG' THEN 'image/jpeg'
+		           WHEN 'PNG' THEN 'image/png'
+		           WHEN 'DOCX' THEN 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+		           ELSE tipo_pd
+		       END,
+		       tamanho_pd, url_storage_pd,
 		       TO_CHAR(data_upload_pd, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		FROM "PropostaDocumento"
 		WHERE id_proposta_pd = $1
@@ -1351,6 +1360,10 @@ func (h *PropostasHandler) ListarDocumentos(c *gin.Context) {
 			return
 		}
 		result = append(result, doc)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao listar documentos"})
+		return
 	}
 
 	c.JSON(http.StatusOK, result)
@@ -1415,11 +1428,7 @@ func (h *PropostasHandler) UploadDocumento(c *gin.Context) {
 		return
 	}
 
-	codigoBase := strings.TrimSpace(c.PostForm("codigo"))
-	if codigoBase == "" {
-		codigoBase = "DOC"
-	}
-	codigo := fmt.Sprintf("%s-%s", codigoBase, shortID(id))
+	codigo := fmt.Sprintf("DOC-%s", shortID(id))
 	tamanho := formatBytes(header.Size)
 	urlStorage := filepath.ToSlash(storagePath)
 
@@ -1428,8 +1437,8 @@ func (h *PropostasHandler) UploadDocumento(c *gin.Context) {
 		INSERT INTO "PropostaDocumento" (
 			id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
 			tipo_pd, tamanho_pd, url_storage_pd, data_upload_pd
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
-		RETURNING id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
+		) VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7, $8, NOW())
+		RETURNING id_pd::text, id_proposta_pd::text, id_usuario_pd::text, codigo_pd, nome_original_pd,
 		          tipo_pd, tamanho_pd, url_storage_pd,
 		          TO_CHAR(data_upload_pd, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 	`, id, idProposta, userID, codigo, originalName, mimeType, tamanho, urlStorage).Scan(
@@ -1437,20 +1446,22 @@ func (h *PropostasHandler) UploadDocumento(c *gin.Context) {
 		&doc.Tipo, &doc.Tamanho, &doc.UrlStorage, &doc.DataUpload,
 	)
 	if err != nil {
+		log.Printf("UploadDocumento: db insert error (proposta=%s user=%s mime=%s): %v", idProposta, userID, mimeType, err)
 		tipoLegado := documentoTipoLegado(originalName)
 		err = h.db.QueryRow(ctx, `
 			INSERT INTO "PropostaDocumento" (
 				id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
 				tipo_pd, tamanho_pd, url_storage_pd, data_upload_pd
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())
-			RETURNING id_pd, id_proposta_pd, id_usuario_pd, codigo_pd, nome_original_pd,
-					  tipo_pd, tamanho_pd, url_storage_pd,
-					  TO_CHAR(data_upload_pd, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+			) VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7, $8, NOW())
+			RETURNING id_pd::text, id_proposta_pd::text, id_usuario_pd::text, codigo_pd, nome_original_pd,
+			          tipo_pd, tamanho_pd, url_storage_pd,
+			          TO_CHAR(data_upload_pd, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		`, id, idProposta, userID, codigo, originalName, tipoLegado, tamanho, urlStorage).Scan(
 			&doc.Id, &doc.IdProposta, &doc.IdUsuario, &doc.Codigo, &doc.NomeOriginal,
 			&doc.Tipo, &doc.Tamanho, &doc.UrlStorage, &doc.DataUpload,
 		)
 		if err != nil {
+			log.Printf("UploadDocumento: legacy db insert error (proposta=%s user=%s tipo=%s): %v", idProposta, userID, tipoLegado, err)
 			_ = os.Remove(storagePath)
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao salvar metadados do documento"})
 			return
