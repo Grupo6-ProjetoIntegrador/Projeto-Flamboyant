@@ -14,12 +14,14 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port          string
-	Mode          string
-	AllowedOrigin string
-	Environment   string
-	JwtSecret     string
-	JwtDuration   time.Duration
+	Port                   string
+	Mode                   string
+	AllowedOrigin          string
+	Environment            string
+	JwtSecret              string
+	JwtDuration            time.Duration
+	DocumentMaxUploadBytes int64
+	DocumentUploadDir      string
 }
 
 type DatabaseConfig struct {
@@ -39,12 +41,14 @@ func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
 			// ALTERADO: Render obrigatoriamente usa a variável "PORT"
-			Port:          getEnv("PORT", "8080"), 
-			Mode:          getEnv("GIN_MODE", defaultGinMode(environment)),
-			AllowedOrigin: getEnv("ALLOWED_ORIGIN", ""),
-			Environment:   environment,
-			JwtSecret:     jwtSecret,
-			JwtDuration:   jwtDuration,
+			Port:                   getEnv("PORT", "8080"),
+			Mode:                   getEnv("GIN_MODE", defaultGinMode(environment)),
+			AllowedOrigin:          getEnv("ALLOWED_ORIGIN", ""),
+			Environment:            environment,
+			JwtSecret:              jwtSecret,
+			JwtDuration:            jwtDuration,
+			DocumentMaxUploadBytes: getDocumentMaxUploadBytes(),
+			DocumentUploadDir:      getEnv("DOCUMENT_UPLOAD_DIR", "uploads/documentos"),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -92,7 +96,7 @@ func getJWTSecret(environment string) string {
 // Duração do JWT otimizada e tolerante a erros para o ambiente de produção
 func getJWTExpirationDuration() time.Duration {
 	hoursStr := strings.TrimSpace(getEnv("JWT_EXPIRATION_HOURS", ""))
-	
+
 	if hoursStr == "" {
 		return 24 * time.Hour
 	}
@@ -107,8 +111,18 @@ func getJWTExpirationDuration() time.Duration {
 		return time.Duration(hours) * time.Hour
 	}
 
-	// ALTERADO: Caso o valor seja inválido, o app NÃO morre mais. 
+	// ALTERADO: Caso o valor seja inválido, o app NÃO morre mais.
 	// Ele avisa no log e adota o padrão de 24h com segurança.
 	log.Printf("Aviso: Valor inválido para JWT_EXPIRATION_HOURS ('%s'). Usando padrão de 24h.", hoursStr)
 	return 24 * time.Hour
+}
+
+func getDocumentMaxUploadBytes() int64 {
+	mbStr := strings.TrimSpace(getEnv("DOCUMENT_MAX_UPLOAD_MB", "10"))
+	mb, err := strconv.ParseInt(mbStr, 10, 64)
+	if err != nil || mb <= 0 {
+		log.Printf("Aviso: Valor invalido para DOCUMENT_MAX_UPLOAD_MB ('%s'). Usando padrao de 10MB.", mbStr)
+		mb = 10
+	}
+	return mb * 1024 * 1024
 }

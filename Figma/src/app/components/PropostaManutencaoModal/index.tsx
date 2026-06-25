@@ -29,6 +29,49 @@ import { ParecerComiteTab } from "./ParecerComiteTab";
 import { HistoricoTab } from "./HistoricoTab";
 import { AnexosTab } from "./AnexosTab";
 
+type DocumentoPendente = Documento & {
+  file: File;
+  pendente: true;
+};
+
+type DocumentoLocal = Documento & {
+  local: true;
+};
+
+function formatFileSize(size: number): string {
+  if (size < 1024) return `${size} B`;
+  const kb = size / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+function tipoPorExtensao(nome: string): string {
+  const ext = nome.split('.').pop()?.toLowerCase();
+  if (ext === 'pdf') return 'application/pdf';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  return 'application/octet-stream';
+}
+
+function localStorageKeyDocumentos(idProposta: string): string {
+  return `jp-mall-documentos-locais-${idProposta}`;
+}
+
+function carregarDocumentosLocais(idProposta: string): DocumentoLocal[] {
+  try {
+    const raw = localStorage.getItem(localStorageKeyDocumentos(idProposta));
+    const docs = raw ? JSON.parse(raw) : [];
+    return Array.isArray(docs) ? docs : [];
+  } catch {
+    return [];
+  }
+}
+
+function salvarDocumentosLocais(idProposta: string, docs: DocumentoLocal[]) {
+  localStorage.setItem(localStorageKeyDocumentos(idProposta), JSON.stringify(docs));
+}
+
 // ── IDs de aba — fonte única de verdade para ABAS_PRINCIPAIS e renderTabContent ──
 const TAB = {
   LOJA_PROPOSTA:          'loja-proposta',
@@ -106,8 +149,12 @@ export function PropostaManutencaoModal({
   const [historicoEdicoes, setHistoricoEdicoes] = useState<PropostaHistorico[]>([]);
   const [alertaAprovacao, setAlertaAprovacao] = useState<string[]>([]);
   const [documentos, setDocumentos] = useState<Documento[]>([]);
-  const [tick, setTick] = useState(0);
+  const [documentosPendentes, setDocumentosPendentes] = useState<DocumentoPendente[]>([]);
+  const [documentosRemovidos, setDocumentosRemovidos] = useState<string[]>([]);
+  const [documentosLocais, setDocumentosLocais] = useState<DocumentoLocal[]>([]);
   const [showSairModal, setShowSairModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
 
   const { data: unidadesData } = useApi(() => unidades.listar(), []);
   const allUnidades = (unidadesData || []) as Unidade[];
@@ -122,10 +169,14 @@ export function PropostaManutencaoModal({
   if (!isNova) {
     propostasApi.historico.listar(proposta.id).then(hist => setHistoricoEdicoes(hist || [])).catch(() => {});
     documentosApi.listar(proposta.id).then(docs => setDocumentos(Array.isArray(docs) ? docs : [])).catch(() => {});
+    setDocumentosLocais(carregarDocumentosLocais(proposta.id));
   } else {
     setHistoricoEdicoes([]);
     setDocumentos([]);
+    setDocumentosLocais([]);
   }
+  setDocumentosPendentes([]);
+  setDocumentosRemovidos([]);
 
   setPropostaOld(structuredClone(proposta as Proposta));
   setDraft(structuredClone(proposta as Proposta));
@@ -134,7 +185,7 @@ export function PropostaManutencaoModal({
   } else if (forceEditMode) {
     setEditMode(true);
   }
-}, [proposta.id, proposta, tick]);
+}, [proposta.id, proposta]);
 
   function derivePiso(unidade: string): string {
     if (unidade.startsWith('P')) return PISO_LABEL['P'];
@@ -198,6 +249,8 @@ export function PropostaManutencaoModal({
   };
 
   const handleGravar = async () => {
+    if (isSavingRef.current) return false;
+
     if (draft.status === STATUS_APROVADO) {
       const pendencias: string[] = [];
       const statusHistorico = historicoEdicoes.map(e => e.status);
@@ -216,29 +269,83 @@ export function PropostaManutencaoModal({
       }
       if (pendencias.length > 0) {
         setAlertaAprovacao(pendencias);
-        return;
+        return false;
       }
     }
 
-    setAlertaAprovacao([]);
-    const isNovaProposta = draft.id.startsWith('PROP-NOVO-');
-    if (isNovaProposta) {
-      const { id: _tempId, ...resto } = draft;
-      await propostasApi.criar(resto as any);
-    } else {
-      await propostasApi.atualizar(draft.id, draft as any);
-      if (draft.status !== propostaOld.status) {
-        await propostasApi.atualizarStatus(draft.id, draft.status as any);
+    isSavingRef.current = true;
+    setIsSaving(true);
+    try {
+      setAlertaAprovacao([]);
+      const isNovaProposta = draft.id.startsWith('PROP-NOVO-');
+      let idPropostaParaAnexos = draft.id;
+      if (isNovaProposta) {
+        const { id: _tempId, ...resto } = draft;
+        const criada = await propostasApi.criar(resto as any) as any;
+        idPropostaParaAnexos = criada?.id ?? draft.id;
+      } else {
+        await propostasApi.atualizar(draft.id, draft as any);
+        if (draft.status !== propostaOld.status) {
+          await propostasApi.atualizarStatus(draft.id, draft.status as any);
+        }
+        const hist = await propostasApi.historico.listar(draft.id).catch(() => []);
+        setHistoricoEdicoes(hist || []);
+        setPropostaOld(structuredClone(draft));
       }
-      const hist = await propostasApi.historico.listar(draft.id).catch(() => []);
-      setHistoricoEdicoes(hist || []);
-      setPropostaOld(structuredClone(draft));
+
+      for (const docId of documentosRemovidos) {
+        if (docId.startsWith('local-')) continue;
+        await documentosApi.remover(docId).catch(() => {});
+      }
+
+      const docsCriados: Documento[] = [];
+      const docsLocaisCriados: DocumentoLocal[] = [];
+      for (const [index, pendente] of documentosPendentes.entries()) {
+        const nrAnexo = (documentos.length + docsCriados.length + docsLocaisCriados.length + index + 1).toString().padStart(3, '0');
+        const propId = idPropostaParaAnexos.replace('PROP-', '');
+        const codigo = `Anexo${propId}${nrAnexo}`;
+        try {
+          const docCriado = await documentosApi.upload(idPropostaParaAnexos, pendente.file, codigo);
+          docsCriados.push(docCriado);
+        } catch {
+          docsLocaisCriados.push({
+            ...pendente,
+            id: `local-${idPropostaParaAnexos}-${Date.now()}-${index}`,
+            idProposta: idPropostaParaAnexos,
+            codigo,
+            dataUpload: new Date().toISOString(),
+            local: true,
+          });
+        }
+      }
+
+      const locaisRestantes = documentosLocais.filter(doc => !documentosRemovidos.includes(doc.id));
+      const locaisAtualizados = [...locaisRestantes, ...docsLocaisCriados];
+      salvarDocumentosLocais(idPropostaParaAnexos, locaisAtualizados);
+
+      if (!isNovaProposta && (documentosRemovidos.length > 0 || docsCriados.length > 0)) {
+        const docsAtualizados = await documentosApi.listar(idPropostaParaAnexos).catch(() => []);
+        setDocumentos(Array.isArray(docsAtualizados) ? docsAtualizados : []);
+      } else if (isNovaProposta && docsCriados.length > 0) {
+        setDocumentos(docsCriados);
+      }
+      setDocumentosLocais(locaisAtualizados);
+      setDocumentosPendentes([]);
+      setDocumentosRemovidos([]);
+      setEditMode(false);
+      onClose();
+      return true;
+    } finally {
+      isSavingRef.current = false;
+      setIsSaving(false);
     }
-    setEditMode(false);
   };
 
   const handleCancelar = () => {
     setDraft(structuredClone(propostaOld));
+    setDocumentosPendentes([]);
+    setDocumentosRemovidos([]);
+    setDocumentosLocais(carregarDocumentosLocais(proposta.id));
     setEditMode(false);
   };
 
@@ -265,22 +372,30 @@ export function PropostaManutencaoModal({
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    Array.from(files).forEach(file => {
-      const nrAnexo = (documentos.length + 1).toString().padStart(3, '0');
-      const propId = proposta.id.replace('PROP-', '');
-      const codigo = `Anexo${propId}${nrAnexo}`;
-      documentosApi.upload(proposta.id, file, codigo)
-        .then(doc => setDocumentos(prev => [...prev, doc as any]))
-        .catch(() => {});
-    });
+    const agora = new Date().toISOString();
+    const novos = Array.from(files).map((file, index): DocumentoPendente => ({
+      id: `pendente-${Date.now()}-${index}`,
+      idProposta: draft.id,
+      idUsuario: 'Pendente',
+      codigo: 'Pendente',
+      nomeOriginal: file.name,
+      tipo: file.type || tipoPorExtensao(file.name),
+      tamanho: formatFileSize(file.size),
+      urlStorage: '',
+      dataUpload: agora,
+      file,
+      pendente: true,
+    }));
+    setDocumentosPendentes(prev => [...prev, ...novos]);
     e.target.value = '';
-    setTick(t => t + 1);
   };
 
   const handleRemoverDocumento = (docId: string) => {
-    documentosApi.remover(docId)
-      .then(() => setDocumentos(prev => prev.filter(d => d.id !== docId)))
-      .catch(() => {});
+    if (docId.startsWith('pendente-')) {
+      setDocumentosPendentes(prev => prev.filter(d => d.id !== docId));
+      return;
+    }
+    setDocumentosRemovidos(prev => prev.includes(docId) ? prev : [...prev, docId]);
   };
 
   const handleSair = () => {
@@ -328,6 +443,12 @@ export function PropostaManutencaoModal({
     setActiveSubTab((prev: Record<string, string>) => ({ ...prev, [tab]: st }));
 
   function renderTabContent() {
+    const documentosVisiveis = [
+      ...documentos.filter(doc => !documentosRemovidos.includes(doc.id)),
+      ...documentosLocais.filter(doc => !documentosRemovidos.includes(doc.id)),
+      ...documentosPendentes,
+    ];
+
     switch (activeTab) {
       case TAB.LOJA_PROPOSTA:
         return <LojaPropostaTab {...tabProps} activeSubTab={activeSubTab[TAB.LOJA_PROPOSTA]} onSubTabChange={subTabChange(TAB.LOJA_PROPOSTA)} />;
@@ -344,7 +465,7 @@ export function PropostaManutencaoModal({
       case TAB.HISTORICO:
         return <HistoricoTab historico={historicoEdicoes} editMode={editMode} />;
       case TAB.ANEXOS:
-        return <AnexosTab documentos={documentos} editMode={editMode} readOnly={readOnly} onAnexar={handleAnexarDocumento} onRemover={handleRemoverDocumento} />;
+        return <AnexosTab documentos={documentosVisiveis} editMode={editMode} readOnly={readOnly} onAnexar={handleAnexarDocumento} onRemover={handleRemoverDocumento} />;
       default:
         return null;
     }
@@ -358,7 +479,7 @@ export function PropostaManutencaoModal({
             <>
               <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={handleNovo} />
               <ToolbarDivider />
-              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setEditMode(true); }} />
+              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setDocumentosPendentes([]); setDocumentosRemovidos([]); setDocumentosLocais(carregarDocumentosLocais(proposta.id)); setEditMode(true); }} />
               {!forceEditMode && proposta.unidade && (
                 <>
                   <ToolbarDivider />
@@ -370,7 +491,7 @@ export function PropostaManutencaoModal({
           )}
           {editMode && (
             <>
-              <ToolbarBtn icon={<Save className="w-4 h-4" />} label="Gravar" onClick={handleGravar} />
+              <ToolbarBtn icon={<Save className="w-4 h-4" />} label={isSaving ? "Gravando" : "Gravar"} onClick={handleGravar} disabled={isSaving} />
               <ToolbarDivider />
               <ToolbarBtn icon={<X className="w-4 h-4" />} label="Cancelar" onClick={handleCancelar} />
             </>
@@ -477,17 +598,10 @@ export function PropostaManutencaoModal({
           labelConfirm={<><Save className="w-4 h-4" /> Sim, salvar e sair</>}
           labelCancel="Não, descartar alterações"
           labelDismiss="Cancelar, continuar editando"
-          onConfirm={() => {
-            const isNovaProposta = proposta.id.startsWith('PROP-NOVO-');
-            if (isNovaProposta) {
-              const { id: _tempId, ...resto } = draft;
-              propostasApi.criar(resto as any).then(() => {});
-            } else {
-              propostasApi.atualizar(proposta.id, draft as any).then(() => {});
-            }
-            setEditMode(false);
+          onConfirm={async () => {
+            const salvou = await handleGravar();
+            if (!salvou) return;
             setShowSairModal(false);
-            onClose();
           }}
           onCancel={() => {
             setDraft(structuredClone(propostaOld));
@@ -503,7 +617,7 @@ export function PropostaManutencaoModal({
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+        accept=".pdf,.docx,.jpg,.jpeg,.png"
         className="hidden"
         onChange={handleFileSelected}
       />

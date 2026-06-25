@@ -1,0 +1,33 @@
+# Pastas de dependências e build do React
+Figma/node_modules/
+Figma/dist/
+Figma/.npm/
+Figma/build/
+
+# Dependências Go (caso você use vendor)
+API/vendor/
+
+# Diretórios de controle de versão
+.git/
+.svn/
+
+# Bancos de dados locais (se mapeados para pastas locais)
+pgdata/
+postgres-data/
+
+# Arquivos sensíveis
+*.pem
+*.key
+.env.example
+
+# Logs e Binários
+*.log
+*.exe
+*.dll
+*.so
+*.dylib
+API/bin/
+*.Estrutura_do_Projeto_Flamboyant.pdf
+
+# Evite que ele leia o mega-arquivo do repomix que já tem todo o código (economiza MUITO token)
+repomix-output.md
