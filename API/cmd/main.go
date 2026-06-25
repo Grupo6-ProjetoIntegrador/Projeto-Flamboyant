@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -30,16 +31,20 @@ func main() {
 
 	r := gin.Default()
 
-	// Montar lista de origens ignorando strings vazias
 	allowedOrigins := []string{
-		"http://localhost:5173",
-		"http://localhost:4173",
-		"http://localhost",
-	}
-	if cfg.Server.AllowedOrigin != "" {
-		allowedOrigins = append(allowedOrigins, cfg.Server.AllowedOrigin)
-	}
-
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://localhost",
+}
+if cfg.Server.AllowedOrigin != "" {
+    // Suporta múltiplas origens separadas por vírgula
+    for _, origin := range strings.Split(cfg.Server.AllowedOrigin, ",") {
+        origin = strings.TrimSpace(origin)
+        if origin != "" {
+            allowedOrigins = append(allowedOrigins, origin)
+        }
+    }
+}
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

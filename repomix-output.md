@@ -34,10 +34,12 @@ The content is organized as follows:
 
 # Directory Structure
 ```
-.env.example
+.env.production.example
 .gitignore
 ajustar entidades via migration.ps1
+API/.dockerignore
 API/cmd/main.go
+API/Dockerfile
 API/genhash.go
 API/go.mod
 API/internal/config/config.go
@@ -85,6 +87,9 @@ codegen/go.mod
 COMO_RODAR_O_PROJETO.txt
 COMO_USAR_DEBUG.txt
 debug.ps1
+docker-compose.prod.yml
+docker-compose.yml
+DOCKER.md
 entities/doc.go
 entities/index.ts
 entities/proposta_cessao_direitos_historico.go
@@ -119,8 +124,10 @@ entities/unidade.go
 entities/unidade.ts
 entities/usuario.go
 entities/usuario.ts
+Figma/.dockerignore
 Figma/ATTRIBUTIONS.md
 Figma/default_shadcn_theme.css
+Figma/Dockerfile
 Figma/guidelines/Guidelines.md
 Figma/index.html
 Figma/nginx.conf
@@ -245,9 +252,229 @@ postman/collections/Projeto-Flamboyant/Unidades/Detalhe Unidade.request.yaml
 postman/collections/Projeto-Flamboyant/Unidades/Listar Unidades.request.yaml
 README.md
 start.ps1
+VERCEL_DEPLOY.md
+vercel.json
 ```
 
 # Files
+
+## File: Figma/ATTRIBUTIONS.md
+````markdown
+This Figma Make file includes components from [shadcn/ui](https://ui.shadcn.com/) used under [MIT license](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md).
+
+This Figma Make file includes photos from [Unsplash](https://unsplash.com) used under [license](https://unsplash.com/license).
+````
+
+## File: Figma/default_shadcn_theme.css
+````css
+/* KEEP_IN_SYNC(fullscreen/resources/figmake/shadcn/globals.css) */
+
+:root {
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #030213;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.0058 264.53);
+  --secondary-foreground: #030213;
+  --muted: #ececf0;
+  --muted-foreground: #717182;
+  --accent: #e9ebef;
+  --accent-foreground: #030213;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: transparent;
+  --input-background: #f3f3f5;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #030213;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+````
+
+## File: Figma/guidelines/Guidelines.md
+````markdown
+
+````
+
+## File: Figma/postcss.config.mjs
+````javascript
+/**
+ * PostCSS Configuration
+ *
+ * Tailwind CSS v4 (via @tailwindcss/vite) automatically sets up all required
+ * PostCSS plugins — you do NOT need to include `tailwindcss` or `autoprefixer` here.
+ *
+ * This file only exists for adding additional PostCSS plugins, if needed.
+ * For example:
+ *
+ * import postcssNested from 'postcss-nested'
+ * export default { plugins: [postcssNested()] }
+ *
+ * Otherwise, you can leave this file empty.
+ */
+export default {}
+````
+
+## File: Figma/README.md
+````markdown
+# BES-2026_Prototipos (Copy)
+
+  This is a code bundle for BES-2026_Prototipos (Copy). The original project is available at https://www.figma.com/design/RCgjEl75LAmYuGrQhNSudm/BES-2026_Prototipos--Copy-.
+
+  ## Running the code
+
+  Run `npm i` to install the dependencies.
+
+  Run `npm run dev` to start the development server.
+````
+
+## File: Figma/src/main.tsx
+````typescript
+import { createRoot } from "react-dom/client";
+  import App from "./app/App.tsx";
+  import "./styles/index.css";
+
+  createRoot(document.getElementById("root")!).render(<App />);
+````
+
+## File: Figma/src/styles/fonts.css
+````css
+
+````
+
+## File: Figma/src/styles/index.css
+````css
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+````
+
+## File: Figma/src/styles/tailwind.css
+````css
+@import 'tailwindcss' source(none);
+@source '../**/*.{js,ts,jsx,tsx}';
+
+@import 'tw-animate-css';
+````
+
+## File: .env.production.example
+````
+# Frontend na Vercel
+# Configure esta variavel no painel da Vercel.
+VITE_API_URL=https://sua-api.example.com/api/v1
+
+# API Docker
+API_PORT=8080
+ALLOWED_ORIGIN=https://seu-projeto.vercel.app
+
+# Banco de dados
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=jp-mall
+DB_SSLMODE=disable
+
+# JWT
+JWT_SECRET=Abelvolks
+JWT_EXPIRATION_HOURS=168h
+````
 
 ## File: ajustar entidades via migration.ps1
 ````powershell
@@ -285,6 +512,16 @@ if ($LASTEXITCODE -eq 0) {
 }
 ````
 
+## File: API/.dockerignore
+````
+.env
+node_modules
+coverage
+dist
+tmp
+*.log
+````
+
 ## File: API/genhash.go
 ````go
 package main
@@ -297,107 +534,6 @@ import (
 func main() {
 h, _ := bcrypt.GenerateFromPassword([]byte("Admin@2026"), 10)
 fmt.Println(string(h))
-}
-````
-
-## File: API/internal/database/database.go
-````go
-package database
-
-import (
-	"context"
-	"fmt"
-	"log"
-	"time"
-
-	"github.com/jackc/pgx/v5/pgxpool"
-	"go-api/internal/config"
-)
-
-var DB *pgxpool.Pool
-
-func Connect(cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
-	if err := ensureDatabaseExists(cfg); err != nil {
-		return nil, err
-	}
-
-	dsn := buildDSN(cfg, cfg.Name)
-
-	poolConfig, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao parsear config do banco: %w", err)
-	}
-
-	poolConfig.MaxConns = 10
-	poolConfig.MinConns = 2
-	poolConfig.MaxConnLifetime = time.Hour
-	poolConfig.MaxConnIdleTime = 30 * time.Minute
-	poolConfig.HealthCheckPeriod = time.Minute
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao criar pool de conexoes: %w", err)
-	}
-
-	if err := pool.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("erro ao conectar ao banco de dados: %w", err)
-	}
-
-	log.Println("Conectado ao PostgreSQL com sucesso")
-	DB = pool
-	return pool, nil
-}
-
-func ensureDatabaseExists(cfg *config.DatabaseConfig) error {
-	dsn := buildDSN(cfg, "postgres")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	conn, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		return fmt.Errorf("erro ao conectar ao postgres para verificar banco: %w", err)
-	}
-	defer conn.Close()
-
-	var exists bool
-	err = conn.QueryRow(ctx,
-		"SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)",
-		cfg.Name,
-	).Scan(&exists)
-	if err != nil {
-		return fmt.Errorf("erro ao verificar existencia do banco: %w", err)
-	}
-
-	if !exists {
-		log.Printf("Banco '%s' nao encontrado — criando...", cfg.Name)
-		_, err = conn.Exec(ctx, fmt.Sprintf(`CREATE DATABASE "%s"`, cfg.Name))
-		if err != nil {
-			return fmt.Errorf("erro ao criar banco '%s': %w", cfg.Name, err)
-		}
-		log.Printf("Banco '%s' criado com sucesso", cfg.Name)
-	} else {
-		log.Printf("Banco '%s' encontrado", cfg.Name)
-	}
-
-	return nil
-}
-
-func buildDSN(cfg *config.DatabaseConfig, dbName string) string {
-	return fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Host, cfg.Port, cfg.User, cfg.Password, dbName, cfg.SSLMode,
-	)
-}
-
-func Close() {
-	if DB != nil {
-		DB.Close()
-		log.Println("Conexao com PostgreSQL encerrada")
-	}
 }
 ````
 
@@ -841,15 +977,6 @@ ALTER TABLE "Usuario"
   DROP COLUMN IF EXISTS token_expira_em_u;
 
 DROP INDEX IF EXISTS idx_usuario_token;
-````
-
-## File: API/migrations/000004_add_token_usuario.up.sql
-````sql
-ALTER TABLE "Usuario"
-  ADD COLUMN token_ativo_u     VARCHAR(500),
-  ADD COLUMN token_expira_em_u TIMESTAMP;
-
-CREATE INDEX idx_usuario_token ON "Usuario"(token_ativo_u);
 ````
 
 ## File: API/migrations/000005_seed_propostas.down.sql
@@ -2002,6 +2129,104 @@ Log "----------------------------------------------"
 Write-Host ""
 ````
 
+## File: docker-compose.prod.yml
+````yaml
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./API
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      ENV: production
+      GIN_MODE: release
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET_PROD: ${JWT_SECRET}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-168h}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+````
+
+## File: DOCKER.md
+````markdown
+# Rodando com Docker
+
+## Subir o projeto
+
+Na raiz do projeto, rode:
+
+```powershell
+docker compose up --build
+```
+
+Servicos:
+
+- Frontend: http://localhost
+- API: http://localhost:8080
+- Health da API: http://localhost:8080/health
+- Postgres: localhost:5432
+
+## Variaveis principais
+
+O `docker-compose.yml` usa o arquivo `.env` da raiz. As principais variaveis sao:
+
+```env
+SERVER_PORT=8080
+FRONTEND_PORT=80
+ALLOWED_ORIGIN=http://localhost
+
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=jp-mall
+DB_SSLMODE=disable
+
+VITE_API_URL=/api/v1
+```
+
+Observacao: a API em Go le a porta pela variavel `PORT`; o Compose usa `SERVER_PORT` do `.env` e repassa como `PORT` para o container.
+
+## Parar e remover containers
+
+```powershell
+docker compose down
+```
+
+Para apagar tambem os dados do banco:
+
+```powershell
+docker compose down -v
+```
+````
+
 ## File: entities/doc.go
 ````go
 // Package entities contém as structs geradas a partir das migrations do banco de dados.
@@ -2015,623 +2240,33 @@ Write-Host ""
 package entities
 ````
 
-## File: Figma/ATTRIBUTIONS.md
-````markdown
-This Figma Make file includes components from [shadcn/ui](https://ui.shadcn.com/) used under [MIT license](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md).
-
-This Figma Make file includes photos from [Unsplash](https://unsplash.com) used under [license](https://unsplash.com/license).
+## File: Figma/.dockerignore
 ````
-
-## File: Figma/default_shadcn_theme.css
-````css
-/* KEEP_IN_SYNC(fullscreen/resources/figmake/shadcn/globals.css) */
-
-:root {
-  --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-input-background: var(--input-background);
-  --color-switch-background: var(--switch-background);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-````
-
-## File: Figma/guidelines/Guidelines.md
-````markdown
-
+node_modules
+dist
+coverage
+tmp
+*.log
+.env
 ````
 
 ## File: Figma/index.html
 ````html
 <!DOCTYPE html>
-  <html lang="en">
+  <html lang="pt-BR">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta name="google" content="notranslate" />
       <title>BES-2026_Prototipos (Copy)</title>
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
     </head>
 
     <body>
-      <div id="root"></div>
+      <div id="root" translate="no"></div>
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>
-````
-
-## File: Figma/nginx.conf
-````ini
-server {
-    listen 80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Compressão gzip para assets
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml image/svg+xml;
-
-    # Cache para assets com hash no nome (Vite gera hashes automáticos)
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # SPA fallback — todas as rotas retornam index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Health check do nginx
-    location /nginx-health {
-        access_log off;
-        return 200 "healthy\n";
-    }
-}
-````
-
-## File: Figma/postcss.config.mjs
-````javascript
-/**
- * PostCSS Configuration
- *
- * Tailwind CSS v4 (via @tailwindcss/vite) automatically sets up all required
- * PostCSS plugins — you do NOT need to include `tailwindcss` or `autoprefixer` here.
- *
- * This file only exists for adding additional PostCSS plugins, if needed.
- * For example:
- *
- * import postcssNested from 'postcss-nested'
- * export default { plugins: [postcssNested()] }
- *
- * Otherwise, you can leave this file empty.
- */
-export default {}
-````
-
-## File: Figma/README.md
-````markdown
-# BES-2026_Prototipos (Copy)
-
-  This is a code bundle for BES-2026_Prototipos (Copy). The original project is available at https://www.figma.com/design/RCgjEl75LAmYuGrQhNSudm/BES-2026_Prototipos--Copy-.
-
-  ## Running the code
-
-  Run `npm i` to install the dependencies.
-
-  Run `npm run dev` to start the development server.
-````
-
-## File: Figma/src/app/components/ChartsContainer.tsx
-````typescript
-import { useState, useRef, useEffect } from "react";
-import type { ComponentType } from "react";
-import { Settings, Check, BarChart2, FileText, Info } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
-} from "recharts";
-import { usePersistedState } from "../shared/hooks/usePersistedState";
-import { ChartTooltip } from "./ChartTooltip";
-import { TableLayoutContainer, TableLayoutItem } from "./PageShared";
-
-// ── Paleta ─────────────────────────────────────────────────
-
-const PRIMARY = "#D93030";
-const GRID    = "#e5e7eb";
-const COLORS  = [PRIMARY, "#C8A882", "#8B1A1A", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6"];
-
-// ── Enums ───────────────────────────────────────────────────
-
-export enum ChartId {
-  OcupacaoPorSegmento      = 'ocupacaoPorSegmento',
-  DistribuicaoPorCategoria = 'distribuicaoPorCategoria',
-  OcupacaoPorPiso          = 'ocupacaoPorPiso',
-  StatusPropostas          = 'statusPropostas',
-}
-
-export enum ChartType {
-  Bar = 'bar',
-  Pie = 'pie',
-}
-
-export enum PieDisplayMode {
-  Units      = 'units',
-  Percentage = 'percentage',
-}
-
-// ── Tipos ───────────────────────────────────────────────────
-
-export interface ChartStats {
-  segmentos:      { name: string; value: number }[];
-  pisos:          { name: string; value: number }[];
-  statusPropostas: { name: string; value: number }[];
-}
-
-type DataPoint = { name: string; value: number };
-
-interface ChartRegistryEntry {
-  label:          string;
-  icon:           ComponentType<{ className?: string }>;
-  defaultType:    ChartType;
-  supportedTypes: ChartType[];
-  getData:        (s: ChartStats) => DataPoint[];
-}
-
-// ── Registro ────────────────────────────────────────────────
-
-const CHART_REGISTRY: Record<ChartId, ChartRegistryEntry> = {
-  [ChartId.OcupacaoPorSegmento]: {
-    label:          'Ocup. por Segmento',
-    icon:           BarChart2,
-    defaultType:    ChartType.Bar,
-    supportedTypes: [ChartType.Bar, ChartType.Pie],
-    getData:        (s) => s.segmentos,
-  },
-  [ChartId.DistribuicaoPorCategoria]: {
-    label:          'Dist. por Categoria',
-    icon:           BarChart2,
-    defaultType:    ChartType.Pie,
-    supportedTypes: [ChartType.Bar, ChartType.Pie],
-    getData:        (s) => s.segmentos,
-  },
-  [ChartId.OcupacaoPorPiso]: {
-    label:          'Ocup. por Piso',
-    icon:           Info,
-    defaultType:    ChartType.Pie,
-    supportedTypes: [ChartType.Bar, ChartType.Pie],
-    getData:        (s) => s.pisos,
-  },
-  [ChartId.StatusPropostas]: {
-    label:          'Status das Propostas',
-    icon:           FileText,
-    defaultType:    ChartType.Pie,
-    supportedTypes: [ChartType.Bar, ChartType.Pie],
-    getData:        (s) => s.statusPropostas,
-  },
-};
-
-const CHART_TYPE_LABELS: Record<ChartType, string> = {
-  [ChartType.Bar]: 'Barras',
-  [ChartType.Pie]: 'Pizza',
-};
-
-const PIE_DISPLAY_LABELS: Record<PieDisplayMode, string> = {
-  [PieDisplayMode.Units]:      'Unidade',
-  [PieDisplayMode.Percentage]: 'Porcentagem',
-};
-
-const ALL_CHART_IDS = Object.values(ChartId);
-
-const COLS_CLASS_AUTO: Record<number, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-2',
-  3: 'sm:grid-cols-2 lg:grid-cols-3',
-  4: 'sm:grid-cols-2 lg:grid-cols-4',
-};
-
-const COLS_CLASS_FIXED: Record<number, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-  4: 'grid-cols-4',
-};
-
-const ROWS_CLASS: Record<number, string> = {
-  1: 'grid-rows-1',
-  2: 'grid-rows-2',
-  3: 'grid-rows-3',
-  4: 'grid-rows-4',
-};
-
-// ── Renderizadores ──────────────────────────────────────────
-
-function BarView({ data }: { data: DataPoint[] }) {
-  if (data.length === 0)
-    return <div className="flex items-center justify-center flex-1 min-h-0 text-gray-400 text-xs">Sem dados</div>;
-  return (
-    <div className="flex-1 min-h-0">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
-          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 9 }} dy={6} />
-          <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 9 }} />
-          <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(217,48,48,0.05)" }} />
-          <Bar dataKey="value" fill={PRIMARY} radius={[3, 3, 0, 0]} barSize={18} name="Lojas" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function PieView({ data, displayMode }: { data: DataPoint[]; displayMode: PieDisplayMode }) {
-  if (data.length === 0)
-    return <div className="flex items-center justify-center flex-1 min-h-0 text-gray-400 text-xs">Sem dados</div>;
-
-  const total = data.reduce((sum, d) => sum + d.value, 0);
-  const fmt = (v: number) =>
-    displayMode === PieDisplayMode.Percentage
-      ? `${total > 0 ? Math.round((v / total) * 100) : 0}%`
-      : String(v);
-
-  return (
-    <TableLayoutContainer>
-      <TableLayoutItem>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={data} cx="50%" cy="50%" outerRadius="100%" innerRadius="50%" dataKey="value" paddingAngle={2}>
-              {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-            </Pie>
-            <Tooltip content={<ChartTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
-      </TableLayoutItem>
-      <TableLayoutItem>
-        <div className="flex flex-col justify-center gap-1 h-full overflow-hidden">
-          {data.slice(0, 5).map((item, i) => (
-            <div key={i} className="flex items-center justify-between gap-1 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                <span className="text-[10px] text-gray-500 dark:text-[#94A3B8] truncate">{item.name}</span>
-              </div>
-              <span className="text-[10px] font-semibold text-gray-800 dark:text-[#F1F5F9] flex-shrink-0">{fmt(item.value)}</span>
-            </div>
-          ))}
-        </div>
-      </TableLayoutItem>
-    </TableLayoutContainer>
-  );
-}
-
-// ── ChartsItem ──────────────────────────────────────────────
-
-function ChartsItem({ id, stats }: { id: ChartId; stats: ChartStats }) {
-  const entry = CHART_REGISTRY[id];
-
-  const [chartType, setChartType] = usePersistedState<ChartType>(
-    `dashboard.charts.type.${id}`,
-    entry.defaultType,
-    (v) => v,
-    (s) => (Object.values(ChartType) as string[]).includes(s) ? s as ChartType : entry.defaultType,
-  );
-
-  const [pieDisplayMode, setPieDisplayMode] = usePersistedState<PieDisplayMode>(
-    `dashboard.charts.piemode.${id}`,
-    PieDisplayMode.Units,
-    (v) => v,
-    (s) => (Object.values(PieDisplayMode) as string[]).includes(s) ? s as PieDisplayMode : PieDisplayMode.Units,
-  );
-
-  const [open, setOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (!popoverRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const Icon = entry.icon;
-  const data = entry.getData(stats);
-
-  return (
-    <div className={`bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4 relative h-full flex flex-col ${open ? 'z-20' : ''}`}>
-
-      {/* Seletor de tipo de gráfico */}
-      <div ref={popoverRef} className="absolute top-3 right-3 z-30">
-        <button
-          onClick={() => setOpen(o => !o)}
-          className={`flex items-center gap-1 px-1.5 py-1 rounded-lg text-xs transition-colors
-            ${open
-              ? 'bg-gray-100 dark:bg-[#1A1F2E] text-gray-700 dark:text-[#F1F5F9]'
-              : 'text-gray-400 dark:text-[#64748B] hover:text-gray-600 dark:hover:text-[#F1F5F9] hover:bg-gray-100 dark:hover:bg-[#1A1F2E]'
-            }`}
-          title="Tipo de gráfico"
-        >
-          <Settings className="w-3 h-3" />
-        </button>
-
-        {open && (
-          <div className="absolute top-full right-0 mt-1 w-40 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] shadow-xl p-2 space-y-0.5">
-            <p className="text-[10px] font-semibold text-gray-400 dark:text-[#64748B] uppercase tracking-wider px-1 pb-1">
-              Tipo de gráfico
-            </p>
-            {entry.supportedTypes.map(type => {
-              const isSelected = chartType === type;
-              return (
-                <button
-                  key={type}
-                  onClick={() => { setChartType(type); setOpen(false); }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors text-left"
-                >
-                  <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-                    ${isSelected ? 'border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557]'}`}>
-                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#D93030]" />}
-                  </div>
-                  <span className="text-xs text-gray-700 dark:text-[#CBD5E1]">{CHART_TYPE_LABELS[type]}</span>
-                </button>
-              );
-            })}
-            {chartType === ChartType.Pie && (
-              <>
-                <div className="h-px bg-gray-100 dark:bg-[#2E3447] my-1 mx-1" />
-                <p className="text-[10px] font-semibold text-gray-400 dark:text-[#64748B] uppercase tracking-wider px-1 pb-1">
-                  Exibir como
-                </p>
-                {Object.values(PieDisplayMode).map(mode => {
-                  const isSelected = pieDisplayMode === mode;
-                  return (
-                    <button
-                      key={mode}
-                      onClick={() => setPieDisplayMode(mode)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors text-left"
-                    >
-                      <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-                        ${isSelected ? 'border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557]'}`}>
-                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#D93030]" />}
-                      </div>
-                      <span className="text-xs text-gray-700 dark:text-[#CBD5E1]">{PIE_DISPLAY_LABELS[mode]}</span>
-                    </button>
-                  );
-                })}
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-3 flex items-center gap-1.5 pr-7">
-        <Icon className="w-3.5 h-3.5 text-[#D93030] flex-shrink-0" />
-        {entry.label}
-      </h3>
-
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        {chartType === ChartType.Bar ? <BarView data={data} /> : <PieView data={data} displayMode={pieDisplayMode} />}
-      </div>
-    </div>
-  );
-}
-
-// ── ChartsContainer ─────────────────────────────────────────
-
-interface ChartsContainerProps {
-  stats: ChartStats;
-  cols?: 1 | 2 | 3 | 4;
-  rows?: 1 | 2 | 3 | 4;
-  className?: string;
-}
-
-export function ChartsContainer({ stats, cols, rows, className = '' }: ChartsContainerProps) {
-  const [selected, setSelected] = usePersistedState<ChartId[]>(
-    'dashboard.charts.selected',
-    ALL_CHART_IDS,
-    (v) => JSON.stringify(v),
-    (s) => {
-      try {
-        const parsed: ChartId[] = JSON.parse(s);
-        return parsed.filter(id => (ALL_CHART_IDS as string[]).includes(id));
-      } catch {
-        return ALL_CHART_IDS;
-      }
-    },
-  );
-
-  const [open, setOpen] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (!popoverRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const toggle = (id: ChartId) =>
-    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-
-  const visibleIds    = ALL_CHART_IDS.filter(id => selected.includes(id));
-  const effectiveCols = cols ?? Math.min(4, Math.max(1, visibleIds.length));
-  const colsClass     = cols
-    ? (COLS_CLASS_FIXED[effectiveCols] ?? 'grid-cols-4')
-    : (COLS_CLASS_AUTO[effectiveCols] ?? 'sm:grid-cols-2 lg:grid-cols-4');
-  const rowsClass     = rows ? (ROWS_CLASS[rows] ?? '') : '';
-
-  return (
-    <div className={`hidden sm:flex sm:flex-col sm:flex-1 relative ${className}`}>
-
-      {/* Botão de configuração */}
-      <div ref={popoverRef} className="absolute -top-7 right-0 z-20">
-        <button
-          onClick={() => setOpen(o => !o)}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors
-            ${open
-              ? 'bg-gray-100 dark:bg-[#1A1F2E] text-gray-700 dark:text-[#F1F5F9]'
-              : 'text-gray-400 dark:text-[#64748B] hover:text-gray-600 dark:hover:text-[#F1F5F9] hover:bg-gray-100 dark:hover:bg-[#1A1F2E]'
-            }`}
-          title="Configurar gráficos visíveis"
-        >
-          <Settings className="w-3.5 h-3.5" />
-          <span className="hidden lg:inline font-medium">Gráficos</span>
-        </button>
-
-        {open && (
-          <div className="absolute top-full right-0 mt-1 w-56 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] shadow-xl p-3 space-y-1">
-            <p className="text-[10px] font-semibold text-gray-400 dark:text-[#64748B] uppercase tracking-wider px-1 pb-1">
-              Gráficos visíveis
-            </p>
-            {ALL_CHART_IDS.map(id => {
-              const isOn = selected.includes(id);
-              return (
-                <button
-                  key={id}
-                  onClick={() => toggle(id)}
-                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors text-left"
-                >
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
-                    ${isOn ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557]'}`}>
-                    {isOn && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
-                  </div>
-                  <span className="text-xs text-gray-700 dark:text-[#CBD5E1]">
-                    {CHART_REGISTRY[id].label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Grid de gráficos */}
-      {visibleIds.length > 0 ? (
-        <div className={`grid ${colsClass}${rowsClass ? ` ${rowsClass}` : ''} gap-4 flex-1 min-h-0 auto-rows-fr`}>
-          {visibleIds.map(id => (
-            <ChartsItem key={id} id={id} stats={stats} />
-          ))}
-        </div>
-      ) : (
-        <div className="flex items-center justify-center h-16 rounded-xl border border-dashed border-gray-200 dark:border-[#2E3447] text-xs text-gray-400 dark:text-[#64748B]">
-          Nenhum gráfico selecionado — clique em Gráficos para configurar
-        </div>
-      )}
-    </div>
-  );
-}
 ````
 
 ## File: Figma/src/app/components/ChartTooltip.tsx
@@ -2765,61 +2400,6 @@ export function ConfirmModal({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/components/DataCardContainer.tsx
-````typescript
-import { DataCard, type DataCardFieldMap } from './DataCard';
-
-const COLS_CLASS: Record<number, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-1 sm:grid-cols-2',
-  3: 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
-  4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
-  5: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5',
-  6: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6',
-};
-
-interface DataCardContainerProps<T extends Record<string, any>> {
-  data: T[];
-  fieldMap: DataCardFieldMap<T>;
-  keyField?: keyof T;
-  cols?: 1 | 2 | 3 | 4 | 5 | 6;
-  onClick?: (row: T) => void;
-  emptyMessage?: string;
-  className?: string;
-}
-
-export function DataCardContainer<T extends Record<string, any>>({
-  data,
-  fieldMap,
-  keyField = 'id' as keyof T,
-  cols = 3,
-  onClick,
-  emptyMessage = 'Nenhum item encontrado',
-  className = '',
-}: DataCardContainerProps<T>) {
-  const colsClass = COLS_CLASS[cols] ?? COLS_CLASS[3];
-
-  return (
-    <div className={`flex-1 min-h-0 overflow-y-auto grid ${colsClass} gap-3 p-3 content-start pb-4 sm:pb-0 ${className}`}>
-      {data.length === 0 ? (
-        <div className="col-span-full text-center py-12 text-gray-400 dark:text-[#64748B]">
-          <p className="text-sm">{emptyMessage}</p>
-        </div>
-      ) : (
-        data.map((item, index) => (
-          <DataCard
-            key={String(item[keyField] ?? index)}
-            data={item}
-            fieldMap={fieldMap}
-            onClick={onClick}
-          />
-        ))
-      )}
     </div>
   );
 }
@@ -4054,514 +3634,6 @@ export function Field({
 }
 ````
 
-## File: Figma/src/app/components/PropostaManutencaoModal/index.tsx
-````typescript
-import { useState, useEffect, useRef, useMemo } from "react";
-import { FilePlus, Pencil, Save, X, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
-import { propostas as propostasApi, documentos as documentosApi } from "../../data/apiClient";
-import { unidades } from "../../data/apiClient";
-import { useApi } from "../../data/useApi";
-import type { Proposta, StatusProposta } from "../../data/comercialData";
-import type { Unidade } from "../../data/apiClient";
-import {
-  SEGMENTOS, TIPOS_PROPOSTA,
-  STATUS_PROPOSTA,
-  STATUS_AGUARDANDO_FIN, STATUS_AGUARDANDO_COMITE, STATUS_APROVADO,
-  STATUS_VENCIDA, STATUS_OCUPADO,
-  TIPO_CESSAO, TIPO_TRANSFERENCIA,
-  STATUS_PROPOSTA_COLORS,
-  PISO_LABEL, CORREDOR_LABEL,
-} from "../../enums";
-import type { PropostaResumo, Documento } from "../../data/apiClient";
-import type { PropostaHistorico } from "../../entities/proposta_historico";
-import { ConfirmModal } from "../ConfirmModal";
-import { ToolbarBtn, ToolbarDivider, ManutencaoToolbar, ManutencaoModalShell, EnumSelect, TabBar, InfoHeaderBar, HeaderField, HeaderDivider } from "../ManutencaoShared";
-import type { TabDef } from "../ManutencaoShared";
-import type { Calculados } from "./types";
-import { LojaPropostaTab } from "./LojaPropostaTab";
-import { LojaAnteriorTab } from "./LojaAnteriorTab";
-import { NecessidadesTecnicasTab } from "./NecessidadesTecnicasTab";
-import { CessaoTab } from "./CessaoTab";
-import { TaxaTransferenciaTab } from "./TaxaTransferenciaTab";
-import { ParecerComiteTab } from "./ParecerComiteTab";
-import { HistoricoTab } from "./HistoricoTab";
-import { AnexosTab } from "./AnexosTab";
-
-// ── IDs de aba — fonte única de verdade para ABAS_PRINCIPAIS e renderTabContent ──
-const TAB = {
-  LOJA_PROPOSTA:          'loja-proposta',
-  LOJA_ANTERIOR:          'loja-anterior',
-  NECESSIDADES_TECNICAS:  'necessidades-tecnicas',
-  CESSAO:                 'cessao',
-  TAXA_TRANSFERENCIA:     'taxa-transferencia',
-  PARECER_COMITE:         'parecer-comite',
-  HISTORICO:              'historico',
-  ANEXOS:                 'anexos',
-} as const;
-
-// ── Sub-aba inicial de cada aba (usada no useState e como fallback no switch) ──
-const SUBTAB_DEFAULT = {
-  [TAB.LOJA_PROPOSTA]:         'identificacao',
-  [TAB.LOJA_ANTERIOR]:         'identificacao',
-  [TAB.NECESSIDADES_TECNICAS]: 'eletrica',
-  [TAB.CESSAO]:                'avaliacao',
-  [TAB.TAXA_TRANSFERENCIA]:    'valores',
-} as const;
-
-// ── Aprovadores do comitê — definido fora do componente para não recriar a cada render ──
-const APROVADORES = [
-  { nome: 'Presidente',                  campo: 'parecerPresidente' },
-  { nome: 'Diretoria Compartilhada (1)', campo: 'parecerDiretoriaComp1' },
-  { nome: 'Diretoria Compartilhada (2)', campo: 'parecerDiretoriaComp2' },
-  { nome: 'Superintendente Comercial',   campo: 'parecerSuperintendente' },
-  { nome: 'In Networking',               campo: 'parecerInNetworking' },
-] as const;
-
-// ── Abas estáticas (as condicionais disabled são calculadas em runtime) ──
-const ABAS_BASE: TabDef[] = [
-  { id: TAB.LOJA_PROPOSTA,         label: 'Loja Proposta' },
-  { id: TAB.LOJA_ANTERIOR,         label: 'Loja Anterior' },
-  { id: TAB.NECESSIDADES_TECNICAS, label: 'Necessidades Técnicas' },
-  { id: TAB.CESSAO,                label: 'Cessão de Direitos' },
-  { id: TAB.TAXA_TRANSFERENCIA,    label: 'Taxa de Transferência' },
-  { id: TAB.PARECER_COMITE,        label: 'Parecer do Comitê' },
-  { id: TAB.HISTORICO,             label: 'Histórico' },
-  { id: TAB.ANEXOS,                label: 'Anexos' },
-];
-
-type PropostaInput = Proposta | PropostaResumo;
-
-interface PropostaManutencaoModalProps {
-  proposta: PropostaInput;
-  allPropostas: PropostaInput[];
-  onClose: () => void;
-  readOnly?: boolean;
-  forceEditMode?: boolean;
-  onNavigate?: (p: PropostaInput) => void;
-  initialIndex?: number;
-}
-
-export function PropostaManutencaoModal({
-  proposta,
-  allPropostas,
-  onClose,
-  readOnly = false,
-  forceEditMode = false,
-  onNavigate,
-  initialIndex,
-}: PropostaManutencaoModalProps) {
-  const [editMode, setEditMode] = useState(false);
-  const [propostaOld, setPropostaOld] = useState<Proposta>(structuredClone(proposta as Proposta));
-  const [draft, setDraft] = useState<Proposta>(structuredClone(proposta as Proposta));
-  const [activeTab, setActiveTab] = useState<string>(TAB.LOJA_PROPOSTA);
-  const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>({
-    [TAB.LOJA_PROPOSTA]:         SUBTAB_DEFAULT[TAB.LOJA_PROPOSTA],
-    [TAB.LOJA_ANTERIOR]:         SUBTAB_DEFAULT[TAB.LOJA_ANTERIOR],
-    [TAB.NECESSIDADES_TECNICAS]: SUBTAB_DEFAULT[TAB.NECESSIDADES_TECNICAS],
-    [TAB.CESSAO]:                SUBTAB_DEFAULT[TAB.CESSAO],
-    [TAB.TAXA_TRANSFERENCIA]:    SUBTAB_DEFAULT[TAB.TAXA_TRANSFERENCIA],
-  });
-  const [historicoEdicoes, setHistoricoEdicoes] = useState<PropostaHistorico[]>([]);
-  const [alertaAprovacao, setAlertaAprovacao] = useState<string[]>([]);
-  const [documentos, setDocumentos] = useState<Documento[]>([]);
-  const [tick, setTick] = useState(0);
-  const [showSairModal, setShowSairModal] = useState(false);
-
-  const { data: unidadesData } = useApi(() => unidades.listar(), []);
-  const allUnidades = (unidadesData || []) as Unidade[];
-
-  const currentIndex = initialIndex !== undefined
-    ? initialIndex
-    : allPropostas.findIndex(p => p.id === proposta.id);
-
-  useEffect(() => {
-    propostasApi.historico.listar(proposta.id).then(hist => setHistoricoEdicoes(hist || [])).catch(() => {});
-    documentosApi.listar(proposta.id).then(docs => setDocumentos(Array.isArray(docs) ? docs : [])).catch(() => {});
-    setPropostaOld(structuredClone(proposta as Proposta));
-    setDraft(structuredClone(proposta as Proposta));
-    if (!proposta.unidade) {
-      setEditMode(true);
-    } else if (forceEditMode) {
-      setEditMode(true);
-    }
-  }, [proposta.id, proposta, tick]);
-
-  function derivePiso(unidade: string): string {
-    if (unidade.startsWith('P')) return PISO_LABEL['P'];
-    if (unidade.startsWith('S')) return PISO_LABEL['S'];
-    if (unidade.startsWith('T')) return PISO_LABEL['T'];
-    return '-';
-  }
-
-  function deriveCorreidor(unidade: string): string {
-    const num = parseInt(unidade.split('-')[1] || '0');
-    if (num <= 30) return CORREDOR_LABEL['A'];
-    if (num <= 60) return CORREDOR_LABEL['B'];
-    return CORREDOR_LABEL['C'];
-  }
-
-  const calculados: Calculados = {
-    resSperataPropostaPorM2:  draft.resSperataProposta && draft.area ? draft.resSperataProposta / draft.area : 0,
-    percentSinalResSperata:   draft.sinalResSperata && draft.resSperataProposta ? (draft.sinalResSperata / draft.resSperataProposta) * 100 : 0,
-    saldoResSperata:          (draft.resSperataProposta || 0) - (draft.sinalResSperata || 0),
-    valorParcelaResSperata:   draft.numParcelasResSperata && draft.sinalResSperata && draft.resSperataProposta
-      ? ((draft.resSperataProposta - draft.sinalResSperata) / draft.numParcelasResSperata) : 0,
-    diferencaTT:              (draft.ttProposta || 0) - (draft.ttContratual || 0),
-    percentDescontoTT:        draft.ttContratual && draft.ttProposta ? ((draft.ttProposta - draft.ttContratual) / draft.ttContratual) * 100 : 0,
-    percentSinalTT:           draft.sinalTT && draft.ttProposta ? (draft.sinalTT / draft.ttProposta) * 100 : 0,
-    saldoTT:                  (draft.ttProposta || 0) - (draft.sinalTT || 0),
-    totalResSperata:          draft.resSperataProposta || 0,
-    totalTT:                  draft.ttProposta || 0,
-    totalOperacao:            (draft.resSperataProposta || 0) + (draft.ttProposta || 0),
-    dividaTotal:              (draft.lojaAnteriorDividaAMM || 0) + (draft.lojaAnteriorDividaNegociada || 0) +
-                              (draft.lojaAnteriorDividaCondominio || 0) + (draft.lojaAnteriorDividaFPP || 0),
-  };
-
-  const handleNovo = () => {
-    const propostaEmBranco: Proposta = {
-      id: `PROP-NOVO-${Date.now()}`,
-      idUnidade: proposta.idUnidade,
-      lojista: '',
-      unidade: proposta.unidade,
-      segmento: SEGMENTOS[0],
-      tipo: TIPOS_PROPOSTA[0],
-      valorProposto: 0,
-      area: proposta.area,
-      status: STATUS_AGUARDANDO_FIN,
-      responsavel: '',
-      dataCriacao: new Date().toLocaleDateString('pt-BR'),
-      dataVencimento: '',
-      lojaAnteriorNomeFantasia: draft.lojaAnteriorNomeFantasia,
-      lojaAnteriorSegmento: draft.lojaAnteriorSegmento,
-      lojaAnteriorTipoOperacao: draft.lojaAnteriorTipoOperacao,
-      lojaAnteriorCTO: draft.lojaAnteriorCTO,
-      lojaAnteriorABL: draft.lojaAnteriorABL,
-      lojaAnteriorAMM: draft.lojaAnteriorAMM,
-      lojaAnteriorDividaAMM: draft.lojaAnteriorDividaAMM,
-      lojaAnteriorDividaNegociada: draft.lojaAnteriorDividaNegociada,
-      lojaAnteriorDividaCondominio: draft.lojaAnteriorDividaCondominio,
-      lojaAnteriorDividaFPP: draft.lojaAnteriorDividaFPP,
-      lojaAnteriorFormaPagamento: draft.lojaAnteriorFormaPagamento,
-    };
-    setDraft(propostaEmBranco);
-    setEditMode(true);
-  };
-
-  const handleGravar = async () => {
-    if (draft.status === STATUS_APROVADO) {
-      const pendencias: string[] = [];
-      const statusHistorico = historicoEdicoes.map(e => e.status);
-      const teveFin = statusHistorico.includes(STATUS_AGUARDANDO_FIN) || proposta.status === STATUS_AGUARDANDO_FIN;
-      const tevelComite = statusHistorico.includes(STATUS_AGUARDANDO_COMITE) || proposta.status === STATUS_AGUARDANDO_COMITE;
-      const statusAtual = propostaOld.status;
-      if (!teveFin && statusAtual !== STATUS_AGUARDANDO_FIN && !statusHistorico.some(s => s === STATUS_AGUARDANDO_FIN)) {
-        pendencias.push(`A proposta não passou pela etapa de ${STATUS_AGUARDANDO_FIN}`);
-      }
-      if (!tevelComite && statusAtual !== STATUS_AGUARDANDO_COMITE && !statusHistorico.some(s => s === STATUS_AGUARDANDO_COMITE)) {
-        pendencias.push(`A proposta não passou pela etapa de ${STATUS_AGUARDANDO_COMITE}`);
-      }
-      const naoAssinados = APROVADORES.filter(a => (draft as any)[a.campo] !== 'Assinado');
-      if (naoAssinados.length > 0) {
-        pendencias.push(`Parecer do Comitê pendente para: ${naoAssinados.map(a => a.nome).join(', ')}`);
-      }
-      if (pendencias.length > 0) {
-        setAlertaAprovacao(pendencias);
-        return;
-      }
-    }
-
-    setAlertaAprovacao([]);
-    const isNovaProposta = draft.id.startsWith('PROP-NOVO-');
-    if (isNovaProposta) {
-      const { id: _tempId, ...resto } = draft;
-      await propostasApi.criar(resto as any);
-    } else {
-      await propostasApi.atualizar(draft.id, draft as any);
-      if (draft.status !== propostaOld.status) {
-        await propostasApi.atualizarStatus(draft.id, draft.status as any);
-      }
-      const hist = await propostasApi.historico.listar(draft.id).catch(() => []);
-      setHistoricoEdicoes(hist || []);
-      setPropostaOld(structuredClone(draft));
-    }
-    setEditMode(false);
-  };
-
-  const handleCancelar = () => {
-    setDraft(structuredClone(propostaOld));
-    setEditMode(false);
-  };
-
-  const handleAnterior = () => {
-    if (currentIndex > 0) {
-      const prev = allPropostas[currentIndex - 1];
-      if (onNavigate) { onNavigate(prev); }
-      else { window.dispatchEvent(new CustomEvent('navigate-proposta', { detail: prev })); }
-    }
-  };
-
-  const handleProximo = () => {
-    if (currentIndex < allPropostas.length - 1) {
-      const next = allPropostas[currentIndex + 1];
-      if (onNavigate) { onNavigate(next); }
-      else { window.dispatchEvent(new CustomEvent('navigate-proposta', { detail: next })); }
-    }
-  };
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAnexarDocumento = () => fileInputRef.current?.click();
-
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    Array.from(files).forEach(file => {
-      const nrAnexo = (documentos.length + 1).toString().padStart(3, '0');
-      const propId = proposta.id.replace('PROP-', '');
-      const codigo = `Anexo${propId}${nrAnexo}`;
-      documentosApi.upload(proposta.id, file, codigo)
-        .then(doc => setDocumentos(prev => [...prev, doc as any]))
-        .catch(() => {});
-    });
-    e.target.value = '';
-    setTick(t => t + 1);
-  };
-
-  const handleRemoverDocumento = (docId: string) => {
-    documentosApi.remover(docId)
-      .then(() => setDocumentos(prev => prev.filter(d => d.id !== docId)))
-      .catch(() => {});
-  };
-
-  const handleSair = () => {
-    if (editMode) { setShowSairModal(true); }
-    else { onClose(); }
-  };
-
-  const handleSelecionarDisponibilidade = async (unidade: Unidade) => {
-    setDraft(prev => ({ ...prev, idUnidade: unidade.id, unidade: unidade.codigo, area: unidade.area, lojistaId: unidade.id }));
-    if (unidade.status === STATUS_OCUPADO) {
-      const vinculadas = await propostasApi.listar({ idUnidade: unidade.id, status: STATUS_APROVADO }).catch(() => []);
-      const propostaAtual = vinculadas?.[0];
-      if (propostaAtual) {
-        setDraft(prev => ({
-          ...prev,
-          lojaAnteriorNomeFantasia: propostaAtual.nomeFantasia ?? '',
-          lojaAnteriorSegmento: propostaAtual.segmento,
-          lojaAnteriorABL: propostaAtual.area,
-          lojaAnteriorTipoOperacao: propostaAtual.tipoOperacao,
-          lojaAnteriorDividaAMM: 0,
-          lojaAnteriorDividaNegociada: 0,
-          lojaAnteriorDividaCondominio: 0,
-          lojaAnteriorDividaFPP: 0,
-        }));
-      }
-    }
-  };
-
-  const isCessaoAtiva = draft.tipoOperacao === TIPO_CESSAO || draft.tipoOperacao === TIPO_TRANSFERENCIA;
-  const isTTAtiva = draft.tipoOperacao === TIPO_TRANSFERENCIA;
-
-  const ABAS_PRINCIPAIS = useMemo<TabDef[]>(() =>
-    ABAS_BASE
-      .filter(a => a.id !== TAB.HISTORICO || !readOnly)
-      .map(a => {
-        if (a.id === TAB.CESSAO)           return { ...a, disabled: !isCessaoAtiva };
-        if (a.id === TAB.TAXA_TRANSFERENCIA) return { ...a, disabled: !isTTAtiva };
-        return a;
-      })
-  , [isCessaoAtiva, isTTAtiva, readOnly]);
-
-  const tabProps = { draft, setDraft, editMode, readOnly };
-
-  const subTabChange = (tab: string) => (st: string) =>
-    setActiveSubTab((prev: Record<string, string>) => ({ ...prev, [tab]: st }));
-
-  function renderTabContent() {
-    switch (activeTab) {
-      case TAB.LOJA_PROPOSTA:
-        return <LojaPropostaTab {...tabProps} activeSubTab={activeSubTab[TAB.LOJA_PROPOSTA]} onSubTabChange={subTabChange(TAB.LOJA_PROPOSTA)} />;
-      case TAB.LOJA_ANTERIOR:
-        return <LojaAnteriorTab {...tabProps} activeSubTab={activeSubTab[TAB.LOJA_ANTERIOR] || SUBTAB_DEFAULT[TAB.LOJA_ANTERIOR]} onSubTabChange={subTabChange(TAB.LOJA_ANTERIOR)} calculados={calculados} />;
-      case TAB.NECESSIDADES_TECNICAS:
-        return <NecessidadesTecnicasTab {...tabProps} activeSubTab={activeSubTab[TAB.NECESSIDADES_TECNICAS] || SUBTAB_DEFAULT[TAB.NECESSIDADES_TECNICAS]} onSubTabChange={subTabChange(TAB.NECESSIDADES_TECNICAS)} />;
-      case TAB.CESSAO:
-        return <CessaoTab {...tabProps} activeSubTab={activeSubTab[TAB.CESSAO]} onSubTabChange={subTabChange(TAB.CESSAO)} calculados={calculados} />;
-      case TAB.TAXA_TRANSFERENCIA:
-        return <TaxaTransferenciaTab {...tabProps} activeSubTab={activeSubTab[TAB.TAXA_TRANSFERENCIA]} onSubTabChange={subTabChange(TAB.TAXA_TRANSFERENCIA)} calculados={calculados} />;
-      case TAB.PARECER_COMITE:
-        return <ParecerComiteTab {...tabProps} />;
-      case TAB.HISTORICO:
-        return <HistoricoTab historico={historicoEdicoes} editMode={editMode} />;
-      case TAB.ANEXOS:
-        return <AnexosTab documentos={documentos} editMode={editMode} readOnly={readOnly} onAnexar={handleAnexarDocumento} onRemover={handleRemoverDocumento} />;
-      default:
-        return null;
-    }
-  }
-
-  return (
-    <>
-      <ManutencaoModalShell maxWidth="max-w-4xl">
-        <ManutencaoToolbar>
-          {!editMode && !readOnly && (
-            <>
-              <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={handleNovo} />
-              <ToolbarDivider />
-              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setEditMode(true); }} />
-              {!forceEditMode && proposta.unidade && (
-                <>
-                  <ToolbarDivider />
-                  <ToolbarBtn icon={<ChevronLeft className="w-4 h-4" />} label="Anterior" onClick={handleAnterior} />
-                  <ToolbarBtn icon={<ChevronRight className="w-4 h-4" />} label="Próximo" onClick={handleProximo} />
-                </>
-              )}
-            </>
-          )}
-          {editMode && (
-            <>
-              <ToolbarBtn icon={<Save className="w-4 h-4" />} label="Gravar" onClick={handleGravar} />
-              <ToolbarDivider />
-              <ToolbarBtn icon={<X className="w-4 h-4" />} label="Cancelar" onClick={handleCancelar} />
-            </>
-          )}
-          {readOnly && !forceEditMode && proposta.unidade && (
-            <>
-              <ToolbarBtn icon={<ChevronLeft className="w-4 h-4" />} label="Anterior" onClick={handleAnterior} />
-              <ToolbarBtn icon={<ChevronRight className="w-4 h-4" />} label="Próximo" onClick={handleProximo} />
-            </>
-          )}
-          <div className="w-px h-6 bg-white/20 mx-1" />
-          <ToolbarBtn icon={<LogOut className="w-4 h-4" />} label="Sair" onClick={handleSair} />
-          <div className="ml-auto flex items-center gap-3 pr-2">
-            {editMode && <span className="px-2 py-0.5 text-xs font-semibold bg-white/20 text-white rounded-full">Em edição</span>}
-            {readOnly && <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white/70 rounded-full">Somente leitura</span>}
-          </div>
-        </ManutencaoToolbar>
-
-        <InfoHeaderBar>
-          <HeaderField label="Código" value={draft.id} mono />
-          <HeaderDivider />
-          <HeaderField label="Nº da Loja">
-            {editMode && !proposta.unidade ? (
-              <EnumSelect
-                value={draft.unidade || ''}
-                onChange={v => {
-                  const u = allUnidades.find(u => u.codigo === v);
-                  if (u) handleSelecionarDisponibilidade(u);
-                }}
-                placeholder="Selecionar..."
-                className="font-mono"
-                allowFilter
-                filterableOptions={allUnidades.map(u => ({ value: u.codigo, label: `${u.codigo} — ${u.status}` }))}
-              />
-            ) : (
-              <span className="text-sm font-semibold text-gray-800 dark:text-[#F1F5F9] font-mono">{draft.unidade || '—'}</span>
-            )}
-          </HeaderField>
-          <HeaderDivider />
-          <HeaderField label="Piso"      value={draft.unidade ? derivePiso(draft.unidade) : '—'} />
-          <HeaderDivider />
-          <HeaderField label="Área (m²)" value={draft.area ? `${draft.area} m²` : '—'} />
-          <HeaderDivider />
-          <HeaderField label="Corredor"  value={draft.unidade ? deriveCorreidor(draft.unidade) : '—'} />
-          <HeaderDivider />
-          <HeaderField label="Status da Proposta" colSpanFull>
-            <EnumSelect
-              value={draft.status}
-              disabled={!editMode || readOnly}
-              onChange={v => setDraft(prev => ({ ...prev, status: v as StatusProposta }))}
-              colorMap={STATUS_PROPOSTA_COLORS}
-              className="w-auto py-1"
-            >
-              {(STATUS_PROPOSTA.filter(s => s !== STATUS_VENCIDA) as StatusProposta[])
-                .concat(draft.status === STATUS_VENCIDA ? [STATUS_VENCIDA] : [])
-                .map(s => (
-                  <option key={s} value={s} disabled={s === STATUS_VENCIDA}>
-                    {s === STATUS_VENCIDA ? `${STATUS_VENCIDA} (automático)` : s}
-                  </option>
-                ))}
-            </EnumSelect>
-          </HeaderField>
-        </InfoHeaderBar>
-
-        <TabBar tabs={ABAS_PRINCIPAIS} activeTab={activeTab} onChange={setActiveTab} mobileFallback />
-        {renderTabContent()}
-      </ManutencaoModalShell>
-
-      {alertaAprovacao.length > 0 && (
-        <ConfirmModal
-          title="Não é possível aprovar a proposta"
-          subtitle="Há etapas pendentes que precisam ser concluídas"
-          message={
-            <ul className="space-y-2">
-              {alertaAprovacao.map((p, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
-                  {p}
-                </li>
-              ))}
-            </ul>
-          }
-          variant="ok"
-          labelConfirm="Voltar e corrigir"
-          onConfirm={() => setAlertaAprovacao([])}
-          onCancel={() => setAlertaAprovacao([])}
-          zIndex={100}
-        />
-      )}
-
-
-      {showSairModal && (
-        <ConfirmModal
-          title="Alterações não salvas"
-          subtitle="Deseja salvar antes de sair?"
-          message={
-            <>
-              Você tem alterações em andamento na proposta{' '}
-              <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">{proposta.id}</span>.
-              O que deseja fazer?
-            </>
-          }
-          variant="sim-nao-cancelar"
-          labelConfirm={<><Save className="w-4 h-4" /> Sim, salvar e sair</>}
-          labelCancel="Não, descartar alterações"
-          labelDismiss="Cancelar, continuar editando"
-          onConfirm={() => {
-            const isNovaProposta = proposta.id.startsWith('PROP-NOVO-');
-            if (isNovaProposta) {
-              const { id: _tempId, ...resto } = draft;
-              propostasApi.criar(resto as any).then(() => {});
-            } else {
-              propostasApi.atualizar(proposta.id, draft as any).then(() => {});
-            }
-            setEditMode(false);
-            setShowSairModal(false);
-            onClose();
-          }}
-          onCancel={() => {
-            setDraft(structuredClone(propostaOld));
-            setEditMode(false);
-            setShowSairModal(false);
-            onClose();
-          }}
-          onDismiss={() => setShowSairModal(false)}
-        />
-      )}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-        className="hidden"
-        onChange={handleFileSelected}
-      />
-    </>
-  );
-}
-````
-
 ## File: Figma/src/app/components/PropostaManutencaoModal/LojaAnteriorTab.tsx
 ````typescript
 import { SEGMENTOS, TIPOS_OPERACAO, FORMAS_PAGAMENTO } from "../../enums";
@@ -5450,38 +4522,237 @@ export function useComercialDashboard() {
 }
 ````
 
-## File: Figma/src/main.tsx
-````typescript
-import { createRoot } from "react-dom/client";
-  import App from "./app/App.tsx";
-  import "./styles/index.css";
-
-  createRoot(document.getElementById("root")!).render(<App />);
-````
-
-## File: Figma/src/styles/fonts.css
-````css
-
-````
-
 ## File: Figma/src/styles/globals.css
 ````css
 
 ````
 
-## File: Figma/src/styles/index.css
+## File: Figma/src/styles/theme.css
 ````css
-@import './fonts.css';
-@import './tailwind.css';
-@import './theme.css';
-````
+@custom-variant dark (&:is(.dark *));
 
-## File: Figma/src/styles/tailwind.css
-````css
-@import 'tailwindcss' source(none);
-@source '../**/*.{js,ts,jsx,tsx}';
+:root {
+  color-scheme: light;
+  /* JP Mall Brand Colors - Light Mode */
+  --jp-primary-dark: #8B1A1A;
+  --jp-primary: #D93030;
+  --jp-background: #F7F4EF;
+  --jp-accent: #C8A882;
+  
+  /* Neutral Colors - Light */
+  --jp-white: #FFFFFF;
+  --jp-text-primary: #1F2937;
+  --jp-text-secondary: #4B5563;
+  --jp-border: #E5E7EB;
+  --jp-bg-input: #F9FAFB;
+  --jp-bg-table-alt: #F3F4F6;
+  
+  /* Semantic Colors - Light */
+  --jp-success: #10B981;
+  --jp-warning: #F59E0B;
+  --jp-error: #D93030;
+  --jp-info: #3B82F6;
+  
+  /* Original theme variables */
+  --font-size: 16px;
+  --background: #F7F4EF;
+  --foreground: #1F2937;
+  --card: #FFFFFF;
+  --card-foreground: #1F2937;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2937;
+  --primary: #D93030;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #1F2937;
+  --muted: #F3F4F6;
+  --muted-foreground: #4B5563;
+  --accent: #C8A882;
+  --accent-foreground: #1F2937;
+  --destructive: #D93030;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: transparent;
+  --input-background: #F9FAFB;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #D93030;
+  --chart-1: #D93030;
+  --chart-2: #3B82F6;
+  --chart-3: #10B981;
+  --chart-4: #F59E0B;
+  --chart-5: #C8A882;
+  --radius: 0.5rem;
+  --sidebar: #8B1A1A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #D93030;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #a43030;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #a43030;
+  --sidebar-ring: #D93030;
+}
 
-@import 'tw-animate-css';
+.dark {
+  color-scheme: dark;
+  /* JP Mall Dark Mode Colors */
+  --jp-bg-base: #0F1117;
+  --jp-bg-surface: #1A1F2E;
+  --jp-bg-card: #242938;
+  --jp-border: #2E3447;
+  --jp-bg-input: #1E2435;
+  
+  --jp-primary-dark: #8B1A1A;
+  --jp-primary: #E04444;
+  --jp-accent: #D4A96A;
+  
+  --jp-text-primary: #F1F5F9;
+  --jp-text-secondary: #94A3B8;
+  --jp-text-muted: #64748B;
+  
+  --jp-success: #34D399;
+  --jp-warning: #FBBF24;
+  --jp-error: #E04444;
+  --jp-info: #60A5FA;
+  
+  /* Theme variables for dark mode */
+  --background: #0F1117;
+  --foreground: #F1F5F9;
+  --card: #242938;
+  --card-foreground: #F1F5F9;
+  --popover: #242938;
+  --popover-foreground: #F1F5F9;
+  --primary: #E04444;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1A1F2E;
+  --secondary-foreground: #F1F5F9;
+  --muted: #1A1F2E;
+  --muted-foreground: #94A3B8;
+  --accent: #D4A96A;
+  --accent-foreground: #1F2937;
+  --destructive: #E04444;
+  --destructive-foreground: #FFFFFF;
+  --border: #2E3447;
+  --input: #2E3447;
+  --input-background: #1E2435;
+  --ring: #E04444;
+  --chart-1: #E04444;
+  --chart-2: #60A5FA;
+  --chart-3: #34D399;
+  --chart-4: #FBBF24;
+  --chart-5: #D4A96A;
+  --sidebar: #0F1117;
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-primary: #E04444;
+  --sidebar-primary-foreground: #F1F5F9;
+  --sidebar-accent: #1A1F2E;
+  --sidebar-accent-foreground: #F1F5F9;
+  --sidebar-border: #2E3447;
+  --sidebar-ring: #E04444;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /**
+  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  */
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+}
 ````
 
 ## File: Figma/src/tests/setup.ts
@@ -5585,6 +4856,55 @@ interface ImportMeta {
   },
   "include": ["src"]
 }
+````
+
+## File: Figma/vite.config.ts
+````typescript
+import { defineConfig } from 'vite'
+import path from 'path'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+
+
+function figmaAssetResolver() {
+  return {
+    name: 'figma-asset-resolver',
+    resolveId(id) {
+      if (id.startsWith('figma:asset/')) {
+        const filename = id.replace('figma:asset/', '')
+        return path.resolve(__dirname, 'src/assets', filename)
+      }
+    },
+  }
+}
+
+export default defineConfig({
+  plugins: [
+    figmaAssetResolver(),
+    // The React and Tailwind plugins are both required for Make, even if
+    // Tailwind is not being actively used – do not remove them
+    react(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      // Alias @ to the src directory
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+
+  // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
+  assetsInclude: ['**/*.svg', '**/*.csv'],
+
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
+})
 ````
 
 ## File: Figma/vitest.config.cjs
@@ -8170,34 +7490,152 @@ url: '{{baseUrl}}/api/v1/unidades'
 order: 5000
 ````
 
-## File: .env.example
+## File: VERCEL_DEPLOY.md
+````markdown
+# Deploy na Vercel com API em Docker
+
+## Importante
+
+A Vercel faz deploy do frontend Vite e tambem possui runtime proprio para Go, mas ela nao sobe `docker-compose.yml` com Postgres dentro do projeto. Para este projeto, o caminho preparado aqui e:
+
+- Frontend React/Vite na Vercel.
+- API Go + Postgres rodando com Docker em um host de container, como VPS, Render, Railway, Fly.io ou outro servidor.
+- Frontend apontando para a API por `VITE_API_URL`.
+
+## 1. Subir a API com Docker
+
+No servidor onde a API vai rodar, configure as variaveis do `.env.production.example` e rode:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+A API precisa ficar acessivel publicamente por HTTPS. Exemplo:
+
+```text
+https://sua-api.example.com
+```
+
+Depois, teste:
+
+```text
+https://sua-api.example.com/health
+https://sua-api.example.com/ping
+```
+
+## 2. Configurar a Vercel
+
+Ao importar o repositorio na Vercel, use as configuracoes do `vercel.json` da raiz:
+
+- Framework: Vite
+- Install Command: `cd Figma && npm ci`
+- Build Command: `cd Figma && npm run build`
+- Output Directory: `Figma/dist`
+
+Configure esta Environment Variable no projeto da Vercel:
+
+```env
+VITE_API_URL=https://sua-api.example.com/api/v1
+```
+
+## 3. Configurar CORS da API
+
+No host Docker da API, ajuste:
+
+```env
+ALLOWED_ORIGIN=https://seu-projeto.vercel.app
+```
+
+Se usar dominio proprio na Vercel, coloque o dominio final:
+
+```env
+ALLOWED_ORIGIN=https://www.seudominio.com
+```
+
+## 4. Observacoes
+
+O arquivo `vercel.json` tambem configura fallback de SPA para rotas do React Router.
+
+O Docker continua disponivel para ambiente local com `docker-compose.yml` e para producao da API com `docker-compose.prod.yml`.
 ````
-# ============================================================
-# .env — Variáveis de ambiente do Docker Compose
-# Copie este arquivo para .env e preencha os valores
-# NÃO commite o .env no git
-# ============================================================
 
-# ── Servidor ─────────────────────────────────────────────────
-SERVER_PORT=8080
-GIN_MODE=release
+## File: vercel.json
+````json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "cd Figma && npm ci",
+  "buildCommand": "cd Figma && npm run build",
+  "outputDirectory": "Figma/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+````
 
-# ── CORS: URL pública onde o frontend ficará acessível ───────
-ALLOWED_ORIGIN=http://localhost
+## File: API/internal/database/database.go
+````go
+package database
 
-# ── JWT — TROQUE por uma string longa e aleatória ─────────────
-JWT_SECRET=x
-JWT_DURATION=7d
+import (
+	"context"
+	"fmt"
+	"log"
+	"time"
 
-# ── Banco de Dados ────────────────────────────────────────────
-DB_USER=postgres
-DB_PASSWORD=x
-DB_NAME=jp-mall
-DB_SSLMODE=disable
+	"github.com/jackc/pgx/v5/pgxpool"
+	"go-api/internal/config"
+)
 
-# ── Frontend (URL da API usada no build do Vite) ─────────────
-# Em produção: coloque o domínio público da API
-VITE_API_URL=http://localhost:8080/api/v1
+var DB *pgxpool.Pool
+
+func Connect(cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
+	dsn := buildDSN(cfg, cfg.Name)
+
+	poolConfig, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao parsear config do banco: %w", err)
+	}
+
+	poolConfig.MaxConns = 10
+	poolConfig.MinConns = 2
+	poolConfig.MaxConnLifetime = time.Hour
+	poolConfig.MaxConnIdleTime = 30 * time.Minute
+	poolConfig.HealthCheckPeriod = time.Minute
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar pool de conexoes: %w", err)
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("erro ao conectar ao banco de dados: %w", err)
+	}
+
+	log.Println("Conectado ao PostgreSQL com sucesso")
+	DB = pool
+	return pool, nil
+}
+
+func buildDSN(cfg *config.DatabaseConfig, dbName string) string {
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, dbName, cfg.SSLMode,
+	)
+}
+
+func Close() {
+	if DB != nil {
+		DB.Close()
+		log.Println("Conexao com PostgreSQL encerrada")
+	}
+}
 ````
 
 ## File: API/internal/entities/proposta_cessao_direitos_historico.go
@@ -9540,6 +8978,58 @@ export interface Usuario {
 }
 ````
 
+## File: Figma/nginx.conf
+````ini
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Compressão gzip para assets
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml image/svg+xml;
+
+    # Cache para assets com hash no nome (Vite gera hashes automáticos)
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA fallback — todas as rotas retornam index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Health check do nginx
+    location /nginx-health {
+        access_log off;
+        return 200 "healthy\n";
+    }
+
+    # Proxy para a API dentro do Docker Compose
+    location /api/ {
+        proxy_pass http://api:8080/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+````
+
+## File: Figma/pnpm-workspace.yaml
+````yaml
+packages:
+  - '.'
+allowBuilds:
+  '@tailwindcss/oxide': true
+  core-js: true
+  esbuild: true
+````
+
 ## File: Figma/src/app/App.tsx
 ````typescript
 /**
@@ -9673,173 +9163,462 @@ export function useAuth(): AuthContextValue {
 }
 ````
 
-## File: Figma/src/app/components/DisponibilidadeManutencaoModal/index.tsx
+## File: Figma/src/app/components/ChartsContainer.tsx
 ````typescript
-import { useState, useMemo } from "react";
-import { FilePlus, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
-import { propostas as propostasApi } from "../../data/apiClient";
-import { useApi } from "../../data/useApi";
-import { PropostaManutencaoModal } from "../PropostaManutencaoModal";
-import type { Proposta, Unidade } from "../../data/apiClient";
-import { STATUS_VENCIDA, STATUS_APROVADO, STATUS_FINALIZADO, STATUS_DISPONIVEL, PISO_LABEL } from "../../enums";
-import type { Piso } from "../../enums";
-import { ToolbarBtn, ToolbarDivider, ManutencaoToolbar, ManutencaoModalShell, TabBar, InfoHeaderBar, HeaderField, HeaderDivider } from "../ManutencaoShared";
-import type { TabDef } from "../ManutencaoShared";
-import { PropostaAtualTab } from "./PropostaAtualTab";
-import { PropostasVinculadasTab } from "./PropostasVinculadasTab";
+import { useState, useRef, useEffect } from "react";
+import type { ComponentType } from "react";
+import { Settings, Check, BarChart2, FileText, Info } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from "recharts";
+import { usePersistedState } from "../shared/hooks/usePersistedState";
+import { ChartTooltip } from "./ChartTooltip";
+import { TableLayoutContainer, TableLayoutItem } from "./PageShared";
 
-// ── IDs de aba — fonte única de verdade para TABS e renderTabContent ──
-const TAB = {
-  PROPOSTA_ATUAL:       'proposta-atual',
-  PROPOSTAS_VINCULADAS: 'propostas-vinculadas',
-} as const;
+// ── Paleta ─────────────────────────────────────────────────
 
-type TabId = typeof TAB[keyof typeof TAB];
+const PRIMARY = "#D93030";
+const GRID    = "#e5e7eb";
+const COLORS  = [PRIMARY, "#C8A882", "#8B1A1A", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6"];
 
-interface DisponibilidadeManutencaoModalProps {
-  unidade: Unidade;
-  allUnidades: Unidade[];
-  onClose: () => void;
+// ── Enums ───────────────────────────────────────────────────
+
+export enum ChartId {
+  OcupacaoPorSegmento      = 'ocupacaoPorSegmento',
+  DistribuicaoPorCategoria = 'distribuicaoPorCategoria',
+  OcupacaoPorPiso          = 'ocupacaoPorPiso',
+  StatusPropostas          = 'statusPropostas',
 }
 
-export function DisponibilidadeManutencaoModal({ unidade, allUnidades, onClose }: DisponibilidadeManutencaoModalProps) {
-  const [activeTab, setActiveTab] = useState<TabId>(TAB.PROPOSTA_ATUAL);
-  const [propostaModalAberta, setPropostaModalAberta] = useState<any>(null);
-  const [novaPropostaEditMode, setNovaPropostaEditMode] = useState(false);
+export enum ChartType {
+  Bar = 'bar',
+  Pie = 'pie',
+}
 
-  const currentIndex = allUnidades.findIndex(l => l.id === unidade.id);
+export enum PieDisplayMode {
+  Units      = 'units',
+  Percentage = 'percentage',
+}
 
-  const { data: propostasData } = useApi(() => propostasApi.listar({ idUnidade: unidade.id }), [unidade.id]);
-  const todasPropostas = (propostasData || []) as Proposta[];
+// ── Tipos ───────────────────────────────────────────────────
 
-  const propostaAtual = useMemo(() =>
-    todasPropostas.find(p => p.status === STATUS_VENCIDA) ??
-    todasPropostas.find(p => p.status === STATUS_APROVADO) ??
-    todasPropostas.find(p => p.status === STATUS_FINALIZADO) ??
-    null,
-  [todasPropostas]);
+export interface ChartStats {
+  segmentos:      { name: string; value: number }[];
+  pisos:          { name: string; value: number }[];
+  statusPropostas: { name: string; value: number }[];
+}
 
-  const propostasVinculadas = useMemo(() =>
-    todasPropostas.filter(p => p.id !== propostaAtual?.id),
-  [todasPropostas, propostaAtual]);
+type DataPoint = { name: string; value: number };
 
-  const TABS = useMemo<TabDef[]>(() => [
-    { id: TAB.PROPOSTA_ATUAL,       label: 'Proposta Atual' },
-    { id: TAB.PROPOSTAS_VINCULADAS, label: `Propostas Vinculadas (${propostasVinculadas.length})` },
-  ], [propostasVinculadas.length]);
+interface ChartRegistryEntry {
+  label:          string;
+  icon:           ComponentType<{ className?: string }>;
+  defaultType:    ChartType;
+  supportedTypes: ChartType[];
+  getData:        (s: ChartStats) => DataPoint[];
+}
 
-  const handleAnterior = () => {
-    if (currentIndex > 0) {
-      window.dispatchEvent(new CustomEvent('navigate-disponibilidade', { detail: allUnidades[currentIndex - 1] }));
-    }
-  };
+// ── Registro ────────────────────────────────────────────────
 
-  const handleProximo = () => {
-    if (currentIndex < allUnidades.length - 1) {
-      window.dispatchEvent(new CustomEvent('navigate-disponibilidade', { detail: allUnidades[currentIndex + 1] }));
-    }
-  };
+const CHART_REGISTRY: Record<ChartId, ChartRegistryEntry> = {
+  [ChartId.OcupacaoPorSegmento]: {
+    label:          'Ocup. por Segmento',
+    icon:           BarChart2,
+    defaultType:    ChartType.Bar,
+    supportedTypes: [ChartType.Bar, ChartType.Pie],
+    getData:        (s) => s.segmentos,
+  },
+  [ChartId.DistribuicaoPorCategoria]: {
+    label:          'Dist. por Categoria',
+    icon:           BarChart2,
+    defaultType:    ChartType.Pie,
+    supportedTypes: [ChartType.Bar, ChartType.Pie],
+    getData:        (s) => s.segmentos,
+  },
+  [ChartId.OcupacaoPorPiso]: {
+    label:          'Ocup. por Piso',
+    icon:           Info,
+    defaultType:    ChartType.Pie,
+    supportedTypes: [ChartType.Bar, ChartType.Pie],
+    getData:        (s) => s.pisos,
+  },
+  [ChartId.StatusPropostas]: {
+    label:          'Status das Propostas',
+    icon:           FileText,
+    defaultType:    ChartType.Pie,
+    supportedTypes: [ChartType.Bar, ChartType.Pie],
+    getData:        (s) => s.statusPropostas,
+  },
+};
 
-  const abrirNovaProposta = () => {
-    const novaProposta: any = {
-      id: `PROP-NOVO-${Date.now()}`,
-      idUnidade: unidade.id,
-      unidade: unidade.codigo,
-      tipoOperacao: 'Nova Instalação',
-      tipo: 'Nova Instalação',
-      valorProposto: 0,
-      area: unidade.area,
-      status: 'Aguardando análise financeira',
-      responsavel: '',
-      dataCriacao: new Date().toLocaleDateString('pt-BR'),
-      dataVencimento: '',
-      observacoes: '',
-      ...(propostaAtual ? {
-        lojaAnteriorNomeFantasia:    propostaAtual.nomeFantasia || '',
-        lojaAnteriorSegmento:        propostaAtual.segmento,
-        lojaAnteriorTipoOperacao:    propostaAtual.tipoOperacao,
-        lojaAnteriorCTO:             propostaAtual.valorProposto,
-        lojaAnteriorABL:             propostaAtual.area,
-        lojaAnteriorAMM:             propostaAtual.area > 0
-          ? parseFloat((propostaAtual.valorProposto / propostaAtual.area).toFixed(2))
-          : 0,
-        lojaAnteriorDividaAMM:       0,
-        lojaAnteriorDividaNegociada: 0,
-        lojaAnteriorDividaCondominio:0,
-        lojaAnteriorDividaFPP:       0,
-      } : {}),
-    };
-    setNovaPropostaEditMode(true);
-    setPropostaModalAberta(novaProposta);
-  };
+const CHART_TYPE_LABELS: Record<ChartType, string> = {
+  [ChartType.Bar]: 'Barras',
+  [ChartType.Pie]: 'Pizza',
+};
 
-  function renderTabContent() {
-    switch (activeTab) {
-      case TAB.PROPOSTA_ATUAL:
-        return <PropostaAtualTab propostaAtual={propostaAtual} onAbrirProposta={setPropostaModalAberta} />;
-      case TAB.PROPOSTAS_VINCULADAS:
-        return <PropostasVinculadasTab propostasVinculadas={propostasVinculadas} onAbrirProposta={setPropostaModalAberta} />;
-      default:
-        return null;
-    }
-  }
+const PIE_DISPLAY_LABELS: Record<PieDisplayMode, string> = {
+  [PieDisplayMode.Units]:      'Unidade',
+  [PieDisplayMode.Percentage]: 'Porcentagem',
+};
+
+const ALL_CHART_IDS = Object.values(ChartId);
+
+const COLS_CLASS_AUTO: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-2',
+  3: 'sm:grid-cols-2 lg:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
+};
+
+const COLS_CLASS_FIXED: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+};
+
+const ROWS_CLASS: Record<number, string> = {
+  1: 'grid-rows-1',
+  2: 'grid-rows-2',
+  3: 'grid-rows-3',
+  4: 'grid-rows-4',
+};
+
+// ── Renderizadores ──────────────────────────────────────────
+
+function BarView({ data }: { data: DataPoint[] }) {
+  if (data.length === 0)
+    return <div className="flex items-center justify-center flex-1 min-h-0 text-gray-400 text-xs">Sem dados</div>;
+  return (
+    <div className="flex-1 min-h-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
+          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 9 }} dy={6} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 9 }} />
+          <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(217,48,48,0.05)" }} />
+          <Bar dataKey="value" fill={PRIMARY} radius={[3, 3, 0, 0]} barSize={18} name="Lojas" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function PieView({ data, displayMode }: { data: DataPoint[]; displayMode: PieDisplayMode }) {
+  if (data.length === 0)
+    return <div className="flex items-center justify-center flex-1 min-h-0 text-gray-400 text-xs">Sem dados</div>;
+
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  const fmt = (v: number) =>
+    displayMode === PieDisplayMode.Percentage
+      ? `${total > 0 ? Math.round((v / total) * 100) : 0}%`
+      : String(v);
 
   return (
-    <>
-      <ManutencaoModalShell maxWidth="sm:max-w-3xl">
-        <ManutencaoToolbar>
-          <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={abrirNovaProposta} />
-          <ToolbarDivider />
-          <ToolbarBtn
-            icon={<ChevronLeft className="w-4 h-4" />}
-            label="Anterior"
-            onClick={handleAnterior}
-            disabled={currentIndex === 0}
-          />
-          <ToolbarBtn
-            icon={<ChevronRight className="w-4 h-4" />}
-            label="Próximo"
-            onClick={handleProximo}
-            disabled={currentIndex >= allUnidades.length - 1}
-          />
-          <ToolbarDivider />
-          <ToolbarBtn icon={<LogOut className="w-4 h-4" />} label="Sair" onClick={onClose} />
-        </ManutencaoToolbar>
+    <div className="flex flex-col h-full w-full justify-between gap-4">
+      {/* Área do Gráfico - Ocupa o topo com largura total */}
+      <div className="flex-1 min-h-[180px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} cx="50%" cy="50%" outerRadius="90%" innerRadius="50%" dataKey="value" paddingAngle={2}>
+              {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+            </Pie>
+            <Tooltip content={<ChartTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
 
-        <InfoHeaderBar>
-          <HeaderField label="Nº da Loja" value={unidade.codigo} mono />
-          <HeaderDivider />
-          <HeaderField label="Piso"      value={PISO_LABEL[unidade  .piso as Piso] ?? '-'} />
-          <HeaderDivider />
-          <HeaderField label="Área (m²)" value={`${unidade.area} m²`} />
-          <HeaderDivider />
-          <HeaderField label="Corredor"  value={unidade.corredor} />
-        </InfoHeaderBar>
+      {/* Área das Legendas - Alinhadas embaixo em uma grade de 2 colunas */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-gray-100 dark:border-[#2E3447]/50 pt-2.5">
+        {data.slice(0, 6).map((item, i) => (
+          <div key={i} className="flex items-center justify-between gap-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+              <span className="text-xs text-gray-500 dark:text-[#94A3B8] truncate">{item.name}</span>
+            </div>
+            <span className="text-xs font-semibold text-gray-800 dark:text-[#F1F5F9] flex-shrink-0">{fmt(item.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-        <TabBar
-          tabs={TABS}
-          activeTab={activeTab}
-          onChange={id => setActiveTab(id as TabId)}
-          mobileFallback
-        />
+// ── ChartsItem ──────────────────────────────────────────────
 
-        <div className="flex-1 overflow-y-auto p-5">
-          {renderTabContent()}
+function ChartsItem({ id, stats }: { id: ChartId; stats: ChartStats }) {
+  const entry = CHART_REGISTRY[id];
+
+  const [chartType, setChartType] = usePersistedState<ChartType>(
+    `dashboard.charts.type.${id}`,
+    entry.defaultType,
+    (v) => v,
+    (s) => (Object.values(ChartType) as string[]).includes(s) ? s as ChartType : entry.defaultType,
+  );
+
+  const [pieDisplayMode, setPieDisplayMode] = usePersistedState<PieDisplayMode>(
+    `dashboard.charts.piemode.${id}`,
+    PieDisplayMode.Units,
+    (v) => v,
+    (s) => (Object.values(PieDisplayMode) as string[]).includes(s) ? s as PieDisplayMode : PieDisplayMode.Units,
+  );
+
+  const [open, setOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!popoverRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const Icon = entry.icon;
+  const data = entry.getData(stats);
+
+  return (
+    <div className={`bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] p-4 relative h-full flex flex-col ${open ? 'z-20' : ''}`}>
+
+      {/* Seletor de tipo de gráfico */}
+      <div ref={popoverRef} className="absolute top-3 right-3 z-30">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className={`flex items-center gap-1 px-1.5 py-1 rounded-lg text-xs transition-colors
+            ${open
+              ? 'bg-gray-100 dark:bg-[#1A1F2E] text-gray-700 dark:text-[#F1F5F9]'
+              : 'text-gray-400 dark:text-[#64748B] hover:text-gray-600 dark:hover:text-[#F1F5F9] hover:bg-gray-100 dark:hover:bg-[#1A1F2E]'
+            }`}
+          title="Tipo de gráfico"
+        >
+          <Settings className="w-3 h-3" />
+        </button>
+
+        {open && (
+          <div className="absolute top-full right-0 mt-1 w-40 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] shadow-xl p-2 space-y-0.5">
+            <p className="text-[10px] font-semibold text-gray-400 dark:text-[#64748B] uppercase tracking-wider px-1 pb-1">
+              Tipo de gráfico
+            </p>
+            {entry.supportedTypes.map(type => {
+              const isSelected = chartType === type;
+              return (
+                <button
+                  key={type}
+                  onClick={() => { setChartType(type); setOpen(false); }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors text-left"
+                >
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                    ${isSelected ? 'border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557]'}`}>
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#D93030]" />}
+                  </div>
+                  <span className="text-xs text-gray-700 dark:text-[#CBD5E1]">{CHART_TYPE_LABELS[type]}</span>
+                </button>
+              );
+            })}
+            {chartType === ChartType.Pie && (
+              <>
+                <div className="h-px bg-gray-100 dark:bg-[#2E3447] my-1 mx-1" />
+                <p className="text-[10px] font-semibold text-gray-400 dark:text-[#64748B] uppercase tracking-wider px-1 pb-1">
+                  Exibir como
+                </p>
+                {Object.values(PieDisplayMode).map(mode => {
+                  const isSelected = pieDisplayMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => setPieDisplayMode(mode)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors text-left"
+                    >
+                      <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                        ${isSelected ? 'border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557]'}`}>
+                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#D93030]" />}
+                      </div>
+                      <span className="text-xs text-gray-700 dark:text-[#CBD5E1]">{PIE_DISPLAY_LABELS[mode]}</span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-3 flex items-center gap-1.5 pr-7">
+        <Icon className="w-3.5 h-3.5 text-[#D93030] flex-shrink-0" />
+        {entry.label}
+      </h3>
+
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {chartType === ChartType.Bar ? <BarView data={data} /> : <PieView data={data} displayMode={pieDisplayMode} />}
+      </div>
+    </div>
+  );
+}
+
+// ── ChartsContainer ─────────────────────────────────────────
+
+interface ChartsContainerProps {
+  stats: ChartStats;
+  cols?: 1 | 2 | 3 | 4;
+  rows?: 1 | 2 | 3 | 4;
+  className?: string;
+}
+
+export function ChartsContainer({ stats, cols, rows, className = '' }: ChartsContainerProps) {
+  const [selected, setSelected] = usePersistedState<ChartId[]>(
+    'dashboard.charts.selected',
+    ALL_CHART_IDS,
+    (v) => JSON.stringify(v),
+    (s) => {
+      try {
+        const parsed: ChartId[] = JSON.parse(s);
+        return parsed.filter(id => (ALL_CHART_IDS as string[]).includes(id));
+      } catch {
+        return ALL_CHART_IDS;
+      }
+    },
+  );
+
+  const [open, setOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!popoverRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const toggle = (id: ChartId) =>
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const visibleIds    = ALL_CHART_IDS.filter(id => selected.includes(id));
+  const effectiveCols = cols ?? Math.min(4, Math.max(1, visibleIds.length));
+  const colsClass     = cols
+    ? (COLS_CLASS_FIXED[effectiveCols] ?? 'grid-cols-4')
+    : (COLS_CLASS_AUTO[effectiveCols] ?? 'sm:grid-cols-2 lg:grid-cols-4');
+  const rowsClass     = rows ? (ROWS_CLASS[rows] ?? '') : '';
+
+  return (
+    <div className={`hidden sm:flex sm:flex-col sm:flex-1 relative ${className}`}>
+
+      {/* Botão de configuração */}
+      <div ref={popoverRef} className="absolute -top-7 right-0 z-20">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors
+            ${open
+              ? 'bg-gray-100 dark:bg-[#1A1F2E] text-gray-700 dark:text-[#F1F5F9]'
+              : 'text-gray-400 dark:text-[#64748B] hover:text-gray-600 dark:hover:text-[#F1F5F9] hover:bg-gray-100 dark:hover:bg-[#1A1F2E]'
+            }`}
+          title="Configurar gráficos visíveis"
+        >
+          <Settings className="w-3.5 h-3.5" />
+          <span className="hidden lg:inline font-medium">Gráficos</span>
+        </button>
+
+        {open && (
+          <div className="absolute top-full right-0 mt-1 w-56 bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] shadow-xl p-3 space-y-1">
+            <p className="text-[10px] font-semibold text-gray-400 dark:text-[#64748B] uppercase tracking-wider px-1 pb-1">
+              Gráficos visíveis
+            </p>
+            {ALL_CHART_IDS.map(id => {
+              const isOn = selected.includes(id);
+              return (
+                <button
+                  key={id}
+                  onClick={() => toggle(id)}
+                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors text-left"
+                >
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
+                    ${isOn ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557]'}`}>
+                    {isOn && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                  </div>
+                  <span className="text-xs text-gray-700 dark:text-[#CBD5E1]">
+                    {CHART_REGISTRY[id].label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Grid de gráficos */}
+      {visibleIds.length > 0 ? (
+        <div className={`grid ${colsClass}${rowsClass ? ` ${rowsClass}` : ''} gap-4 flex-1 min-h-0 auto-rows-fr`}>
+          {visibleIds.map(id => (
+            <ChartsItem key={id} id={id} stats={stats} />
+          ))}
         </div>
-      </ManutencaoModalShell>
-
-      {propostaModalAberta && (
-        <PropostaManutencaoModal
-          proposta={propostaModalAberta}
-          allPropostas={todasPropostas}
-          forceEditMode={novaPropostaEditMode}
-          onClose={() => {
-            setPropostaModalAberta(null);
-            setNovaPropostaEditMode(false);
-          }}
-        />
+      ) : (
+        <div className="flex items-center justify-center h-16 rounded-xl border border-dashed border-gray-200 dark:border-[#2E3447] text-xs text-gray-400 dark:text-[#64748B]">
+          Nenhum gráfico selecionado — clique em Gráficos para configurar
+        </div>
       )}
-    </>
+    </div>
+  );
+}
+````
+
+## File: Figma/src/app/components/DataCardContainer.tsx
+````typescript
+import { DataCard, type DataCardFieldMap } from './DataCard';
+
+const COLS_CLASS: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-1 sm:grid-cols-2',
+  3: 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
+  4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+  5: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5',
+  6: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6',
+};
+
+interface DataCardContainerProps<T extends Record<string, any>> {
+  data: T[];
+  fieldMap: DataCardFieldMap<T>;
+  keyField?: keyof T;
+  cols?: 1 | 2 | 3 | 4 | 5 | 6;
+  onClick?: (row: T) => void;
+  emptyMessage?: string;
+  className?: string;
+  getCardClassName?: (row: T) => string;  // ← novo
+}
+
+export function DataCardContainer<T extends Record<string, any>>({
+  data,
+  fieldMap,
+  keyField = 'id' as keyof T,
+  cols = 3,
+  onClick,
+  emptyMessage = 'Nenhum item encontrado',
+  className = '',
+  getCardClassName,  // ← novo
+}: DataCardContainerProps<T>) {
+  const colsClass = COLS_CLASS[cols] ?? COLS_CLASS[3];
+
+  return (
+    <div className={`flex-1 min-h-0 overflow-y-auto grid ${colsClass} gap-3 p-3 content-start pb-4 sm:pb-0 ${className}`}>
+      {data.length === 0 ? (
+        <div className="col-span-full text-center py-12 text-gray-400 dark:text-[#64748B]">
+          <p className="text-sm">{emptyMessage}</p>
+        </div>
+      ) : (
+        data.map((item, index) => (
+          <DataCard
+            key={String(item[keyField] ?? index)}
+            data={item}
+            fieldMap={fieldMap}
+            onClick={onClick}
+            className={getCardClassName?.(item) ?? ''}  // ← novo
+          />
+        ))
+      )}
+    </div>
   );
 }
 ````
@@ -10906,397 +10685,10 @@ export interface Usuario {
 }
 ````
 
-## File: Figma/src/styles/theme.css
-````css
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  color-scheme: light;
-  /* JP Mall Brand Colors - Light Mode */
-  --jp-primary-dark: #8B1A1A;
-  --jp-primary: #D93030;
-  --jp-background: #F7F4EF;
-  --jp-accent: #C8A882;
-  
-  /* Neutral Colors - Light */
-  --jp-white: #FFFFFF;
-  --jp-text-primary: #1F2937;
-  --jp-text-secondary: #4B5563;
-  --jp-border: #E5E7EB;
-  --jp-bg-input: #F9FAFB;
-  --jp-bg-table-alt: #F3F4F6;
-  
-  /* Semantic Colors - Light */
-  --jp-success: #10B981;
-  --jp-warning: #F59E0B;
-  --jp-error: #D93030;
-  --jp-info: #3B82F6;
-  
-  /* Original theme variables */
-  --font-size: 16px;
-  --background: #F7F4EF;
-  --foreground: #1F2937;
-  --card: #FFFFFF;
-  --card-foreground: #1F2937;
-  --popover: #FFFFFF;
-  --popover-foreground: #1F2937;
-  --primary: #D93030;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F3F4F6;
-  --secondary-foreground: #1F2937;
-  --muted: #F3F4F6;
-  --muted-foreground: #4B5563;
-  --accent: #C8A882;
-  --accent-foreground: #1F2937;
-  --destructive: #D93030;
-  --destructive-foreground: #FFFFFF;
-  --border: #E5E7EB;
-  --input: transparent;
-  --input-background: #F9FAFB;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: #D93030;
-  --chart-1: #D93030;
-  --chart-2: #3B82F6;
-  --chart-3: #10B981;
-  --chart-4: #F59E0B;
-  --chart-5: #C8A882;
-  --radius: 0.5rem;
-  --sidebar: #8B1A1A;
-  --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #D93030;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #a43030;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #a43030;
-  --sidebar-ring: #D93030;
-}
-
-.dark {
-  color-scheme: dark;
-  /* JP Mall Dark Mode Colors */
-  --jp-bg-base: #0F1117;
-  --jp-bg-surface: #1A1F2E;
-  --jp-bg-card: #242938;
-  --jp-border: #2E3447;
-  --jp-bg-input: #1E2435;
-  
-  --jp-primary-dark: #8B1A1A;
-  --jp-primary: #E04444;
-  --jp-accent: #D4A96A;
-  
-  --jp-text-primary: #F1F5F9;
-  --jp-text-secondary: #94A3B8;
-  --jp-text-muted: #64748B;
-  
-  --jp-success: #34D399;
-  --jp-warning: #FBBF24;
-  --jp-error: #E04444;
-  --jp-info: #60A5FA;
-  
-  /* Theme variables for dark mode */
-  --background: #0F1117;
-  --foreground: #F1F5F9;
-  --card: #242938;
-  --card-foreground: #F1F5F9;
-  --popover: #242938;
-  --popover-foreground: #F1F5F9;
-  --primary: #E04444;
-  --primary-foreground: #FFFFFF;
-  --secondary: #1A1F2E;
-  --secondary-foreground: #F1F5F9;
-  --muted: #1A1F2E;
-  --muted-foreground: #94A3B8;
-  --accent: #D4A96A;
-  --accent-foreground: #1F2937;
-  --destructive: #E04444;
-  --destructive-foreground: #FFFFFF;
-  --border: #2E3447;
-  --input: #2E3447;
-  --input-background: #1E2435;
-  --ring: #E04444;
-  --chart-1: #E04444;
-  --chart-2: #60A5FA;
-  --chart-3: #34D399;
-  --chart-4: #FBBF24;
-  --chart-5: #D4A96A;
-  --sidebar: #0F1117;
-  --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #E04444;
-  --sidebar-primary-foreground: #F1F5F9;
-  --sidebar-accent: #1A1F2E;
-  --sidebar-accent-foreground: #F1F5F9;
-  --sidebar-border: #2E3447;
-  --sidebar-ring: #E04444;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-input-background: var(--input-background);
-  --color-switch-background: var(--switch-background);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-  }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
-  html {
-    font-size: var(--font-size);
-  }
-
-  h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
-  }
-}
-````
-
-## File: Figma/vite.config.ts
+## File: Figma/src/app/routes.tsx
 ````typescript
-import { defineConfig } from 'vite'
-import path from 'path'
-import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
-
-
-function figmaAssetResolver() {
-  return {
-    name: 'figma-asset-resolver',
-    resolveId(id) {
-      if (id.startsWith('figma:asset/')) {
-        const filename = id.replace('figma:asset/', '')
-        return path.resolve(__dirname, 'src/assets', filename)
-      }
-    },
-  }
-}
-
-export default defineConfig({
-  plugins: [
-    figmaAssetResolver(),
-    // The React and Tailwind plugins are both required for Make, even if
-    // Tailwind is not being actively used – do not remove them
-    react(),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      // Alias @ to the src directory
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-
-  // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
-  assetsInclude: ['**/*.svg', '**/*.csv'],
-
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-    },
-  },
-})
-````
-
-## File: API/internal/config/config.go
-````go
-package config
-
-import (
-	"log"
-	"os"
-	"strconv"
-	"strings"
-	"time"
-)
-
-type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-}
-
-type ServerConfig struct {
-	Port          string
-	Mode          string
-	AllowedOrigin string
-	Environment   string
-	JwtSecret     string
-	JwtDuration   time.Duration
-}
-
-type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
-}
-
-func Load() *Config {
-	environment := normalizedEnv("ENV", "development")
-	jwtSecret := getJWTSecret(environment)
-	jwtDuration := getJWTExpirationDuration()
-
-	return &Config{
-		Server: ServerConfig{
-			Port:          getEnv("SERVER_PORT", "8080"),
-			Mode:          getEnv("GIN_MODE", defaultGinMode(environment)),
-			AllowedOrigin: getEnv("ALLOWED_ORIGIN", ""),
-			Environment:   environment,
-			JwtSecret:     jwtSecret,
-			JwtDuration:   jwtDuration,
-		},
-		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "postgres"),
-			Name:     getEnv("DB_NAME", "jp-mall"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
-		},
-	}
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
-}
-
-func normalizedEnv(key, fallback string) string {
-	return strings.ToLower(strings.TrimSpace(getEnv(key, fallback)))
-}
-
-func defaultGinMode(environment string) string {
-	if environment == "production" {
-		return "release"
-	}
-	return "debug"
-}
-
-func getJWTSecret(environment string) string {
-	if environment == "production" {
-		if secret := getEnv("JWT_SECRET_PROD", ""); secret != "" {
-			return secret
-		}
-	}
-
-	if secret := getEnv("JWT_SECRET_DEV", ""); secret != "" {
-		return secret
-	}
-
-	return getEnv("JWT_SECRET", "bes2026-secret-change-in-production")
-}
-
-// getJWTExpirationDuration lê JWT_EXPIRATION_HOURS e retorna como time.Duration
-// Padrão: 24 horas se não especificado
-func getJWTExpirationDuration() time.Duration {
-	hoursStr := strings.TrimSpace(getEnv("JWT_EXPIRATION_HOURS", ""))
-	
-	// Se vazio, usa padrão de 24 horas
-	if hoursStr == "" {
-		return 24 * time.Hour
-	}
-
-	// Tenta converter para inteiro
-	hours, err := strconv.Atoi(hoursStr)
-	if err != nil {
-		log.Fatalf("Erro crítico: JWT_EXPIRATION_HOURS deve ser um número inteiro (horas), recebido '%s': %v", hoursStr, err)
-	}
-
-	if hours <= 0 {
-		log.Fatalf("Erro crítico: JWT_EXPIRATION_HOURS deve ser maior que 0, recebido '%d'", hours)
-	}
-
-	return time.Duration(hours) * time.Hour
-}
+// Arquivo não utilizado — roteamento centralizado em App.tsx
+export {};
 ````
 
 ## File: API/internal/entities/usuario.go
@@ -11718,6 +11110,15 @@ CREATE INDEX idx_historico_proposta  ON "PropostaHistorico"(id_proposta_ph);
 CREATE INDEX idx_documento_proposta  ON "PropostaDocumento"(id_proposta_pd);
 ````
 
+## File: API/migrations/000004_add_token_usuario.up.sql
+````sql
+ALTER TABLE "Usuario"
+  ADD COLUMN token_ativo_u     VARCHAR(500),
+  ADD COLUMN token_expira_em_u TIMESTAMP;
+
+CREATE INDEX idx_usuario_token ON "Usuario"(token_ativo_u);
+````
+
 ## File: COMO_RODAR_O_PROJETO.txt
 ````
 ============================================================
@@ -11941,14 +11342,27 @@ export interface PropostaHistorico {
 }
 ````
 
-## File: Figma/pnpm-workspace.yaml
-````yaml
-packages:
-  - '.'
-allowBuilds:
-  '@tailwindcss/oxide': true
-  core-js: true
-  esbuild: true
+## File: Figma/Dockerfile
+````
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=${VITE_API_URL}
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+FROM nginx:1.27-alpine
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
 ````
 
 ## File: Figma/src/app/components/DataCard.tsx
@@ -12181,6 +11595,177 @@ export function DataCard<T extends Record<string, any>>({
         </div>
       )}
     </button>
+  );
+}
+````
+
+## File: Figma/src/app/components/DisponibilidadeManutencaoModal/index.tsx
+````typescript
+import { useState, useMemo } from "react";
+import { FilePlus, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { propostas as propostasApi } from "../../data/apiClient";
+import { useApi } from "../../data/useApi";
+import { PropostaManutencaoModal } from "../PropostaManutencaoModal";
+import type { Proposta, Unidade } from "../../data/apiClient";
+import { STATUS_VENCIDA, STATUS_APROVADO, STATUS_FINALIZADO, STATUS_DISPONIVEL, PISO_LABEL } from "../../enums";
+import type { Piso } from "../../enums";
+import { ToolbarBtn, ToolbarDivider, ManutencaoToolbar, ManutencaoModalShell, TabBar, InfoHeaderBar, HeaderField, HeaderDivider } from "../ManutencaoShared";
+import type { TabDef } from "../ManutencaoShared";
+import { PropostaAtualTab } from "./PropostaAtualTab";
+import { PropostasVinculadasTab } from "./PropostasVinculadasTab";
+
+// ── IDs de aba — fonte única de verdade para TABS e renderTabContent ──
+const TAB = {
+  PROPOSTA_ATUAL:       'proposta-atual',
+  PROPOSTAS_VINCULADAS: 'propostas-vinculadas',
+} as const;
+
+type TabId = typeof TAB[keyof typeof TAB];
+
+interface DisponibilidadeManutencaoModalProps {
+  unidade: Unidade;
+  allUnidades: Unidade[];
+  onClose: () => void;
+}
+
+export function DisponibilidadeManutencaoModal({ unidade, allUnidades, onClose }: DisponibilidadeManutencaoModalProps) {
+  const [activeTab, setActiveTab] = useState<TabId>(TAB.PROPOSTA_ATUAL);
+  const [propostaModalAberta, setPropostaModalAberta] = useState<any>(null);
+  const [novaPropostaEditMode, setNovaPropostaEditMode] = useState(false);
+
+  const currentIndex = allUnidades.findIndex(l => l.id === unidade.id);
+
+  const { data: propostasData } = useApi(() => propostasApi.listar({ idUnidade: unidade.id }), [unidade.id]);
+  const todasPropostas = (propostasData || []) as Proposta[];
+
+  const propostaAtual = useMemo(() =>
+    todasPropostas.find(p => p.status === STATUS_VENCIDA) ??
+    todasPropostas.find(p => p.status === STATUS_APROVADO) ??
+    todasPropostas.find(p => p.status === STATUS_FINALIZADO) ??
+    null,
+  [todasPropostas]);
+
+  const propostasVinculadas = useMemo(() =>
+    todasPropostas.filter(p => p.id !== propostaAtual?.id),
+  [todasPropostas, propostaAtual]);
+
+  const TABS = useMemo<TabDef[]>(() => [
+    { id: TAB.PROPOSTA_ATUAL,       label: 'Proposta Atual' },
+    { id: TAB.PROPOSTAS_VINCULADAS, label: `Propostas Vinculadas (${propostasVinculadas.length})` },
+  ], [propostasVinculadas.length]);
+
+  const handleAnterior = () => {
+    if (currentIndex > 0) {
+      window.dispatchEvent(new CustomEvent('navigate-disponibilidade', { detail: allUnidades[currentIndex - 1] }));
+    }
+  };
+
+  const handleProximo = () => {
+    if (currentIndex < allUnidades.length - 1) {
+      window.dispatchEvent(new CustomEvent('navigate-disponibilidade', { detail: allUnidades[currentIndex + 1] }));
+    }
+  };
+
+  const abrirNovaProposta = () => {
+    const novaProposta: any = {
+      id: `PROP-NOVO-${Date.now()}`,
+      idUnidade: unidade.id,
+      unidade: unidade.codigo,
+      tipoOperacao: 'Nova Instalação',
+      tipo: 'Nova Instalação',
+      valorProposto: 0,
+      area: unidade.area,
+      status: 'Aguardando análise financeira',
+      responsavel: '',
+      dataCriacao: new Date().toLocaleDateString('pt-BR'),
+      dataVencimento: '',
+      observacoes: '',
+      ...(propostaAtual ? {
+        lojaAnteriorNomeFantasia:    propostaAtual.nomeFantasia || '',
+        lojaAnteriorSegmento:        propostaAtual.segmento,
+        lojaAnteriorTipoOperacao:    propostaAtual.tipoOperacao,
+        lojaAnteriorCTO:             propostaAtual.valorProposto,
+        lojaAnteriorABL:             propostaAtual.area,
+        lojaAnteriorAMM:             propostaAtual.area > 0
+          ? parseFloat((propostaAtual.valorProposto / propostaAtual.area).toFixed(2))
+          : 0,
+        lojaAnteriorDividaAMM:       0,
+        lojaAnteriorDividaNegociada: 0,
+        lojaAnteriorDividaCondominio:0,
+        lojaAnteriorDividaFPP:       0,
+      } : {}),
+    };
+    setNovaPropostaEditMode(true);
+    setPropostaModalAberta(novaProposta);
+  };
+
+  function renderTabContent() {
+    switch (activeTab) {
+      case TAB.PROPOSTA_ATUAL:
+        return <PropostaAtualTab propostaAtual={propostaAtual} onAbrirProposta={setPropostaModalAberta} />;
+      case TAB.PROPOSTAS_VINCULADAS:
+        return <PropostasVinculadasTab propostasVinculadas={propostasVinculadas} onAbrirProposta={setPropostaModalAberta} />;
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <>
+      <ManutencaoModalShell maxWidth="sm:max-w-3xl">
+        <ManutencaoToolbar>
+          <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={abrirNovaProposta} />
+          <ToolbarDivider />
+          <ToolbarBtn
+            icon={<ChevronLeft className="w-4 h-4" />}
+            label="Anterior"
+            onClick={handleAnterior}
+            disabled={currentIndex === 0}
+          />
+          <ToolbarBtn
+            icon={<ChevronRight className="w-4 h-4" />}
+            label="Próximo"
+            onClick={handleProximo}
+            disabled={currentIndex >= allUnidades.length - 1}
+          />
+          <ToolbarDivider />
+          <ToolbarBtn icon={<LogOut className="w-4 h-4" />} label="Sair" onClick={onClose} />
+        </ManutencaoToolbar>
+
+        <InfoHeaderBar>
+          <HeaderField label="Nº da Loja" value={unidade.codigo} mono />
+          <HeaderDivider />
+          <HeaderField label="Piso"      value={PISO_LABEL[unidade  .piso as Piso] ?? '-'} />
+          <HeaderDivider />
+          <HeaderField label="Área (m²)" value={`${unidade.area} m²`} />
+          <HeaderDivider />
+          <HeaderField label="Corredor"  value={unidade.corredor} />
+        </InfoHeaderBar>
+
+        <TabBar
+          tabs={TABS}
+          activeTab={activeTab}
+          onChange={id => setActiveTab(id as TabId)}
+          mobileFallback
+        />
+
+        <div className="flex-1 overflow-y-auto p-5">
+          {renderTabContent()}
+        </div>
+      </ManutencaoModalShell>
+
+      {propostaModalAberta && (
+        <PropostaManutencaoModal
+          proposta={propostaModalAberta}
+          allPropostas={todasPropostas}
+          forceEditMode={novaPropostaEditMode}
+          onClose={() => {
+            setPropostaModalAberta(null);
+            setNovaPropostaEditMode(false);
+          }}
+        />
+      )}
+    </>
   );
 }
 ````
@@ -12450,6 +12035,522 @@ export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
 }
 ````
 
+## File: Figma/src/app/components/PropostaManutencaoModal/index.tsx
+````typescript
+import { useState, useEffect, useRef, useMemo } from "react";
+import { FilePlus, Pencil, Save, X, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { propostas as propostasApi, documentos as documentosApi } from "../../data/apiClient";
+import { unidades } from "../../data/apiClient";
+import { useApi } from "../../data/useApi";
+import type { Proposta, StatusProposta } from "../../data/comercialData";
+import type { Unidade } from "../../data/apiClient";
+import {
+  SEGMENTOS, TIPOS_PROPOSTA,
+  STATUS_PROPOSTA,
+  STATUS_AGUARDANDO_FIN, STATUS_AGUARDANDO_COMITE, STATUS_APROVADO,
+  STATUS_VENCIDA, STATUS_OCUPADO,
+  TIPO_CESSAO, TIPO_TRANSFERENCIA,
+  STATUS_PROPOSTA_COLORS,
+  PISO_LABEL, CORREDOR_LABEL,
+} from "../../enums";
+import type { PropostaResumo, Documento } from "../../data/apiClient";
+import type { PropostaHistorico } from "../../entities/proposta_historico";
+import { ConfirmModal } from "../ConfirmModal";
+import { ToolbarBtn, ToolbarDivider, ManutencaoToolbar, ManutencaoModalShell, EnumSelect, TabBar, InfoHeaderBar, HeaderField, HeaderDivider } from "../ManutencaoShared";
+import type { TabDef } from "../ManutencaoShared";
+import type { Calculados } from "./types";
+import { LojaPropostaTab } from "./LojaPropostaTab";
+import { LojaAnteriorTab } from "./LojaAnteriorTab";
+import { NecessidadesTecnicasTab } from "./NecessidadesTecnicasTab";
+import { CessaoTab } from "./CessaoTab";
+import { TaxaTransferenciaTab } from "./TaxaTransferenciaTab";
+import { ParecerComiteTab } from "./ParecerComiteTab";
+import { HistoricoTab } from "./HistoricoTab";
+import { AnexosTab } from "./AnexosTab";
+
+// ── IDs de aba — fonte única de verdade para ABAS_PRINCIPAIS e renderTabContent ──
+const TAB = {
+  LOJA_PROPOSTA:          'loja-proposta',
+  LOJA_ANTERIOR:          'loja-anterior',
+  NECESSIDADES_TECNICAS:  'necessidades-tecnicas',
+  CESSAO:                 'cessao',
+  TAXA_TRANSFERENCIA:     'taxa-transferencia',
+  PARECER_COMITE:         'parecer-comite',
+  HISTORICO:              'historico',
+  ANEXOS:                 'anexos',
+} as const;
+
+// ── Sub-aba inicial de cada aba (usada no useState e como fallback no switch) ──
+const SUBTAB_DEFAULT = {
+  [TAB.LOJA_PROPOSTA]:         'identificacao',
+  [TAB.LOJA_ANTERIOR]:         'identificacao',
+  [TAB.NECESSIDADES_TECNICAS]: 'eletrica',
+  [TAB.CESSAO]:                'avaliacao',
+  [TAB.TAXA_TRANSFERENCIA]:    'valores',
+} as const;
+
+// ── Aprovadores do comitê — definido fora do componente para não recriar a cada render ──
+const APROVADORES = [
+  { nome: 'Presidente',                  campo: 'parecerPresidente' },
+  { nome: 'Diretoria Compartilhada (1)', campo: 'parecerDiretoriaComp1' },
+  { nome: 'Diretoria Compartilhada (2)', campo: 'parecerDiretoriaComp2' },
+  { nome: 'Superintendente Comercial',   campo: 'parecerSuperintendente' },
+  { nome: 'In Networking',               campo: 'parecerInNetworking' },
+] as const;
+
+// ── Abas estáticas (as condicionais disabled são calculadas em runtime) ──
+const ABAS_BASE: TabDef[] = [
+  { id: TAB.LOJA_PROPOSTA,         label: 'Loja Proposta' },
+  { id: TAB.LOJA_ANTERIOR,         label: 'Loja Anterior' },
+  { id: TAB.NECESSIDADES_TECNICAS, label: 'Necessidades Técnicas' },
+  { id: TAB.CESSAO,                label: 'Cessão de Direitos' },
+  { id: TAB.TAXA_TRANSFERENCIA,    label: 'Taxa de Transferência' },
+  { id: TAB.PARECER_COMITE,        label: 'Parecer do Comitê' },
+  { id: TAB.HISTORICO,             label: 'Histórico' },
+  { id: TAB.ANEXOS,                label: 'Anexos' },
+];
+
+type PropostaInput = Proposta | PropostaResumo;
+
+interface PropostaManutencaoModalProps {
+  proposta: PropostaInput;
+  allPropostas: PropostaInput[];
+  onClose: () => void;
+  readOnly?: boolean;
+  forceEditMode?: boolean;
+  onNavigate?: (p: PropostaInput) => void;
+  initialIndex?: number;
+}
+
+export function PropostaManutencaoModal({
+  proposta,
+  allPropostas,
+  onClose,
+  readOnly = false,
+  forceEditMode = false,
+  onNavigate,
+  initialIndex,
+}: PropostaManutencaoModalProps) {
+  const [editMode, setEditMode] = useState(false);
+  const [propostaOld, setPropostaOld] = useState<Proposta>(structuredClone(proposta as Proposta));
+  const [draft, setDraft] = useState<Proposta>(structuredClone(proposta as Proposta));
+  const [activeTab, setActiveTab] = useState<string>(TAB.LOJA_PROPOSTA);
+  const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>({
+    [TAB.LOJA_PROPOSTA]:         SUBTAB_DEFAULT[TAB.LOJA_PROPOSTA],
+    [TAB.LOJA_ANTERIOR]:         SUBTAB_DEFAULT[TAB.LOJA_ANTERIOR],
+    [TAB.NECESSIDADES_TECNICAS]: SUBTAB_DEFAULT[TAB.NECESSIDADES_TECNICAS],
+    [TAB.CESSAO]:                SUBTAB_DEFAULT[TAB.CESSAO],
+    [TAB.TAXA_TRANSFERENCIA]:    SUBTAB_DEFAULT[TAB.TAXA_TRANSFERENCIA],
+  });
+  const [historicoEdicoes, setHistoricoEdicoes] = useState<PropostaHistorico[]>([]);
+  const [alertaAprovacao, setAlertaAprovacao] = useState<string[]>([]);
+  const [documentos, setDocumentos] = useState<Documento[]>([]);
+  const [tick, setTick] = useState(0);
+  const [showSairModal, setShowSairModal] = useState(false);
+
+  const { data: unidadesData } = useApi(() => unidades.listar(), []);
+  const allUnidades = (unidadesData || []) as Unidade[];
+
+  const currentIndex = initialIndex !== undefined
+    ? initialIndex
+    : allPropostas.findIndex(p => p.id === proposta.id);
+
+  useEffect(() => {
+  const isNova = proposta.id.startsWith('PROP-NOVO-');
+
+  if (!isNova) {
+    propostasApi.historico.listar(proposta.id).then(hist => setHistoricoEdicoes(hist || [])).catch(() => {});
+    documentosApi.listar(proposta.id).then(docs => setDocumentos(Array.isArray(docs) ? docs : [])).catch(() => {});
+  } else {
+    setHistoricoEdicoes([]);
+    setDocumentos([]);
+  }
+
+  setPropostaOld(structuredClone(proposta as Proposta));
+  setDraft(structuredClone(proposta as Proposta));
+  if (!proposta.unidade) {
+    setEditMode(true);
+  } else if (forceEditMode) {
+    setEditMode(true);
+  }
+}, [proposta.id, proposta, tick]);
+
+  function derivePiso(unidade: string): string {
+    if (unidade.startsWith('P')) return PISO_LABEL['P'];
+    if (unidade.startsWith('S')) return PISO_LABEL['S'];
+    if (unidade.startsWith('T')) return PISO_LABEL['T'];
+    return '-';
+  }
+
+  function deriveCorreidor(unidade: string): string {
+    const num = parseInt(unidade.split('-')[1] || '0');
+    if (num <= 30) return CORREDOR_LABEL['A'];
+    if (num <= 60) return CORREDOR_LABEL['B'];
+    return CORREDOR_LABEL['C'];
+  }
+
+  const calculados: Calculados = {
+    resSperataPropostaPorM2:  draft.resSperataProposta && draft.area ? draft.resSperataProposta / draft.area : 0,
+    percentSinalResSperata:   draft.sinalResSperata && draft.resSperataProposta ? (draft.sinalResSperata / draft.resSperataProposta) * 100 : 0,
+    saldoResSperata:          (draft.resSperataProposta || 0) - (draft.sinalResSperata || 0),
+    valorParcelaResSperata:   draft.numParcelasResSperata && draft.sinalResSperata && draft.resSperataProposta
+      ? ((draft.resSperataProposta - draft.sinalResSperata) / draft.numParcelasResSperata) : 0,
+    diferencaTT:              (draft.ttProposta || 0) - (draft.ttContratual || 0),
+    percentDescontoTT:        draft.ttContratual && draft.ttProposta ? ((draft.ttProposta - draft.ttContratual) / draft.ttContratual) * 100 : 0,
+    percentSinalTT:           draft.sinalTT && draft.ttProposta ? (draft.sinalTT / draft.ttProposta) * 100 : 0,
+    saldoTT:                  (draft.ttProposta || 0) - (draft.sinalTT || 0),
+    totalResSperata:          draft.resSperataProposta || 0,
+    totalTT:                  draft.ttProposta || 0,
+    totalOperacao:            (draft.resSperataProposta || 0) + (draft.ttProposta || 0),
+    dividaTotal:              (draft.lojaAnteriorDividaAMM || 0) + (draft.lojaAnteriorDividaNegociada || 0) +
+                              (draft.lojaAnteriorDividaCondominio || 0) + (draft.lojaAnteriorDividaFPP || 0),
+  };
+
+  const handleNovo = () => {
+    const propostaEmBranco: Proposta = {
+      id: `PROP-NOVO-${Date.now()}`,
+      idUnidade: proposta.idUnidade,
+      lojista: '',
+      unidade: proposta.unidade,
+      segmento: SEGMENTOS[0],
+      tipo: TIPOS_PROPOSTA[0],
+      valorProposto: 0,
+      area: proposta.area,
+      status: STATUS_AGUARDANDO_FIN,
+      responsavel: '',
+      dataCriacao: new Date().toLocaleDateString('pt-BR'),
+      dataVencimento: '',
+      lojaAnteriorNomeFantasia: draft.lojaAnteriorNomeFantasia,
+      lojaAnteriorSegmento: draft.lojaAnteriorSegmento,
+      lojaAnteriorTipoOperacao: draft.lojaAnteriorTipoOperacao,
+      lojaAnteriorCTO: draft.lojaAnteriorCTO,
+      lojaAnteriorABL: draft.lojaAnteriorABL,
+      lojaAnteriorAMM: draft.lojaAnteriorAMM,
+      lojaAnteriorDividaAMM: draft.lojaAnteriorDividaAMM,
+      lojaAnteriorDividaNegociada: draft.lojaAnteriorDividaNegociada,
+      lojaAnteriorDividaCondominio: draft.lojaAnteriorDividaCondominio,
+      lojaAnteriorDividaFPP: draft.lojaAnteriorDividaFPP,
+      lojaAnteriorFormaPagamento: draft.lojaAnteriorFormaPagamento,
+    };
+    setDraft(propostaEmBranco);
+    setEditMode(true);
+  };
+
+  const handleGravar = async () => {
+    if (draft.status === STATUS_APROVADO) {
+      const pendencias: string[] = [];
+      const statusHistorico = historicoEdicoes.map(e => e.status);
+      const teveFin = statusHistorico.includes(STATUS_AGUARDANDO_FIN) || proposta.status === STATUS_AGUARDANDO_FIN;
+      const tevelComite = statusHistorico.includes(STATUS_AGUARDANDO_COMITE) || proposta.status === STATUS_AGUARDANDO_COMITE;
+      const statusAtual = propostaOld.status;
+      if (!teveFin && statusAtual !== STATUS_AGUARDANDO_FIN && !statusHistorico.some(s => s === STATUS_AGUARDANDO_FIN)) {
+        pendencias.push(`A proposta não passou pela etapa de ${STATUS_AGUARDANDO_FIN}`);
+      }
+      if (!tevelComite && statusAtual !== STATUS_AGUARDANDO_COMITE && !statusHistorico.some(s => s === STATUS_AGUARDANDO_COMITE)) {
+        pendencias.push(`A proposta não passou pela etapa de ${STATUS_AGUARDANDO_COMITE}`);
+      }
+      const naoAssinados = APROVADORES.filter(a => (draft as any)[a.campo] !== 'Assinado');
+      if (naoAssinados.length > 0) {
+        pendencias.push(`Parecer do Comitê pendente para: ${naoAssinados.map(a => a.nome).join(', ')}`);
+      }
+      if (pendencias.length > 0) {
+        setAlertaAprovacao(pendencias);
+        return;
+      }
+    }
+
+    setAlertaAprovacao([]);
+    const isNovaProposta = draft.id.startsWith('PROP-NOVO-');
+    if (isNovaProposta) {
+      const { id: _tempId, ...resto } = draft;
+      await propostasApi.criar(resto as any);
+    } else {
+      await propostasApi.atualizar(draft.id, draft as any);
+      if (draft.status !== propostaOld.status) {
+        await propostasApi.atualizarStatus(draft.id, draft.status as any);
+      }
+      const hist = await propostasApi.historico.listar(draft.id).catch(() => []);
+      setHistoricoEdicoes(hist || []);
+      setPropostaOld(structuredClone(draft));
+    }
+    setEditMode(false);
+  };
+
+  const handleCancelar = () => {
+    setDraft(structuredClone(propostaOld));
+    setEditMode(false);
+  };
+
+  const handleAnterior = () => {
+    if (currentIndex > 0) {
+      const prev = allPropostas[currentIndex - 1];
+      if (onNavigate) { onNavigate(prev); }
+      else { window.dispatchEvent(new CustomEvent('navigate-proposta', { detail: prev })); }
+    }
+  };
+
+  const handleProximo = () => {
+    if (currentIndex < allPropostas.length - 1) {
+      const next = allPropostas[currentIndex + 1];
+      if (onNavigate) { onNavigate(next); }
+      else { window.dispatchEvent(new CustomEvent('navigate-proposta', { detail: next })); }
+    }
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAnexarDocumento = () => fileInputRef.current?.click();
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach(file => {
+      const nrAnexo = (documentos.length + 1).toString().padStart(3, '0');
+      const propId = proposta.id.replace('PROP-', '');
+      const codigo = `Anexo${propId}${nrAnexo}`;
+      documentosApi.upload(proposta.id, file, codigo)
+        .then(doc => setDocumentos(prev => [...prev, doc as any]))
+        .catch(() => {});
+    });
+    e.target.value = '';
+    setTick(t => t + 1);
+  };
+
+  const handleRemoverDocumento = (docId: string) => {
+    documentosApi.remover(docId)
+      .then(() => setDocumentos(prev => prev.filter(d => d.id !== docId)))
+      .catch(() => {});
+  };
+
+  const handleSair = () => {
+    if (editMode) { setShowSairModal(true); }
+    else { onClose(); }
+  };
+
+  const handleSelecionarDisponibilidade = async (unidade: Unidade) => {
+    setDraft(prev => ({ ...prev, idUnidade: unidade.id, unidade: unidade.codigo, area: unidade.area, lojistaId: unidade.id }));
+    if (unidade.status === STATUS_OCUPADO) {
+      const vinculadas = await propostasApi.listar({ idUnidade: unidade.id, status: STATUS_APROVADO }).catch(() => []);
+      const propostaAtual = vinculadas?.[0];
+      if (propostaAtual) {
+        setDraft(prev => ({
+          ...prev,
+          lojaAnteriorNomeFantasia: propostaAtual.nomeFantasia ?? '',
+          lojaAnteriorSegmento: propostaAtual.segmento,
+          lojaAnteriorABL: propostaAtual.area,
+          lojaAnteriorTipoOperacao: propostaAtual.tipoOperacao,
+          lojaAnteriorDividaAMM: 0,
+          lojaAnteriorDividaNegociada: 0,
+          lojaAnteriorDividaCondominio: 0,
+          lojaAnteriorDividaFPP: 0,
+        }));
+      }
+    }
+  };
+
+  const isCessaoAtiva = draft.tipoOperacao === TIPO_CESSAO || draft.tipoOperacao === TIPO_TRANSFERENCIA;
+  const isTTAtiva = draft.tipoOperacao === TIPO_TRANSFERENCIA;
+
+  const ABAS_PRINCIPAIS = useMemo<TabDef[]>(() =>
+    ABAS_BASE
+      .filter(a => a.id !== TAB.HISTORICO || !readOnly)
+      .map(a => {
+        if (a.id === TAB.CESSAO)           return { ...a, disabled: !isCessaoAtiva };
+        if (a.id === TAB.TAXA_TRANSFERENCIA) return { ...a, disabled: !isTTAtiva };
+        return a;
+      })
+  , [isCessaoAtiva, isTTAtiva, readOnly]);
+
+  const tabProps = { draft, setDraft, editMode, readOnly };
+
+  const subTabChange = (tab: string) => (st: string) =>
+    setActiveSubTab((prev: Record<string, string>) => ({ ...prev, [tab]: st }));
+
+  function renderTabContent() {
+    switch (activeTab) {
+      case TAB.LOJA_PROPOSTA:
+        return <LojaPropostaTab {...tabProps} activeSubTab={activeSubTab[TAB.LOJA_PROPOSTA]} onSubTabChange={subTabChange(TAB.LOJA_PROPOSTA)} />;
+      case TAB.LOJA_ANTERIOR:
+        return <LojaAnteriorTab {...tabProps} activeSubTab={activeSubTab[TAB.LOJA_ANTERIOR] || SUBTAB_DEFAULT[TAB.LOJA_ANTERIOR]} onSubTabChange={subTabChange(TAB.LOJA_ANTERIOR)} calculados={calculados} />;
+      case TAB.NECESSIDADES_TECNICAS:
+        return <NecessidadesTecnicasTab {...tabProps} activeSubTab={activeSubTab[TAB.NECESSIDADES_TECNICAS] || SUBTAB_DEFAULT[TAB.NECESSIDADES_TECNICAS]} onSubTabChange={subTabChange(TAB.NECESSIDADES_TECNICAS)} />;
+      case TAB.CESSAO:
+        return <CessaoTab {...tabProps} activeSubTab={activeSubTab[TAB.CESSAO]} onSubTabChange={subTabChange(TAB.CESSAO)} calculados={calculados} />;
+      case TAB.TAXA_TRANSFERENCIA:
+        return <TaxaTransferenciaTab {...tabProps} activeSubTab={activeSubTab[TAB.TAXA_TRANSFERENCIA]} onSubTabChange={subTabChange(TAB.TAXA_TRANSFERENCIA)} calculados={calculados} />;
+      case TAB.PARECER_COMITE:
+        return <ParecerComiteTab {...tabProps} />;
+      case TAB.HISTORICO:
+        return <HistoricoTab historico={historicoEdicoes} editMode={editMode} />;
+      case TAB.ANEXOS:
+        return <AnexosTab documentos={documentos} editMode={editMode} readOnly={readOnly} onAnexar={handleAnexarDocumento} onRemover={handleRemoverDocumento} />;
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <>
+      <ManutencaoModalShell maxWidth="max-w-4xl">
+        <ManutencaoToolbar>
+          {!editMode && !readOnly && (
+            <>
+              <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={handleNovo} />
+              <ToolbarDivider />
+              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setEditMode(true); }} />
+              {!forceEditMode && proposta.unidade && (
+                <>
+                  <ToolbarDivider />
+                  <ToolbarBtn icon={<ChevronLeft className="w-4 h-4" />} label="Anterior" onClick={handleAnterior} />
+                  <ToolbarBtn icon={<ChevronRight className="w-4 h-4" />} label="Próximo" onClick={handleProximo} />
+                </>
+              )}
+            </>
+          )}
+          {editMode && (
+            <>
+              <ToolbarBtn icon={<Save className="w-4 h-4" />} label="Gravar" onClick={handleGravar} />
+              <ToolbarDivider />
+              <ToolbarBtn icon={<X className="w-4 h-4" />} label="Cancelar" onClick={handleCancelar} />
+            </>
+          )}
+          {readOnly && !forceEditMode && proposta.unidade && (
+            <>
+              <ToolbarBtn icon={<ChevronLeft className="w-4 h-4" />} label="Anterior" onClick={handleAnterior} />
+              <ToolbarBtn icon={<ChevronRight className="w-4 h-4" />} label="Próximo" onClick={handleProximo} />
+            </>
+          )}
+          <div className="w-px h-6 bg-white/20 mx-1" />
+          <ToolbarBtn icon={<LogOut className="w-4 h-4" />} label="Sair" onClick={handleSair} />
+          <div className="ml-auto flex items-center gap-3 pr-2">
+            {editMode && <span className="px-2 py-0.5 text-xs font-semibold bg-white/20 text-white rounded-full">Em edição</span>}
+            {readOnly && <span className="px-2 py-0.5 text-xs font-semibold bg-white/10 text-white/70 rounded-full">Somente leitura</span>}
+          </div>
+        </ManutencaoToolbar>
+
+        <InfoHeaderBar>
+          <HeaderField label="Código" value={draft.id} mono />
+          <HeaderDivider />
+          <HeaderField label="Nº da Loja">
+            {editMode && !proposta.unidade ? (
+              <EnumSelect
+                value={draft.unidade || ''}
+                onChange={v => {
+                  const u = allUnidades.find(u => u.codigo === v);
+                  if (u) handleSelecionarDisponibilidade(u);
+                }}
+                placeholder="Selecionar..."
+                className="font-mono"
+                allowFilter
+                filterableOptions={allUnidades.map(u => ({ value: u.codigo, label: `${u.codigo} — ${u.status}` }))}
+              />
+            ) : (
+              <span className="text-sm font-semibold text-gray-800 dark:text-[#F1F5F9] font-mono">{draft.unidade || '—'}</span>
+            )}
+          </HeaderField>
+          <HeaderDivider />
+          <HeaderField label="Piso"      value={draft.unidade ? derivePiso(draft.unidade) : '—'} />
+          <HeaderDivider />
+          <HeaderField label="Área (m²)" value={draft.area ? `${draft.area} m²` : '—'} />
+          <HeaderDivider />
+          <HeaderField label="Corredor"  value={draft.unidade ? deriveCorreidor(draft.unidade) : '—'} />
+          <HeaderDivider />
+          <HeaderField label="Status da Proposta" colSpanFull>
+            <EnumSelect
+              value={draft.status}
+              disabled={!editMode || readOnly}
+              onChange={v => setDraft(prev => ({ ...prev, status: v as StatusProposta }))}
+              colorMap={STATUS_PROPOSTA_COLORS}
+              className="w-auto py-1"
+            >
+              {(STATUS_PROPOSTA.filter(s => s !== STATUS_VENCIDA) as StatusProposta[])
+                .concat(draft.status === STATUS_VENCIDA ? [STATUS_VENCIDA] : [])
+                .map(s => (
+                  <option key={s} value={s} disabled={s === STATUS_VENCIDA}>
+                    {s === STATUS_VENCIDA ? `${STATUS_VENCIDA} (automático)` : s}
+                  </option>
+                ))}
+            </EnumSelect>
+          </HeaderField>
+        </InfoHeaderBar>
+
+        <TabBar tabs={ABAS_PRINCIPAIS} activeTab={activeTab} onChange={setActiveTab} mobileFallback />
+        {renderTabContent()}
+      </ManutencaoModalShell>
+
+      {alertaAprovacao.length > 0 && (
+        <ConfirmModal
+          title="Não é possível aprovar a proposta"
+          subtitle="Há etapas pendentes que precisam ser concluídas"
+          message={
+            <ul className="space-y-2">
+              {alertaAprovacao.map((p, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
+                  {p}
+                </li>
+              ))}
+            </ul>
+          }
+          variant="ok"
+          labelConfirm="Voltar e corrigir"
+          onConfirm={() => setAlertaAprovacao([])}
+          onCancel={() => setAlertaAprovacao([])}
+          zIndex={100}
+        />
+      )}
+
+
+      {showSairModal && (
+        <ConfirmModal
+          title="Alterações não salvas"
+          subtitle="Deseja salvar antes de sair?"
+          message={
+            <>
+              Você tem alterações em andamento na proposta{' '}
+              <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">{proposta.id}</span>.
+              O que deseja fazer?
+            </>
+          }
+          variant="sim-nao-cancelar"
+          labelConfirm={<><Save className="w-4 h-4" /> Sim, salvar e sair</>}
+          labelCancel="Não, descartar alterações"
+          labelDismiss="Cancelar, continuar editando"
+          onConfirm={() => {
+            const isNovaProposta = proposta.id.startsWith('PROP-NOVO-');
+            if (isNovaProposta) {
+              const { id: _tempId, ...resto } = draft;
+              propostasApi.criar(resto as any).then(() => {});
+            } else {
+              propostasApi.atualizar(proposta.id, draft as any).then(() => {});
+            }
+            setEditMode(false);
+            setShowSairModal(false);
+            onClose();
+          }}
+          onCancel={() => {
+            setDraft(structuredClone(propostaOld));
+            setEditMode(false);
+            setShowSairModal(false);
+            onClose();
+          }}
+          onDismiss={() => setShowSairModal(false)}
+        />
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+    </>
+  );
+}
+````
+
 ## File: Figma/src/app/entities/index.ts
 ````typescript
 // Code generated by codegen/generate.go — DO NOT EDIT.
@@ -12690,12 +12791,6 @@ export function toOptionItems(
     typeof o === 'string' ? { value: o, label: o } : o,
   );
 }
-````
-
-## File: Figma/src/app/routes.tsx
-````typescript
-// Arquivo não utilizado — roteamento centralizado em App.tsx
-export {};
 ````
 
 ## File: Figma/src/app/viewmodels/useComercialProposals.ts
@@ -13182,6 +13277,710 @@ export function useComercialReports() {
 }
 ````
 
+## File: .gitignore
+````
+# ================================================================
+# Projeto-Flamboyant — .gitignore
+# Cobre: Figma (Node/Vite), API (Go/Gin/MongoDB), Postman
+# ================================================================
+
+
+# ───────────────────────────────────────────
+# Go — API/
+# ───────────────────────────────────────────
+
+# Binários compilados
+API/bin/
+API/*.exe
+API/*.out
+
+# Cache de build e testes
+API/vendor/
+API/tmp/
+API/coverage.out
+API/coverage.html
+API/*.test
+
+# Variáveis de ambiente
+API/.env
+API/.env.*
+API/config.local.yaml
+API/config.local.toml
+
+
+# ───────────────────────────────────────────
+# Node / Vite — Figma/
+# ───────────────────────────────────────────
+
+# Dependências
+Figma/node_modules/
+Figma/.pnp
+Figma/.pnp.js
+
+# Build
+Figma/dist/
+Figma/dist-ssr/
+Figma/build/
+
+# Cache Vite e TypeScript
+Figma/.vite/
+Figma/*.local
+Figma/*.tsbuildinfo
+
+# Cache pnpm
+Figma/.pnpm-store/
+Figma/.pnpm-debug.log*
+
+# Variáveis de ambiente
+Figma/.env
+Figma/.env.*
+
+
+# ───────────────────────────────────────────
+# Postman
+# ───────────────────────────────────────────
+
+# Environments e globals contêm tokens, API keys e URLs sensíveis
+# As demais pastas (collections, specs, flows, mocks) são versionadas
+postman/environments/
+postman/globals/
+.postman/
+
+
+# ───────────────────────────────────────────
+# Logs (qualquer subprojeto)
+# ───────────────────────────────────────────
+
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# ───────────────────────────────────────────
+# Sistema operacional
+# ───────────────────────────────────────────
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# ───────────────────────────────────────────
+# Editores
+# ───────────────────────────────────────────
+
+# VS Code — mantém extensions.json (recomendações de equipe)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/*.code-snippets
+
+# JetBrains / GoLand
+.idea/
+*.iml
+*.iws
+
+# Vim / Emacs
+*.sw?
+*~
+\#*\#
+
+# ============================================================
+# .env — Variáveis de ambiente do Docker Compose
+# Copie este arquivo para .env e preencha os valores
+# NÃO commite o .env no git
+# ============================================================
+
+# ── Servidor ─────────────────────────────────────────────────
+SERVER_PORT=8080
+GIN_MODE=release
+
+
+# ── JWT — TROQUE por uma string longa e aleatória ─────────────
+JWT_SECRET=chavelonga
+
+# ── Banco de Dados ────────────────────────────────────────────
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=jp-mall
+DB_SSLMODE=disable
+
+# ============================================================
+# .env — Variáveis de ambiente do Docker Compose
+# Copie este arquivo para .env e preencha os valores
+# NÃO commite o .env no git
+# ============================================================
+
+# ── Servidor ─────────────────────────────────────────────────
+SERVER_PORT=8080
+GIN_MODE=release
+
+
+# ── JWT — TROQUE por uma string longa e aleatória ─────────────
+JWT_SECRET=chavelonga
+
+# ── Banco de Dados ────────────────────────────────────────────
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=jp-mall
+DB_SSLMODE=disable
+
+.claude/settings.local.json
+.vercel
+````
+
+## File: API/Dockerfile
+````
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api ./cmd
+
+FROM alpine:3.22
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S app \
+    && adduser -S app -G app
+
+COPY --from=builder /out/api ./api
+COPY migrations ./migrations
+
+USER app
+
+EXPOSE 8080
+
+CMD ["./api"]
+````
+
+## File: API/go.mod
+````
+module go-api
+
+go 1.25.0
+
+require (
+	github.com/gin-contrib/cors v1.7.3
+	github.com/gin-gonic/gin v1.12.0
+	github.com/golang-jwt/jwt/v5 v5.2.2
+	github.com/golang-migrate/migrate/v4 v4.18.3
+	github.com/jackc/pgx/v5 v5.7.5
+	golang.org/x/crypto v0.48.0
+)
+
+require (
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/sonic v1.15.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.0 // indirect
+	github.com/cloudwego/base64x v0.1.6 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
+	github.com/gin-contrib/sse v1.1.0 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.30.1 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/lib/pq v1.10.9 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
+	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	github.com/ugorji/go/codec v1.3.1 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
+	golang.org/x/arch v0.22.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
+)
+````
+
+## File: API/internal/config/config.go
+````go
+package config
+
+import (
+	"log"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type Config struct {
+	Server   ServerConfig
+	Database DatabaseConfig
+}
+
+type ServerConfig struct {
+	Port          string
+	Mode          string
+	AllowedOrigin string
+	Environment   string
+	JwtSecret     string
+	JwtDuration   time.Duration
+}
+
+type DatabaseConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Name     string
+	SSLMode  string
+}
+
+func Load() *Config {
+	environment := normalizedEnv("ENV", "development")
+	jwtSecret := getJWTSecret(environment)
+	jwtDuration := getJWTExpirationDuration()
+
+	return &Config{
+		Server: ServerConfig{
+			// ALTERADO: Render obrigatoriamente usa a variável "PORT"
+			Port:          getEnv("PORT", "8080"), 
+			Mode:          getEnv("GIN_MODE", defaultGinMode(environment)),
+			AllowedOrigin: getEnv("ALLOWED_ORIGIN", ""),
+			Environment:   environment,
+			JwtSecret:     jwtSecret,
+			JwtDuration:   jwtDuration,
+		},
+		Database: DatabaseConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnv("DB_PORT", "5432"),
+			User:     getEnv("DB_USER", "postgres"),
+			Password: getEnv("DB_PASSWORD", "postgres"),
+			Name:     getEnv("DB_NAME", "jp-mall"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+	}
+}
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
+func normalizedEnv(key, fallback string) string {
+	return strings.ToLower(strings.TrimSpace(getEnv(key, fallback)))
+}
+
+func defaultGinMode(environment string) string {
+	if environment == "production" {
+		return "release"
+	}
+	return "debug"
+}
+
+func getJWTSecret(environment string) string {
+	if environment == "production" {
+		if secret := getEnv("JWT_SECRET_PROD", ""); secret != "" {
+			return secret
+		}
+	}
+
+	if secret := getEnv("JWT_SECRET_DEV", ""); secret != "" {
+		return secret
+	}
+
+	return getEnv("JWT_SECRET", "bes2026-secret-change-in-production")
+}
+
+// Duração do JWT otimizada e tolerante a erros para o ambiente de produção
+func getJWTExpirationDuration() time.Duration {
+	hoursStr := strings.TrimSpace(getEnv("JWT_EXPIRATION_HOURS", ""))
+	
+	if hoursStr == "" {
+		return 24 * time.Hour
+	}
+
+	// Tenta ler no formato de duração nativo do Go (ex: "24h", "168h")
+	if dur, err := time.ParseDuration(hoursStr); err == nil {
+		return dur
+	}
+
+	// Se for digitado apenas o número puro (ex: "24"), converte para horas
+	if hours, err := strconv.Atoi(hoursStr); err == nil && hours > 0 {
+		return time.Duration(hours) * time.Hour
+	}
+
+	// ALTERADO: Caso o valor seja inválido, o app NÃO morre mais. 
+	// Ele avisa no log e adota o padrão de 24h com segurança.
+	log.Printf("Aviso: Valor inválido para JWT_EXPIRATION_HOURS ('%s'). Usando padrão de 24h.", hoursStr)
+	return 24 * time.Hour
+}
+````
+
+## File: API/internal/entities/proposta_historico.go
+````go
+// Code generated by codegen/generate.go — DO NOT EDIT.
+// Atualize rodando: .\codegen\generate.ps1
+
+package entities
+
+// PropostaHistorico representa a tabela "PropostaHistorico" do banco de dados.
+type PropostaHistorico struct {
+	Id                                       string       `json:"id" db:"id_ph"`
+	IdProposta                               string       `json:"idProposta" db:"id_proposta_ph"`
+	IdUsuario                                string       `json:"idUsuario" db:"id_usuario_ph"`
+	EditadoEm                                string       `json:"editadoEm" db:"editado_em_ph"`
+	CodigoUnidade                            *string      `json:"codigoUnidade" db:"codigo_unidade_ph"`
+	Segmento                                 *string      `json:"segmento" db:"segmento_ph"`
+	TipoOperacao                             *string      `json:"tipoOperacao" db:"tipo_operacao_ph"`
+	ValorProposto                            *float64     `json:"valorProposto" db:"valor_proposto_ph"`
+	Area                                     *float64     `json:"area" db:"area_ph"`
+	Abl                                      *float64     `json:"abl" db:"abl_ph"`
+	Status                                   *string      `json:"status" db:"status_ph"`
+	DataCriacao                              *string      `json:"dataCriacao" db:"data_criacao_ph"`
+	DataVencimento                           *string      `json:"dataVencimento" db:"data_vencimento_ph"`
+	NomeFantasia                             *string      `json:"nomeFantasia" db:"nome_fantasia_ph"`
+	AluguelPercent                           *float64     `json:"aluguelPercent" db:"aluguel_percent_ph"`
+	PrazoLocacaoMeses                        *int         `json:"prazoLocacaoMeses" db:"prazo_locacao_meses_ph"`
+	AluguelPorM2                             *float64     `json:"aluguelPorM2" db:"aluguel_por_m2_ph"`
+	CondominioAprox                          *float64     `json:"condominioAprox" db:"condominio_aprox_ph"`
+	FppAprox                                 *float64     `json:"fppAprox" db:"fpp_aprox_ph"`
+	InicioContrato                           *string      `json:"inicioContrato" db:"inicio_contrato_ph"`
+	FimContrato                              *string      `json:"fimContrato" db:"fim_contrato_ph"`
+	DataInauguracao                          *string      `json:"dataInauguracao" db:"data_inauguracao_ph"`
+	Observacoes                              *string      `json:"observacoes" db:"observacoes_ph"`
+	AtualizadoEmSnapshot                     *string      `json:"atualizadoEmSnapshot" db:"atualizado_em_snapshot_ph"`
+}
+````
+
+## File: docker-compose.yml
+````yaml
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: flamboyant-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-jp-mall}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-jp-mall}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./API
+      dockerfile: Dockerfile
+    container_name: flamboyant-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 8080
+      ENV: ${ENV:-production}
+      GIN_MODE: ${GIN_MODE:-release}
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-jp-mall}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-168h}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./Figma
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+    container_name: flamboyant-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+````
+
+## File: Figma/package.json
+````json
+{
+  "name": "@figma/my-make-file",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/icons-material": "7.3.5",
+    "@mui/material": "7.3.5",
+    "@popperjs/core": "2.11.8",
+    "@radix-ui/react-accordion": "1.2.3",
+    "@radix-ui/react-alert-dialog": "1.1.6",
+    "@radix-ui/react-aspect-ratio": "1.1.2",
+    "@radix-ui/react-avatar": "1.1.3",
+    "@radix-ui/react-checkbox": "1.1.4",
+    "@radix-ui/react-collapsible": "1.1.3",
+    "@radix-ui/react-context-menu": "2.2.6",
+    "@radix-ui/react-dialog": "1.1.6",
+    "@radix-ui/react-dropdown-menu": "2.1.6",
+    "@radix-ui/react-hover-card": "1.1.6",
+    "@radix-ui/react-label": "2.1.2",
+    "@radix-ui/react-menubar": "1.1.6",
+    "@radix-ui/react-navigation-menu": "1.2.5",
+    "@radix-ui/react-popover": "1.1.6",
+    "@radix-ui/react-progress": "1.1.2",
+    "@radix-ui/react-radio-group": "1.2.3",
+    "@radix-ui/react-scroll-area": "1.2.3",
+    "@radix-ui/react-select": "2.1.6",
+    "@radix-ui/react-separator": "1.1.2",
+    "@radix-ui/react-slider": "1.2.3",
+    "@radix-ui/react-slot": "1.1.2",
+    "@radix-ui/react-switch": "1.1.3",
+    "@radix-ui/react-tabs": "1.1.3",
+    "@radix-ui/react-toggle": "1.1.2",
+    "@radix-ui/react-toggle-group": "1.1.2",
+    "@radix-ui/react-tooltip": "1.1.8",
+    "canvas-confetti": "1.9.4",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
+    "date-fns": "3.6.0",
+    "embla-carousel-react": "8.6.0",
+    "input-otp": "1.4.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "lucide-react": "0.487.0",
+    "motion": "12.23.24",
+    "next-themes": "0.4.6",
+    "react-day-picker": "8.10.1",
+    "react-dnd": "16.0.1",
+    "react-dnd-html5-backend": "16.0.1",
+    "react-hook-form": "7.55.0",
+    "react-popper": "2.3.0",
+    "react-resizable-panels": "2.1.7",
+    "react-responsive-masonry": "2.7.1",
+    "react-router": "7.13.0",
+    "react-router-dom": "7.13.0",
+    "react-slick": "0.31.0",
+    "recharts": "2.15.2",
+    "sonner": "2.0.3",
+    "tailwind-merge": "3.2.0",
+    "tw-animate-css": "1.3.8",
+    "vaul": "1.1.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.12",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "4.7.0",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "4.1.12",
+    "vite": "6.3.5",
+    "vitest": "^4.1.7"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "6.3.5"
+    }
+  }
+  ,
+  "vitest": {
+    "setupFiles": ["src/tests/setup.ts"],
+    "environment": "jsdom",
+    "globals": true
+  }
+}
+````
+
+## File: Figma/src/app/pages/Login.tsx
+````typescript
+/**
+ * Login.tsx — Tela de autenticação (MODO PROTÓTIPO).
+ *
+ * Comportamento atual:
+ *  - Qualquer e-mail e senha são aceitos
+ *  - Chama login() do AuthContext com usuário fixo 'Administrador'
+ *  - Redireciona para a rota de origem (location.state.from) ou
+ *    para /comercial/dashboard se não houver rota anterior
+ *
+ * O campo de senha tem defaultValue="123" para facilitar os testes
+ * durante o protótipo — remover em produção.
+ *
+ * Para produção:
+ *  - Chamar PropostasService.login({ email, senha }) ou similar
+ *  - Tratar erros de autenticação (401) com mensagem na tela
+ *  - Habilitar/desabilitar o botão com base no useApiHealth()
+ */
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Building2, Lock, Mail } from "lucide-react";
+import { useAuth } from "../AuthContext";
+
+export function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
+
+    // Chama a API real de login
+    try {
+      const senha = (form.elements.namedItem('password') as HTMLInputElement)?.value;
+      const response = await import('../data/apiClient').then(m => m.auth.login({ email, senha }));
+      login(response.token, {
+        id: response.usuario.id,
+        nome: response.usuario.nome,
+        email: response.usuario.email,
+        setor: response.usuario.setor,
+      });
+      const from = (location.state as any)?.from?.pathname || "/comercial/dashboard";
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      alert(err.message || 'Credenciais inválidas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F7F4EF] dark:bg-[#0F1117] flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center flex-col items-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B1A1A] to-[#a43030] dark:from-[#8B1A1A] dark:to-[#E04444] shadow-lg flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
+            <Building2 className="w-8 h-8 text-[#C8A882] dark:text-[#D4A96A]" />
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-[#F1F5F9]">
+            JP Mall
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-[#94A3B8]">
+            Sistema Comercial
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white dark:bg-[#242938] py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border-t-4 border-[#8B1A1A] dark:border-[#E04444]">
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-lg p-3 mb-6 text-sm text-center">
+            Modo protótipo — qualquer credencial é aceita
+          </div>
+
+          <form className="space-y-5" onSubmit={handleLogin}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-[#94A3B8]">
+                E-mail
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400 dark:text-[#64748B]" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  defaultValue="admin@flamboyant.com.br"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] rounded-md focus:outline-none focus:ring-[#D93030] focus:border-[#D93030] sm:text-sm transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-[#94A3B8]">
+                Senha
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-[#64748B]" />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  defaultValue="123"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] rounded-md focus:outline-none focus:ring-[#D93030] focus:border-[#D93030] sm:text-sm transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#D93030] hover:bg-[#b92828] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D93030] transition-colors duration-200 disabled:opacity-50"
+              >
+                {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                {loading ? 'Entrando...' : 'Entrar no Sistema'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+````
+
 ## File: start.ps1
 ````powershell
 # ============================================================
@@ -13289,128 +14088,6 @@ Log "----------------------------------------------"
 Write-Host ""
 ````
 
-## File: API/cmd/main.go
-````go
-package main
-
-import (
-	"context"
-	"log"
-	"net/http"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-
-	"go-api/internal/config"
-	"go-api/internal/database"
-	"go-api/internal/routes"
-)
-
-func main() {
-	cfg := config.Load()
-	gin.SetMode(cfg.Server.Mode)
-
-	db, err := database.Connect(&cfg.Database)
-	if err != nil {
-		log.Fatalf("Falha ao conectar ao banco de dados: %v", err)
-	}
-	defer database.Close()
-
-	runMigrations(cfg)
-
-	r := gin.Default()
-
-	// Montar lista de origens ignorando strings vazias
-	allowedOrigins := []string{
-		"http://localhost:5173",
-		"http://localhost:4173",
-		"http://localhost",
-	}
-	if cfg.Server.AllowedOrigin != "" {
-		allowedOrigins = append(allowedOrigins, cfg.Server.AllowedOrigin)
-	}
-
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-	}))
-
-	routes.Register(r, db, cfg.Server)
-
-	r.GET("/health", func(c *gin.Context) {
-		if err := db.Ping(context.Background()); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "error", "database": "desconectado"})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "database": "conectado"})
-	})
-
-	log.Printf("Servidor iniciando na porta %s", cfg.Server.Port)
-	if err := r.Run(":" + cfg.Server.Port); err != nil {
-		log.Fatalf("Falha ao iniciar servidor: %v", err)
-	}
-}
-
-func runMigrations(cfg *config.Config) {
-	dsn := "postgres://" + cfg.Database.User + ":" + cfg.Database.Password +
-		"@" + cfg.Database.Host + ":" + cfg.Database.Port +
-		"/" + cfg.Database.Name + "?sslmode=" + cfg.Database.SSLMode
-
-	m, err := migrate.New("file://migrations", dsn)
-	if err != nil {
-		log.Fatalf("Falha ao inicializar migrations: %v", err)
-	}
-	defer m.Close()
-
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatalf("Falha ao executar migrations: %v", err)
-	}
-	log.Println("Migrations executadas com sucesso")
-}
-````
-
-## File: API/internal/entities/proposta_historico.go
-````go
-// Code generated by codegen/generate.go — DO NOT EDIT.
-// Atualize rodando: .\codegen\generate.ps1
-
-package entities
-
-// PropostaHistorico representa a tabela "PropostaHistorico" do banco de dados.
-type PropostaHistorico struct {
-	Id                                       string       `json:"id" db:"id_ph"`
-	IdProposta                               string       `json:"idProposta" db:"id_proposta_ph"`
-	IdUsuario                                string       `json:"idUsuario" db:"id_usuario_ph"`
-	EditadoEm                                string       `json:"editadoEm" db:"editado_em_ph"`
-	CodigoUnidade                            *string      `json:"codigoUnidade" db:"codigo_unidade_ph"`
-	Segmento                                 *string      `json:"segmento" db:"segmento_ph"`
-	TipoOperacao                             *string      `json:"tipoOperacao" db:"tipo_operacao_ph"`
-	ValorProposto                            *float64     `json:"valorProposto" db:"valor_proposto_ph"`
-	Area                                     *float64     `json:"area" db:"area_ph"`
-	Abl                                      *float64     `json:"abl" db:"abl_ph"`
-	Status                                   *string      `json:"status" db:"status_ph"`
-	DataCriacao                              *string      `json:"dataCriacao" db:"data_criacao_ph"`
-	DataVencimento                           *string      `json:"dataVencimento" db:"data_vencimento_ph"`
-	NomeFantasia                             *string      `json:"nomeFantasia" db:"nome_fantasia_ph"`
-	AluguelPercent                           *float64     `json:"aluguelPercent" db:"aluguel_percent_ph"`
-	PrazoLocacaoMeses                        *int         `json:"prazoLocacaoMeses" db:"prazo_locacao_meses_ph"`
-	AluguelPorM2                             *float64     `json:"aluguelPorM2" db:"aluguel_por_m2_ph"`
-	CondominioAprox                          *float64     `json:"condominioAprox" db:"condominio_aprox_ph"`
-	FppAprox                                 *float64     `json:"fppAprox" db:"fpp_aprox_ph"`
-	InicioContrato                           *string      `json:"inicioContrato" db:"inicio_contrato_ph"`
-	FimContrato                              *string      `json:"fimContrato" db:"fim_contrato_ph"`
-	DataInauguracao                          *string      `json:"dataInauguracao" db:"data_inauguracao_ph"`
-	Observacoes                              *string      `json:"observacoes" db:"observacoes_ph"`
-	AtualizadoEmSnapshot                     *string      `json:"atualizadoEmSnapshot" db:"atualizado_em_snapshot_ph"`
-}
-````
-
 ## File: Figma/src/app/data/apiClient.ts
 ````typescript
 // ============================================================
@@ -13507,7 +14184,7 @@ async function request<T>(
 
 export async function checkHealth(): Promise<boolean> {
   try {
-    const res = await fetch('/api/v1/ping',
+    const res = await fetch(`${API_BASE}/ping`,
       { signal: AbortSignal.timeout(4000) }
     );
     return res.ok;
@@ -13676,546 +14353,6 @@ export const documentos = {
   remover: (id: string) =>
     request<void>(`/documentos/${id}`, { method: 'DELETE' }),
 };
-````
-
-## File: Figma/src/app/pages/Login.tsx
-````typescript
-/**
- * Login.tsx — Tela de autenticação (MODO PROTÓTIPO).
- *
- * Comportamento atual:
- *  - Qualquer e-mail e senha são aceitos
- *  - Chama login() do AuthContext com usuário fixo 'Administrador'
- *  - Redireciona para a rota de origem (location.state.from) ou
- *    para /comercial/dashboard se não houver rota anterior
- *
- * O campo de senha tem defaultValue="123" para facilitar os testes
- * durante o protótipo — remover em produção.
- *
- * Para produção:
- *  - Chamar PropostasService.login({ email, senha }) ou similar
- *  - Tratar erros de autenticação (401) com mensagem na tela
- *  - Habilitar/desabilitar o botão com base no useApiHealth()
- */
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Building2, Lock, Mail } from "lucide-react";
-import { useAuth } from "../AuthContext";
-
-export function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login } = useAuth();
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const form = e.currentTarget;
-    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
-
-    // Chama a API real de login
-    try {
-      const senha = (form.elements.namedItem('password') as HTMLInputElement)?.value;
-      const response = await import('../data/apiClient').then(m => m.auth.login({ email, senha }));
-      login(response.token, {
-        id: response.usuario.id,
-        nome: response.usuario.nome,
-        email: response.usuario.email,
-        setor: response.usuario.setor,
-      });
-      const from = (location.state as any)?.from?.pathname || "/comercial/dashboard";
-      navigate(from, { replace: true });
-    } catch (err: any) {
-      alert(err.message || 'Credenciais inválidas');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-[#F7F4EF] dark:bg-[#0F1117] flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B1A1A] to-[#a43030] dark:from-[#8B1A1A] dark:to-[#E04444] shadow-lg flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-            <Building2 className="w-8 h-8 text-[#C8A882] dark:text-[#D4A96A]" />
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-[#F1F5F9]">
-            JP Mall
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-[#94A3B8]">
-            Sistema Comercial
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-[#242938] py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border-t-4 border-[#8B1A1A] dark:border-[#E04444]">
-
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-lg p-3 mb-6 text-sm text-center">
-            Modo protótipo — qualquer credencial é aceita
-          </div>
-
-          <form className="space-y-5" onSubmit={handleLogin}>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-[#94A3B8]">
-                E-mail
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400 dark:text-[#64748B]" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  defaultValue="admin@flamboyant.com.br"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] rounded-md focus:outline-none focus:ring-[#D93030] focus:border-[#D93030] sm:text-sm transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-[#94A3B8]">
-                Senha
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400 dark:text-[#64748B]" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  defaultValue="123"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-[#2E3447] bg-white dark:bg-[#1E2435] text-gray-900 dark:text-[#F1F5F9] rounded-md focus:outline-none focus:ring-[#D93030] focus:border-[#D93030] sm:text-sm transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#D93030] hover:bg-[#b92828] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D93030] transition-colors duration-200 disabled:opacity-50"
-              >
-                {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                {loading ? 'Entrando...' : 'Entrar no Sistema'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-}
-````
-
-## File: .gitignore
-````
-# ================================================================
-# Projeto-Flamboyant — .gitignore
-# Cobre: Figma (Node/Vite), API (Go/Gin/MongoDB), Postman
-# ================================================================
-
-
-# ───────────────────────────────────────────
-# Go — API/
-# ───────────────────────────────────────────
-
-# Binários compilados
-API/bin/
-API/*.exe
-API/*.out
-
-# Cache de build e testes
-API/vendor/
-API/tmp/
-API/coverage.out
-API/coverage.html
-API/*.test
-
-# Variáveis de ambiente
-API/.env
-API/.env.*
-API/config.local.yaml
-API/config.local.toml
-
-
-# ───────────────────────────────────────────
-# Node / Vite — Figma/
-# ───────────────────────────────────────────
-
-# Dependências
-Figma/node_modules/
-Figma/.pnp
-Figma/.pnp.js
-
-# Build
-Figma/dist/
-Figma/dist-ssr/
-Figma/build/
-
-# Cache Vite e TypeScript
-Figma/.vite/
-Figma/*.local
-Figma/*.tsbuildinfo
-
-# Cache pnpm
-Figma/.pnpm-store/
-Figma/.pnpm-debug.log*
-
-# Variáveis de ambiente
-Figma/.env
-Figma/.env.*
-
-
-# ───────────────────────────────────────────
-# Postman
-# ───────────────────────────────────────────
-
-# Environments e globals contêm tokens, API keys e URLs sensíveis
-# As demais pastas (collections, specs, flows, mocks) são versionadas
-postman/environments/
-postman/globals/
-.postman/
-
-
-# ───────────────────────────────────────────
-# Logs (qualquer subprojeto)
-# ───────────────────────────────────────────
-
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-
-# ───────────────────────────────────────────
-# Sistema operacional
-# ───────────────────────────────────────────
-
-.DS_Store
-Thumbs.db
-desktop.ini
-
-
-# ───────────────────────────────────────────
-# Editores
-# ───────────────────────────────────────────
-
-# VS Code — mantém extensions.json (recomendações de equipe)
-.vscode/settings.json
-.vscode/launch.json
-.vscode/*.code-snippets
-
-# JetBrains / GoLand
-.idea/
-*.iml
-*.iws
-
-# Vim / Emacs
-*.sw?
-*~
-\#*\#
-
-# ============================================================
-# .env — Variáveis de ambiente do Docker Compose
-# Copie este arquivo para .env e preencha os valores
-# NÃO commite o .env no git
-# ============================================================
-
-# ── Servidor ─────────────────────────────────────────────────
-SERVER_PORT=8080
-GIN_MODE=release
-
-
-# ── JWT — TROQUE por uma string longa e aleatória ─────────────
-JWT_SECRET=chavelonga
-
-# ── Banco de Dados ────────────────────────────────────────────
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=jp-mall
-DB_SSLMODE=disable
-
-# ============================================================
-# .env — Variáveis de ambiente do Docker Compose
-# Copie este arquivo para .env e preencha os valores
-# NÃO commite o .env no git
-# ============================================================
-
-# ── Servidor ─────────────────────────────────────────────────
-SERVER_PORT=8080
-GIN_MODE=release
-
-
-# ── JWT — TROQUE por uma string longa e aleatória ─────────────
-JWT_SECRET=chavelonga
-
-# ── Banco de Dados ────────────────────────────────────────────
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=jp-mall
-DB_SSLMODE=disable
-
-.claude/settings.local.json
-````
-
-## File: API/go.mod
-````
-module go-api
-
-go 1.25.0
-
-require (
-	github.com/gin-contrib/cors v1.7.3
-	github.com/gin-gonic/gin v1.12.0
-	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/golang-migrate/migrate/v4 v4.18.3
-	github.com/jackc/pgx/v5 v5.7.5
-	golang.org/x/crypto v0.48.0
-)
-
-require (
-	github.com/bytedance/gopkg v0.1.3 // indirect
-	github.com/bytedance/sonic v1.15.0 // indirect
-	github.com/bytedance/sonic/loader v0.5.0 // indirect
-	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
-	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/go-playground/locales v0.14.1 // indirect
-	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.30.1 // indirect
-	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/goccy/go-yaml v1.19.2 // indirect
-	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
-	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/ugorji/go/codec v1.3.1 // indirect
-	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/arch v0.22.0 // indirect
-	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
-)
-````
-
-## File: Figma/package.json
-````json
-{
-  "name": "@figma/my-make-file",
-  "private": true,
-  "version": "0.0.1",
-  "type": "module",
-  "scripts": {
-    "build": "vite build",
-    "dev": "vite"
-  },
-  "dependencies": {
-    "@emotion/react": "11.14.0",
-    "@emotion/styled": "11.14.1",
-    "@mui/icons-material": "7.3.5",
-    "@mui/material": "7.3.5",
-    "@popperjs/core": "2.11.8",
-    "@radix-ui/react-accordion": "1.2.3",
-    "@radix-ui/react-alert-dialog": "1.1.6",
-    "@radix-ui/react-aspect-ratio": "1.1.2",
-    "@radix-ui/react-avatar": "1.1.3",
-    "@radix-ui/react-checkbox": "1.1.4",
-    "@radix-ui/react-collapsible": "1.1.3",
-    "@radix-ui/react-context-menu": "2.2.6",
-    "@radix-ui/react-dialog": "1.1.6",
-    "@radix-ui/react-dropdown-menu": "2.1.6",
-    "@radix-ui/react-hover-card": "1.1.6",
-    "@radix-ui/react-label": "2.1.2",
-    "@radix-ui/react-menubar": "1.1.6",
-    "@radix-ui/react-navigation-menu": "1.2.5",
-    "@radix-ui/react-popover": "1.1.6",
-    "@radix-ui/react-progress": "1.1.2",
-    "@radix-ui/react-radio-group": "1.2.3",
-    "@radix-ui/react-scroll-area": "1.2.3",
-    "@radix-ui/react-select": "2.1.6",
-    "@radix-ui/react-separator": "1.1.2",
-    "@radix-ui/react-slider": "1.2.3",
-    "@radix-ui/react-slot": "1.1.2",
-    "@radix-ui/react-switch": "1.1.3",
-    "@radix-ui/react-tabs": "1.1.3",
-    "@radix-ui/react-toggle": "1.1.2",
-    "@radix-ui/react-toggle-group": "1.1.2",
-    "@radix-ui/react-tooltip": "1.1.8",
-    "canvas-confetti": "1.9.4",
-    "class-variance-authority": "0.7.1",
-    "clsx": "2.1.1",
-    "cmdk": "1.1.1",
-    "date-fns": "3.6.0",
-    "embla-carousel-react": "8.6.0",
-    "input-otp": "1.4.2",
-    "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.7",
-    "lucide-react": "0.487.0",
-    "motion": "12.23.24",
-    "next-themes": "0.4.6",
-    "react-day-picker": "8.10.1",
-    "react-dnd": "16.0.1",
-    "react-dnd-html5-backend": "16.0.1",
-    "react-hook-form": "7.55.0",
-    "react-popper": "2.3.0",
-    "react-resizable-panels": "2.1.7",
-    "react-responsive-masonry": "2.7.1",
-    "react-router": "7.13.0",
-    "react-router-dom": "7.13.0",
-    "react-slick": "0.31.0",
-    "recharts": "2.15.2",
-    "sonner": "2.0.3",
-    "tailwind-merge": "3.2.0",
-    "tw-animate-css": "1.3.8",
-    "vaul": "1.1.2",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "4.1.12",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@vitejs/plugin-react": "4.7.0",
-    "jsdom": "^29.1.1",
-    "tailwindcss": "4.1.12",
-    "vite": "6.3.5",
-    "vitest": "^4.1.7"
-  },
-  "peerDependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    }
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": "6.3.5"
-    }
-  }
-  ,
-  "vitest": {
-    "setupFiles": ["src/tests/setup.ts"],
-    "environment": "jsdom",
-    "globals": true
-  }
-}
-````
-
-## File: Figma/src/app/viewmodels/useComercialAvailability.ts
-````typescript
-import { useState, useMemo, useEffect } from 'react';
-import { useApi } from '../data/useApi';
-import { UnidadesService } from '../services/unidades.service';
-import { PropostasService } from '../services/propostas.service';
-import { usePersistedState } from '../shared/hooks/usePersistedState';
-import { ViewMode } from '../enums';
-import type { Piso, Corredor } from '../enums';
-import type { Unidade as UnidadeEntity } from '../entities/unidade';
-
-const NS = 'disponibilidade';
-
-export function useComercialAvailability() {
-  // ── Model ────────────────────────────────────────────────
-  const { data: todasUnidades, loading: loadingUnidades, refetch: refetchUnidades } =
-    useApi(() => UnidadesService.listar(), []);
-  const { data: todasPropostasData, refetch: refetchPropostas } =
-    useApi(() => PropostasService.listar(), []);
-
-  // ── Estado persistido ────────────────────────────────────
-  const [filterPisos,      setFilterPisos]      = usePersistedState<Piso[]>(`${NS}.filterPisos`, []);
-  const [filterCorredores, setFilterCorredores] = usePersistedState<Corredor[]>(`${NS}.filterCorredores`, []);
-  const [viewMode,         setViewMode]         = usePersistedState<ViewMode>(`${NS}.viewMode`, ViewMode.Cards, v => v, v => v as ViewMode);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-
-  // ── Estado de UI ─────────────────────────────────────────
-  const [manutencaoUnidade, setManutencaoUnidade] = useState<UnidadeEntity | null>(null);
-
-  // Forçar mapa em mobile
-  useEffect(() => {
-    const handleResize = () => { if (window.innerWidth < 640) setViewMode(ViewMode.Cards); };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Navegação entre unidades via evento
-  useEffect(() => {
-    const handler = (e: any) => setManutencaoUnidade(e.detail);
-    window.addEventListener('navigate-disponibilidade', handler);
-    return () => window.removeEventListener('navigate-disponibilidade', handler);
-  }, []);
-
-  // ── Dados derivados ──────────────────────────────────────
-  const filtered = useMemo<UnidadeEntity[]>(() => {
-    return todasUnidades === null ? [] : todasUnidades?.filter(l => {
-      const matchPiso     = filterPisos.length === 0      || filterPisos.includes(l.piso as Piso);
-      const matchCorredor = filterCorredores.length === 0 || filterCorredores.includes(l.corredor as Corredor);
-      return matchPiso && matchCorredor;
-    });
-  }, [todasUnidades, filterPisos, filterCorredores]);
-
-  const mapaData = useMemo(() => {
-    const result: Record<Piso, Record<Corredor, UnidadeEntity[]>> = {
-      P: { A: [], B: [], C: [] },
-      S: { A: [], B: [], C: [] },
-      T: { A: [], B: [], C: [] },
-    };
-    filtered.forEach(l => {
-      const piso = l.piso as Piso;
-      const corredor = l.corredor as Corredor;
-      if (result[piso] && result[piso][corredor]) {
-        result[piso][corredor].push(l);
-      }
-    });
-    return result;
-  }, [filtered]);
-
-  // ── Handlers ─────────────────────────────────────────────
-  const refetch = () => { refetchUnidades(); refetchPropostas(); };
-
-  return {
-    todasUnidades, filtered, mapaData, tableRows: filtered,
-    loadingUnidades,
-    filterPisos, setFilterPisos,
-    filterCorredores, setFilterCorredores,
-    viewMode, setViewMode,
-    showMobileFilters, setShowMobileFilters,
-    manutencaoUnidade, setManutencaoUnidade,
-    refetch,
-  };
-}
 ````
 
 ## File: Figma/src/app/pages/comercial/ComercialReports.tsx
@@ -14820,6 +14957,1068 @@ export function ComercialReports() {
         </div>
       )}
     </PageShell>
+  );
+}
+````
+
+## File: Figma/src/app/pages/comercial/ComercialDashboard.tsx
+````typescript
+import { useComercialDashboard } from "../../viewmodels/useComercialDashboard";
+import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
+import { SEGMENTOS, PISOS, PISO_LABEL, STATUS_APROVADO, STATUS_VENCIDA } from "../../enums";
+import { Store, FileText, AlertCircle, Percent, BarChart2, Info } from "lucide-react";
+import { PageShell, FilterBar, FilterSeparator, FilterDateRange, MobileExpandableSection, TableLayoutContainer, TableLayoutItem } from "../../components/PageShared";
+import { KpiContainer } from "../../components/KpiContainer";
+import { ChartsContainer } from "../../components/ChartsContainer";
+import type { ChartStats } from "../../components/ChartsContainer";
+import { MobileCarousel } from "../../components/MobileCarousel";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell
+} from "recharts";
+import { ChartTooltip } from "../../components/ChartTooltip";
+
+const DS = {
+  primary: "#D93030",
+  dark:    "#8B1A1A",
+  blue:    "#3B82F6",
+  green:   "#10B981",
+  amber:   "#F59E0B",
+  gold:    "#C8A882",
+  grid:    "#e5e7eb",
+} as const;
+
+const PIE_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "#8B5CF6"];
+const CHART_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "#8B5CF6"];
+
+
+export function ComercialDashboard() {
+  const {
+    allUnidades, proposals, kpis, chartSegmentos, chartStatus,
+    filterSegmentos, setFilterSegmentos, toggleSegmento,
+    filterPisos, setFilterPisos,
+    dateFrom, setDateFrom, dateTo, setDateTo,
+    showMobileFilters, setShowMobileFilters,
+    chartIndex, setChartIndex,
+    mobileSection, toggleSection,
+  } = useComercialDashboard();
+
+  // ── Aliases e dados derivados locais ──────────────────────
+  const stats = {
+    total:           kpis.total,
+    ocupadas:        kpis.ocupadas,
+    disponiveis:     kpis.livres,
+    contratoAtivo:   kpis.ocupadas,
+    propostasAbertas: kpis.emAnalise,
+    vencendo:        allUnidades.filter(u => {
+      const p = proposals.find(pp => pp.codigoUnidade === u.codigo && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA));
+      if (!p?.fimContrato) return false;
+      const dias = Math.ceil((new Date(p.fimContrato).getTime() - Date.now()) / 86400000);
+      return dias < 60;
+    }).length,
+  };
+
+  const segmentosChart = chartSegmentos;
+  const pieData        = chartSegmentos;
+  const proposalStatusChart = chartStatus;
+  const allLojistas    = allUnidades.map(u => {
+    const propAprov = proposals.find(p => p.codigoUnidade === u.codigo && p.status === STATUS_APROVADO);
+    return {
+      ...u,
+      unidade: u.codigo,
+      nome: propAprov?.nomeFantasia || '',
+      piso: u.piso,
+      segmento: propAprov?.segmento || '',
+    };
+  });
+
+  const chartStats: ChartStats = {
+    segmentos:       segmentosChart,
+    pisos:           PISOS.map(p => ({
+      name:  PISO_LABEL[p.value],
+      value: allLojistas.filter(l => l.piso === p.value && l.status === "Ocupado").length,
+    })),
+    statusPropostas: proposalStatusChart,
+  };
+
+  return (
+    <PageShell>
+
+      <FilterBar
+        isOpen={showMobileFilters}
+        onToggle={() => setShowMobileFilters(prev => !prev)}
+        hasActiveFilters={!!(dateFrom || dateTo || filterSegmentos.length > 0 || filterPisos.length > 0)}
+      >
+        <FilterDateRange label="Data de criação" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Segmento"
+          options={SEGMENTOS}
+          selected={filterSegmentos}
+          onToggle={s => setFilterSegmentos(prev =>
+            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+          )}
+        />
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Piso"
+          options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
+          selected={filterPisos}
+          onToggle={p => setFilterPisos(prev =>
+            prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+          )}
+          mobileGrid="grid-cols-3"
+        />
+      </FilterBar>
+
+      {/* KPIs + Gráficos lado a lado — Desktop */}
+      <TableLayoutContainer cols={1} gap={4} rows={6}>
+        <TableLayoutItem>
+          <KpiContainer stats={stats} cols={4}/>
+        </TableLayoutItem>
+        <TableLayoutItem colSpan={1} rowSpan={1}>
+          <ChartsContainer stats={chartStats} cols={4} />
+        </TableLayoutItem>
+      </TableLayoutContainer>
+
+      {/* ═══════════════════════════════════════ */}
+      {/* LAYOUT MOBILE — regiões expansíveis    */}
+      {/* ═══════════════════════════════════════ */}
+      <div className="sm:hidden flex-1 flex flex-col overflow-hidden gap-2">
+
+        {/* ── REGIÃO 1: Indicadores ── */}
+        <MobileExpandableSection
+          icon={Store}
+          iconClassName="text-blue-500"
+          title="Indicadores"
+          isOpen={mobileSection === 'indicadores'}
+          onToggle={() => toggleSection('indicadores')}
+          grow={false}
+          hiddenOnDesktop={false}
+          contentClassName="px-4 pb-4 pt-3 grid grid-cols-2 gap-2"
+        >
+              <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3 flex items-center gap-2">
+                <div className="w-7 h-7 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Store className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-500 dark:text-[#94A3B8] leading-tight">Total de Lojas</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-base font-bold text-gray-900 dark:text-[#F1F5F9] leading-none">{stats.ocupadas}</span>
+                    <span className="text-[10px] text-gray-400">/{stats.total}</span>
+                  </div>
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400">{stats.disponiveis} disp.</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3 flex items-center gap-2">
+                <div className="w-7 h-7 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Percent className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-500 dark:text-[#94A3B8] leading-tight">Contratos Ativos</p>
+                  <p className="text-base font-bold text-gray-900 dark:text-[#F1F5F9] leading-none">{stats.contratoAtivo}</p>
+                  <p className="text-[10px] text-green-600 dark:text-green-400">Aprovado+Vencida</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3 flex items-center gap-2">
+                <div className="w-7 h-7 bg-[#D93030]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-3.5 h-3.5 text-[#D93030]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-500 dark:text-[#94A3B8] leading-tight">Propostas Abertas</p>
+                  <p className="text-base font-bold text-gray-900 dark:text-[#F1F5F9] leading-none">{stats.propostasAbertas}</p>
+                  <p className="text-[10px] text-[#D93030]">em análise</p>
+                </div>
+              </div>
+
+              <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-3 flex items-center gap-2 border border-orange-100 dark:border-orange-700/20">
+                <div className="w-7 h-7 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-3.5 h-3.5 text-orange-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-orange-600 dark:text-orange-400 leading-tight">Contr. &lt;60 dias</p>
+                  <p className="text-base font-bold text-orange-600 dark:text-orange-400 leading-none">{stats.vencendo}</p>
+                  <p className="text-[10px] text-gray-400">venc. próximo</p>
+                </div>
+              </div>
+        </MobileExpandableSection>
+
+        {/* ── REGIÃO 2: Gráficos ── */}
+        <MobileExpandableSection
+          icon={BarChart2}
+          title="Gráficos"
+          isOpen={mobileSection === 'graficos'}
+          onToggle={() => toggleSection('graficos')}
+          grow={false}
+          hiddenOnDesktop={false}
+          contentClassName="h-[230px]"
+        >
+
+          <MobileCarousel
+                index={chartIndex}
+                total={4}
+                onPrev={() => setChartIndex(i => Math.max(0, i - 1))}
+                onNext={() => setChartIndex(i => Math.min(3, i + 1))}
+              >
+                <div className="h-full p-2">
+                  {chartIndex === 0 && (
+                    <>
+                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2 flex items-center gap-1.5 px-2">
+                        <BarChart2 className="w-3.5 h-3.5 text-[#D93030]" /> Ocupação por Segmento
+                      </h3>
+                      {segmentosChart.length === 0 ? (
+                        <div className="flex items-center justify-center h-[170px] text-gray-400 text-xs">Sem dados</div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={170}>
+                          <BarChart data={segmentosChart} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={DS.grid} />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 9 }} dy={6} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 9 }} />
+                            <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(217,48,48,0.05)" }} />
+                            <Bar dataKey="value" fill={DS.primary} radius={[3, 3, 0, 0]} barSize={18} name="Lojas" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </>
+                  )}
+                  {chartIndex === 1 && (
+                    <>
+                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2 flex items-center gap-1.5 px-2">
+                        <BarChart2 className="w-3.5 h-3.5 text-[#D93030]" /> Por Categoria
+                      </h3>
+                      {pieData.length > 0 ? (
+                        <div className="flex items-center h-[170px]">
+                          <ResponsiveContainer width="55%" height="100%">
+                            <PieChart>
+                              <Pie data={pieData} cx="50%" cy="50%" outerRadius={50} innerRadius={22}
+                                dataKey="value" paddingAngle={2}>
+                                {pieData.map((item, i) => (
+                                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip content={<ChartTooltip />} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="flex-1 space-y-1 pl-2">
+                            {pieData.slice(0, 5).map((item, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                  <span className="text-[10px] text-gray-500 dark:text-[#94A3B8] truncate">{item.name}</span>
+                                </div>
+                                <span className="text-[10px] font-semibold text-gray-800 dark:text-[#F1F5F9]">{item.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-16 text-gray-400 text-xs">Sem dados</div>
+                      )}
+                    </>
+                  )}
+                  {chartIndex === 2 && (
+                    <>
+                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2 flex items-center gap-1.5 px-2">
+                        <Info className="w-3.5 h-3.5 text-[#D93030]" /> Ocupação por Piso
+                      </h3>
+                      <div className="flex items-center h-[170px]">
+                        <ResponsiveContainer width="55%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={PISOS.map(p => ({
+                                name: PISO_LABEL[p.value],
+                                value: allLojistas.filter(l =>
+                                  l.piso === p.value && l.status === "Ocupado"
+                                ).length,
+                              }))}
+                              cx="50%" cy="50%" outerRadius={50} innerRadius={22}
+                              dataKey="value" paddingAngle={4}
+                            >
+                              {PISOS.map((_, i) => (
+                                <Cell key={i} fill={CHART_COLORS[i]} />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<ChartTooltip />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="flex-1 space-y-1 pl-2">
+                          {PISOS.map((p, i) => {
+                            const count = allLojistas.filter(l =>
+                              l.piso === p.value && l.status === "Ocupado"
+                            ).length;
+                            return (
+                              <div key={p.value} className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
+                                  <span className="text-[10px] text-gray-500 dark:text-[#94A3B8]">{PISO_LABEL[p.value]}</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-800 dark:text-[#F1F5F9]">{count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {chartIndex === 3 && (
+                    <>
+                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2 flex items-center gap-1.5 px-2">
+                        <FileText className="w-3.5 h-3.5 text-[#D93030]" /> Status das Propostas
+                      </h3>
+                      {proposalStatusChart.length > 0 ? (
+                        <div className="flex items-center h-[170px]">
+                          <ResponsiveContainer width="55%" height="100%">
+                            <PieChart>
+                              <Pie data={proposalStatusChart} cx="50%" cy="50%" outerRadius={50}
+                                dataKey="value" paddingAngle={3}>
+                                {proposalStatusChart.map((_, i) => (
+                                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip content={<ChartTooltip />} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="flex-1 space-y-1 pl-2 overflow-hidden">
+                            {proposalStatusChart.map((item, i) => (
+                              <div key={item.name} className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                                  <span className="text-[10px] text-gray-500 dark:text-[#94A3B8] truncate leading-tight">{item.name}</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-800 dark:text-[#F1F5F9] ml-1 flex-shrink-0">{item.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-16 text-gray-400 text-xs">Sem propostas</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </MobileCarousel>
+        </MobileExpandableSection>
+
+      </div>
+      {/* ═══════════════════════════════════════ */}
+      {/* FIM LAYOUT MOBILE                      */}
+      {/* ═══════════════════════════════════════ */}
+      {/* Fim da área com scroll interno */}
+    </PageShell>
+  );
+}
+````
+
+## File: Figma/src/app/pages/comercial/ComercialProposals.tsx
+````typescript
+/**
+ * ComercialProposals.tsx — View de Propostas Comerciais.
+ *
+ * Papel na arquitetura MVVM: camada VIEW.
+ * Toda lógica está em useComercialProposals (ViewModel).
+ *
+ * O que exibe:
+ *  - Filtros: status da proposta e intervalo de data de criação
+ *  - Toggle de visualização: cards | tabela
+ *  - Cards: cada proposta via DataCard (mobile-first)
+ *  - Tabela: TableProposta com todos os campos de PropostaResumo
+ *  - Modal PropostaManutencaoModal: edição/visualização de proposta
+ *  - FAB (mobile): botão flutuante "+" para nova proposta
+ */
+import { useComercialProposals } from "../../viewmodels/useComercialProposals";
+import { Plus } from "lucide-react";
+import { PageShell, FilterBar, FilterSeparator, FilterDateRange, ViewModeToggle, DesktopRender } from "../../components/PageShared";
+import { ViewMode, STATUS_PROPOSTA } from "../../enums";
+import type { StatusProposta } from "../../enums";
+import { PropostaManutencaoModal } from "../../components/PropostaManutencaoModal";
+import { DataCardContainer } from "../../components/DataCardContainer";
+import { TableProposta } from "../../components/TableProposta";
+import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
+import { fmtCurrency } from "../../utils/manutencao";
+
+export function ComercialProposals() {
+  const {
+    filtered, counts, tableRows,
+    filterStatuses, setFilterStatuses,
+    dateFrom, setDateFrom, dateTo, setDateTo,
+    viewMode, setViewMode,
+    showMobileFilters, setShowMobileFilters,
+    modalPropostaAberta, setModalPropostaAberta,
+    abrirNovaProposta, refresh,
+  } = useComercialProposals();
+
+  return (
+    <PageShell>
+      {/* Header — altura fixa */}
+      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <DesktopRender>
+          <button onClick={abrirNovaProposta}
+            className="flex items-center gap-2 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-5 py-2.5 text-sm font-medium transition-colors shadow-sm">
+            <Plus className="w-4 h-4" /> Nova Proposta
+          </button>
+        </DesktopRender>
+      </div>
+
+      <FilterBar
+        isOpen={showMobileFilters}
+        onToggle={() => setShowMobileFilters(f => !f)}
+        hasActiveFilters={!!(dateFrom || dateTo || filterStatuses.length > 0)}
+      >
+        <FilterDateRange label="Data da proposta" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Status da proposta"
+          options={STATUS_PROPOSTA}
+          selected={filterStatuses}
+          onToggle={s => setFilterStatuses(prev =>
+            prev.includes(s as StatusProposta)
+              ? prev.filter(x => x !== s)
+              : [...prev, s as StatusProposta]
+          )}
+          getCount={s => counts[s] || 0}
+          mobileGrid="grid-cols-2"
+        />
+      </FilterBar>
+
+      {/* Área de listagem — cresce para preencher o restante, scroll interno */}
+      <div className="flex-1 overflow-hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col">
+        <div className="px-5 py-3.5 border-b border-gray-100 dark:border-[#2E3447] bg-gray-50/50 dark:bg-[#1A1F2E] flex-shrink-0 flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
+            {viewMode === ViewMode.Cards ? filtered.length : tableRows.length} proposta{(viewMode === ViewMode.Cards ? filtered.length : tableRows.length) !== 1 ? 's' : ''}
+          </span>
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+        </div>
+
+        {/* Modo Card */}
+        {viewMode === ViewMode.Cards && (
+          <DataCardContainer
+            cols={4}
+            data={filtered}
+            keyField="id"
+            fieldMap={{
+              title:       { field: 'nomeFantasia', format: (v: any, row: any) => v || row.id },
+              titleBadge:  'tipoOperacao',
+              subtitle:    ['id', 'codigoUnidade', 'segmento'],
+              value:       { field: 'valorProposto', format: (v: any) => fmtCurrency(v) },
+              valueSub:    { field: 'area', format: (v: any) => `${v} m²` },
+              statusBadge: 'status',
+              footer:      'dataVencimento',
+            }}
+            onClick={row => setModalPropostaAberta(row)}
+            emptyMessage="Nenhuma proposta encontrada"
+          />
+        )}
+
+        {/* Modo Tabela */}
+        {viewMode === ViewMode.Tabela && (
+          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+            <TableProposta
+              data={tableRows}
+              onRowClick={p => setModalPropostaAberta(p)}
+              emptyMessage="Nenhuma proposta encontrada"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Proposta Manutencao Modal */}
+      {modalPropostaAberta && (
+        <PropostaManutencaoModal
+          proposta={modalPropostaAberta}
+          allPropostas={viewMode === ViewMode.Cards ? filtered : tableRows}
+          onClose={() => {
+            setModalPropostaAberta(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {/* FAB Nova Proposta — mobile only */}
+      <button
+        onClick={abrirNovaProposta}
+        className="block sm:hidden fixed bottom-20 right-4 z-40 w-14 h-14 bg-[#D93030] hover:bg-[#c02828] text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+        aria-label="Nova Proposta"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+    </PageShell>
+  );
+}
+````
+
+## File: Figma/src/app/viewmodels/useComercialAvailability.ts
+````typescript
+import { useState, useMemo, useEffect } from 'react';
+import { useApi } from '../data/useApi';
+import { UnidadesService } from '../services/unidades.service';
+import { PropostasService } from '../services/propostas.service';
+import { usePersistedState } from '../shared/hooks/usePersistedState';
+import { ViewMode } from '../enums';
+import type { Piso, Corredor } from '../enums';
+import type { Unidade as UnidadeEntity } from '../entities/unidade';
+
+const NS = 'disponibilidade';
+
+export function useComercialAvailability() {
+  // ── Model ────────────────────────────────────────────────
+  const { data: todasUnidades, loading: loadingUnidades, refetch: refetchUnidades } =
+    useApi(() => UnidadesService.listar(), []);
+  const { data: todasPropostasData, refetch: refetchPropostas } =
+    useApi(() => PropostasService.listar(), []);
+
+  // ── Estado persistido ────────────────────────────────────
+  const [filterPisos,      setFilterPisos]      = usePersistedState<Piso[]>(`${NS}.filterPisos`, []);
+  const [filterCorredores, setFilterCorredores] = usePersistedState<Corredor[]>(`${NS}.filterCorredores`, []);
+  const [viewMode,         setViewMode]         = usePersistedState<ViewMode>(`${NS}.viewMode`, ViewMode.Cards, v => v, v => v as ViewMode);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // ── Estado de UI ─────────────────────────────────────────
+  const [manutencaoUnidade, setManutencaoUnidade] = useState<UnidadeEntity | null>(null);
+
+  // Forçar mapa em mobile
+  useEffect(() => {
+    const handleResize = () => { if (window.innerWidth < 640) setViewMode(ViewMode.Cards); };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Navegação entre unidades via evento
+  useEffect(() => {
+    const handler = (e: any) => setManutencaoUnidade(e.detail);
+    window.addEventListener('navigate-disponibilidade', handler);
+    return () => window.removeEventListener('navigate-disponibilidade', handler);
+  }, []);
+
+  // ── Dados derivados ──────────────────────────────────────
+  const filtered = useMemo<UnidadeEntity[]>(() => {
+    return todasUnidades === null ? [] : todasUnidades?.filter(l => {
+      const matchPiso     = filterPisos.length === 0      || filterPisos.includes(l.piso as Piso);
+      const matchCorredor = filterCorredores.length === 0 || filterCorredores.includes(l.corredor as Corredor);
+      return matchPiso && matchCorredor;
+    });
+  }, [todasUnidades, filterPisos, filterCorredores]);
+
+  const mapaData = useMemo(() => {
+    const result: Record<Piso, Record<Corredor, UnidadeEntity[]>> = {
+      P: { A: [], B: [], C: [] },
+      S: { A: [], B: [], C: [] },
+      T: { A: [], B: [], C: [] },
+    };
+    filtered.forEach(l => {
+      const piso = l.piso as Piso;
+      const corredor = l.corredor as Corredor;
+      if (result[piso] && result[piso][corredor]) {
+        result[piso][corredor].push(l);
+      }
+    });
+    return result;
+  }, [filtered]);
+
+  // ── Unidades com proposta vinculada ──────────────────────
+  const unidadesComProposta = useMemo<Set<string>>(() => {
+    if (!todasPropostasData) return new Set();
+    return new Set(
+      (todasPropostasData as any[])
+        .map(p => p.idUnidade)
+        .filter(Boolean)
+    );
+  }, [todasPropostasData]);
+
+  // ── Handlers ─────────────────────────────────────────────
+  const refetch = () => { refetchUnidades(); refetchPropostas(); };
+
+  return {
+    todasUnidades, filtered, mapaData, tableRows: filtered,
+    loadingUnidades,
+    unidadesComProposta,
+    filterPisos, setFilterPisos,
+    filterCorredores, setFilterCorredores,
+    viewMode, setViewMode,
+    showMobileFilters, setShowMobileFilters,
+    manutencaoUnidade, setManutencaoUnidade,
+    refetch,
+  };
+}
+````
+
+## File: Figma/src/app/components/Layout.tsx
+````typescript
+/**
+ * Layout.tsx — Shell principal da aplicação autenticada.
+ *
+ * Estrutura visual:
+ *  ┌─────────────────────────────────────────────────────┐
+ *  │ Sidebar (fixo, retrátil)  │  Header (título da pg.) │
+ *  │  - Logo JP Mall           ├─────────────────────────┤
+ *  │  - Nav: Comercial         │  <Outlet />             │
+ *  │    ├ Dashboard            │  (conteúdo da rota)     │
+ *  │    ├ Propostas            │                         │
+ *  │    ├ Disponibilidade      │                         │
+ *  │    └ Relatórios           │                         │
+ *  │  - Usuário + Logout       │                         │
+ *  └───────────────────────────┴─────────────────────────┘
+ *  [Mobile: nav bar inferior com 4 ícones]
+ */
+import { useState, useEffect } from "react";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import {
+  Briefcase,
+  Menu,
+  Sun,
+  Moon,
+  LogOut,
+  ChevronLeft,
+  ChevronDown,
+  LayoutDashboard,
+  FileText,
+  Store,
+  BarChart2,
+  WifiOff,
+} from "lucide-react";
+import logoFlamboyant from "../../assets/isotipo_flamboyant.webp";
+import { useAuth } from "../AuthContext";
+import { useApiHealth } from "../data/useApiHealth";
+import { MobileRender } from "./PageShared";
+
+interface SubTabDef {
+  label: string;
+  path: string;
+  icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+}
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  path: string;
+  subTabs?: SubTabDef[];
+}
+
+const navigationItems: NavItem[] = [
+  {
+    id: "comercial",
+    label: "Comercial",
+    icon: Briefcase,
+    path: "/comercial/dashboard",
+    subTabs: [
+      { label: "Dashboard",       path: "/comercial/dashboard",       icon: LayoutDashboard },
+      { label: "Propostas",       path: "/comercial/propostas",       icon: FileText },
+      { label: "Disponibilidade", path: "/comercial/disponibilidade", icon: Store },
+      { label: "Relatórios",      path: "/comercial/relatorios",      icon: BarChart2 },
+    ],
+  },
+];
+
+function getInitials(name: string): string {
+  return name.split(' ').filter(Boolean).slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'JP';
+}
+
+// ---------------------------------------------------------------------------
+// BottomNavItem — item da barra de navegação inferior (mobile)
+// ---------------------------------------------------------------------------
+function BottomNavItem({
+  label,
+  path,
+  icon: Icon,
+}: {
+  label: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+}) {
+  return (
+    <NavLink
+      to={path}
+      className={({ isActive }) =>
+        `flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg transition-colors flex-1 ${
+          isActive
+            ? "text-[#D93030] dark:text-[#E04444]"
+            : "text-gray-400 dark:text-[#64748B]"
+        }`
+      }
+    >
+      <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={1.5} />
+      <span className="text-[10px] font-medium leading-tight text-center whitespace-nowrap">
+        {label}
+      </span>
+    </NavLink>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SidebarNavSection — item de nav com subitens expansíveis
+// ---------------------------------------------------------------------------
+function SidebarNavSection({
+  item,
+  pathname,
+}: {
+  item: NavItem;
+  pathname: string;
+}) {
+  const isActive = item.subTabs
+    ? item.subTabs.some(s => pathname.startsWith(s.path))
+    : pathname.startsWith(item.path);
+
+  const [expanded, setExpanded] = useState(isActive);
+
+  useEffect(() => {
+    if (isActive) setExpanded(true);
+  }, [isActive]);
+
+  const Icon = item.icon;
+
+  if (!item.subTabs?.length) {
+    return (
+      <NavLink
+        to={item.path}
+        className={`flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap
+          ${isActive ? 'bg-white/15 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
+      >
+        <Icon className="w-4 h-4 mr-3 flex-shrink-0 opacity-90" strokeWidth={1.5} />
+        <span className="truncate">{item.label}</span>
+      </NavLink>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className={`w-full flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors
+          ${isActive ? 'text-white' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
+      >
+        <Icon className="w-4 h-4 mr-3 flex-shrink-0 opacity-90" strokeWidth={1.5} />
+        <span className="flex-1 truncate text-left">{item.label}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          strokeWidth={1.5}
+        />
+      </button>
+
+      {expanded && (
+        <div className="mt-0.5 ml-3 pl-3 border-l border-white/20 space-y-0.5">
+          {item.subTabs.map(sub => {
+            const SubIcon = sub.icon;
+            const isSubActive = pathname === sub.path || pathname.startsWith(sub.path + '/');
+            return (
+              <NavLink
+                key={sub.path}
+                to={sub.path}
+                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors
+                  ${isSubActive
+                    ? 'bg-white/15 text-white font-medium'
+                    : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
+              >
+                {SubIcon && <SubIcon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />}
+                <span className="truncate">{sub.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// FloatingControls — visíveis quando sidebar está fechado
+// ---------------------------------------------------------------------------
+function FloatingControls({
+  sidebarOpen,
+  onOpen,
+  onLogoClick,
+}: {
+  sidebarOpen: boolean;
+  onOpen: () => void;
+  onLogoClick: () => void;
+}) {
+  return (
+    <div className={`fixed top-0 left-0 z-50 h-16 flex items-center gap-2 px-4 transition-all duration-60 ease-in-out ${
+      sidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+    }`}>
+      <button
+        onClick={onOpen}
+        className="w-9 h-9 bg-[#8B1A1A] text-white rounded-lg flex items-center justify-center shadow-md hover:bg-[#a43030] transition-colors"
+        aria-label="Abrir menu"
+      >
+        <Menu className="w-4 h-4" strokeWidth={1.5} />
+      </button>
+      <button
+        onClick={onLogoClick}
+        className="h-9 flex items-center hover:opacity-80 transition-opacity"
+        aria-label="Dashboard"
+      >
+        <img src={logoFlamboyant} alt="JP Mall" className="h-8 w-auto object-contain" />
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SidebarOverlay — overlay escuro (mobile only)
+// ---------------------------------------------------------------------------
+function SidebarOverlay({
+  sidebarOpen,
+  onClose,
+}: {
+  sidebarOpen: boolean;
+  onClose: () => void;
+}) {
+  if (!sidebarOpen) return null;
+  return (
+    <MobileRender>
+      <div
+        className="fixed inset-0 z-[89] bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+    </MobileRender>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar
+// ---------------------------------------------------------------------------
+function Sidebar({
+  sidebarOpen,
+  onClose,
+  pathname,
+  userSession,
+  apiStatus,
+  onLogout,
+}: {
+  sidebarOpen: boolean;
+  onClose: () => void;
+  pathname: string;
+  userSession: { name?: string; email?: string } | null;
+  apiStatus: ReturnType<typeof useApiHealth>;
+  onLogout: () => void;
+}) {
+  return (
+    <aside
+      className={`
+        bg-[#8B1A1A] text-white flex flex-col overflow-hidden
+        transition-all duration-200 ease-in-out
+        fixed top-0 left-0 h-full z-[90]
+        sm:relative sm:z-auto sm:flex-shrink-0
+        ${sidebarOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full sm:w-0 sm:translate-x-0"}
+      `}
+    >
+      {/* Cabeçalho: logo + fechar */}
+      <div className="h-16 flex items-center px-4 border-b border-white/10 flex-shrink-0 gap-3">
+        <img src={logoFlamboyant} alt="JP Mall" className="h-7 w-auto object-contain flex-shrink-0" />
+        <span className="text-sm font-semibold text-white whitespace-nowrap flex-1 truncate tracking-wide">
+          JP Mall
+        </span>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors flex-shrink-0"
+          aria-label="Fechar menu"
+        >
+          <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
+        </button>
+      </div>
+
+      {/* Navegação */}
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+        {navigationItems.map(item => (
+          <SidebarNavSection key={item.id} item={item} pathname={pathname} />
+        ))}
+      </nav>
+
+      {/* Rodapé: usuário + logout */}
+      <div className="px-3 py-4 border-t border-white/10 flex-shrink-0 space-y-2">
+        {apiStatus === 'offline' && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 text-white/70 text-xs">
+            <WifiOff className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>API indisponível</span>
+          </div>
+        )}
+        <div className="flex items-center gap-3 px-1">
+          <div className="w-8 h-8 rounded-full bg-[#C8A882] text-[#8B1A1A] font-bold flex items-center justify-center text-xs flex-shrink-0">
+            {getInitials(userSession?.name || 'JP Mall')}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-white truncate">{userSession?.name || 'Gerente JP Mall'}</p>
+            <p className="text-xs text-white/50 truncate">{userSession?.email || 'gerente@jpmall.com.br'}</p>
+          </div>
+        </div>
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors text-sm"
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+          <span>Sair do sistema</span>
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DarkModeToggle — botão de alternância de tema
+// ---------------------------------------------------------------------------
+function DarkModeToggle({
+  darkMode,
+  onToggle,
+}: {
+  darkMode: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className="p-2 text-gray-400 dark:text-[#94A3B8] hover:text-gray-600 dark:hover:text-[#F1F5F9] hover:bg-gray-100 dark:hover:bg-[#1A1F2E] rounded-lg transition-colors duration-[75ms]"
+      aria-label="Toggle dark mode"
+    >
+      {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// HeaderActions — agrupa os controles do canto direito do header
+// ---------------------------------------------------------------------------
+function HeaderActions({
+  darkMode,
+  onToggleDark,
+}: {
+  darkMode: boolean;
+  onToggleDark: () => void;
+}) {
+  return (
+    <div className="relative z-10 flex items-center gap-2 ml-auto">
+      <DarkModeToggle darkMode={darkMode} onToggle={onToggleDark} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ContentArea — header + conteúdo da página
+// ---------------------------------------------------------------------------
+function ContentArea({
+  sidebarOpen,
+  darkMode,
+  onToggleDark,
+  currentPageLabel,
+}: {
+  sidebarOpen: boolean;
+  darkMode: boolean;
+  onToggleDark: () => void;
+  currentPageLabel: string;
+}) {
+  return (
+    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <header className={`relative h-16 bg-white dark:bg-[#242938] border-b border-gray-200 dark:border-[#2E3447] flex items-center z-10 transition-all duration-[75ms] ${
+        sidebarOpen ? 'sm:px-6 px-[4.5rem]' : 'pl-[4.5rem] sm:pl-[7.5rem] pr-6'
+      }`}>
+        {currentPageLabel && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <h1 className="text-sm font-semibold text-gray-800 dark:text-[#F1F5F9] tracking-wide">
+              {currentPageLabel}
+            </h1>
+          </div>
+        )}
+        <HeaderActions darkMode={darkMode} onToggleDark={onToggleDark} />
+      </header>
+
+      <main className="flex-1 overflow-hidden flex flex-col bg-[#F7F4EF] dark:bg-[#0F1117] transition-colors duration-[75ms] pb-16 sm:pb-0">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BottomNav — barra de navegação inferior (mobile only)
+// ---------------------------------------------------------------------------
+function BottomNav() {
+  return (
+    <MobileRender>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#242938] border-t border-gray-200 dark:border-[#2E3447] flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
+        {navigationItems.flatMap(item => item.subTabs ?? []).map(sub => (
+          sub.icon && (
+            <BottomNavItem key={sub.path} label={sub.label} path={sub.path} icon={sub.icon} />
+          )
+        ))}
+      </nav>
+    </MobileRender>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Layout
+// ---------------------------------------------------------------------------
+export function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem("sidebar_open");
+    return saved === null ? true : saved === "true";
+  });
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("jp-mall-dark-mode");
+    return saved === "true";
+  });
+  const apiStatus = useApiHealth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { logout, usuario } = useAuth();
+  const userSession = usuario ? { name: usuario.nome, email: usuario.email } : null;
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("jp-mall-dark-mode", darkMode.toString());
+  }, [darkMode]);
+
+  useEffect(() => {
+    localStorage.setItem("sidebar_open", sidebarOpen.toString());
+  }, [sidebarOpen]);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
+
+  const currentSection = navigationItems.find(item =>
+    item.subTabs?.some(s => location.pathname.startsWith(s.path)) ||
+    location.pathname.startsWith(item.path)
+  );
+  const currentPageLabel =
+    currentSection?.subTabs?.find(s => location.pathname.startsWith(s.path))?.label ??
+    currentSection?.label ??
+    '';
+
+  return (
+    <div className="h-screen flex overflow-hidden w-full bg-[#F7F4EF] dark:bg-[#0F1117] transition-colors duration-[0ms]">
+      <FloatingControls
+        sidebarOpen={sidebarOpen}
+        onOpen={() => setSidebarOpen(true)}
+        onLogoClick={() => navigate("/comercial/dashboard")}
+      />
+      <SidebarOverlay
+        sidebarOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        pathname={location.pathname}
+        userSession={userSession}
+        apiStatus={apiStatus}
+        onLogout={handleLogout}
+      />
+      <ContentArea
+        sidebarOpen={sidebarOpen}
+        darkMode={darkMode}
+        onToggleDark={() => setDarkMode(!darkMode)}
+        currentPageLabel={currentPageLabel}
+      />
+      <BottomNav />
+    </div>
   );
 }
 ````
@@ -16354,488 +17553,116 @@ func (h *PropostasHandler) SalvarTaxaTransferencia(c *gin.Context) {
 }
 ````
 
-## File: Figma/src/app/pages/comercial/ComercialDashboard.tsx
+## File: Figma/src/app/pages/comercial/ComercialAvailability.tsx
 ````typescript
-import { useComercialDashboard } from "../../viewmodels/useComercialDashboard";
+import { useComercialAvailability } from "../../viewmodels/useComercialAvailability";
+import { PageShell, FilterBar, FilterSeparator, ViewModeToggle } from "../../components/PageShared";
+import { DataTable } from "../../components/DataTable";
+import { DataCardContainer } from "../../components/DataCardContainer";
+import { DisponibilidadeManutencaoModal } from "../../components/DisponibilidadeManutencaoModal";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
-import { SEGMENTOS, PISOS, PISO_LABEL, STATUS_APROVADO, STATUS_VENCIDA } from "../../enums";
-import { Store, FileText, AlertCircle, Percent, BarChart2, Info } from "lucide-react";
-import { PageShell, FilterBar, FilterSeparator, FilterDateRange, MobileExpandableSection, TableLayoutContainer, TableLayoutItem } from "../../components/PageShared";
-import { KpiContainer } from "../../components/KpiContainer";
-import { ChartsContainer } from "../../components/ChartsContainer";
-import type { ChartStats } from "../../components/ChartsContainer";
-import { MobileCarousel } from "../../components/MobileCarousel";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell
-} from "recharts";
-import { ChartTooltip } from "../../components/ChartTooltip";
+import { PISOS, CORREDORES, ViewMode } from "../../enums";
+import type { Piso, Corredor } from "../../enums";
 
-const DS = {
-  primary: "#D93030",
-  dark:    "#8B1A1A",
-  blue:    "#3B82F6",
-  green:   "#10B981",
-  amber:   "#F59E0B",
-  gold:    "#C8A882",
-  grid:    "#e5e7eb",
-} as const;
-
-const PIE_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "#8B5CF6"];
-const CHART_COLORS = [DS.primary, DS.gold, DS.dark, DS.amber, DS.green, DS.blue, "#8B5CF6"];
-
-
-export function ComercialDashboard() {
+export function ComercialAvailability() {
   const {
-    allUnidades, proposals, kpis, chartSegmentos, chartStatus,
-    filterSegmentos, setFilterSegmentos, toggleSegmento,
-    filterPisos, setFilterPisos,
-    dateFrom, setDateFrom, dateTo, setDateTo,
-    showMobileFilters, setShowMobileFilters,
-    chartIndex, setChartIndex,
-    mobileSection, toggleSection,
-  } = useComercialDashboard();
-
-  // ── Aliases e dados derivados locais ──────────────────────
-  const stats = {
-    total:           kpis.total,
-    ocupadas:        kpis.ocupadas,
-    disponiveis:     kpis.livres,
-    contratoAtivo:   kpis.ocupadas,
-    propostasAbertas: kpis.emAnalise,
-    vencendo:        allUnidades.filter(u => {
-      const p = proposals.find(pp => pp.codigoUnidade === u.codigo && (pp.status === STATUS_APROVADO || pp.status === STATUS_VENCIDA));
-      if (!p?.fimContrato) return false;
-      const dias = Math.ceil((new Date(p.fimContrato).getTime() - Date.now()) / 86400000);
-      return dias < 60;
-    }).length,
-  };
-
-  const segmentosChart = chartSegmentos;
-  const pieData        = chartSegmentos;
-  const proposalStatusChart = chartStatus;
-  const allLojistas    = allUnidades.map(u => {
-    const propAprov = proposals.find(p => p.codigoUnidade === u.codigo && p.status === STATUS_APROVADO);
-    return {
-      ...u,
-      unidade: u.codigo,
-      nome: propAprov?.nomeFantasia || '',
-      piso: u.piso,
-      segmento: propAprov?.segmento || '',
-    };
-  });
-
-  const chartStats: ChartStats = {
-    segmentos:       segmentosChart,
-    pisos:           PISOS.map(p => ({
-      name:  PISO_LABEL[p.value],
-      value: allLojistas.filter(l => l.piso === p.value && l.status === "Ocupado").length,
-    })),
-    statusPropostas: proposalStatusChart,
-  };
+  todasUnidades, filtered,
+  filterPisos, setFilterPisos,
+  filterCorredores, setFilterCorredores,
+  viewMode, setViewMode,
+  showMobileFilters, setShowMobileFilters,
+  manutencaoUnidade, setManutencaoUnidade,
+  unidadesComProposta,   
+  refetch,
+} = useComercialAvailability();
 
   return (
     <PageShell>
-
-      <FilterBar
-        isOpen={showMobileFilters}
-        onToggle={() => setShowMobileFilters(prev => !prev)}
-        hasActiveFilters={!!(dateFrom || dateTo || filterSegmentos.length > 0 || filterPisos.length > 0)}
-      >
-        <FilterDateRange label="Data de criação" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
-        <FilterSeparator />
-        <EnumCheckboxFilter
-          label="Segmento"
-          options={SEGMENTOS}
-          selected={filterSegmentos}
-          onToggle={s => setFilterSegmentos(prev =>
-            prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
-          )}
-        />
-        <FilterSeparator />
+      <FilterBar isOpen={showMobileFilters} onToggle={() => setShowMobileFilters(f => !f)} hasActiveFilters={filterPisos.length > 0 || filterCorredores.length > 0}>
         <EnumCheckboxFilter
           label="Piso"
           options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
           selected={filterPisos}
           onToggle={p => setFilterPisos(prev =>
-            prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+            prev.includes(p as Piso) ? prev.filter(x => x !== p) : [...prev, p as Piso]
           )}
+          getCount={p => todasUnidades === null ? 0 : todasUnidades?.filter(l => l.piso === p).length}
+          mobileGrid="grid-cols-3"
+        />
+        <FilterSeparator />
+        <EnumCheckboxFilter
+          label="Corredor"
+          options={CORREDORES.map(c => ({ value: c.value, label: c.label }))}
+          selected={filterCorredores}
+          onToggle={c => setFilterCorredores(prev =>
+            prev.includes(c as Corredor) ? prev.filter(x => x !== c) : [...prev, c as Corredor]
+          )}
+          getCount={c => todasUnidades === null ? 0 : todasUnidades?.filter(l => l.corredor === c).length}
           mobileGrid="grid-cols-3"
         />
       </FilterBar>
 
-      {/* KPIs + Gráficos lado a lado — Desktop */}
-      <TableLayoutContainer cols={1} gap={4} rows={6}>
-        <TableLayoutItem>
-          <KpiContainer stats={stats} cols={4}/>
-        </TableLayoutItem>
-        <TableLayoutItem colSpan={1} rowSpan={1}>
-          <ChartsContainer stats={chartStats} cols={4} />
-        </TableLayoutItem>
-      </TableLayoutContainer>
-
-      {/* ═══════════════════════════════════════ */}
-      {/* LAYOUT MOBILE — regiões expansíveis    */}
-      {/* ═══════════════════════════════════════ */}
-      <div className="sm:hidden flex-1 flex flex-col overflow-hidden gap-2">
-
-        {/* ── REGIÃO 1: Indicadores ── */}
-        <MobileExpandableSection
-          icon={Store}
-          iconClassName="text-blue-500"
-          title="Indicadores"
-          isOpen={mobileSection === 'indicadores'}
-          onToggle={() => toggleSection('indicadores')}
-          grow={false}
-          hiddenOnDesktop={false}
-          contentClassName="px-4 pb-4 pt-3 grid grid-cols-2 gap-2"
-        >
-              <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3 flex items-center gap-2">
-                <div className="w-7 h-7 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Store className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 dark:text-[#94A3B8] leading-tight">Total de Lojas</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-base font-bold text-gray-900 dark:text-[#F1F5F9] leading-none">{stats.ocupadas}</span>
-                    <span className="text-[10px] text-gray-400">/{stats.total}</span>
-                  </div>
-                  <p className="text-[10px] text-blue-600 dark:text-blue-400">{stats.disponiveis} disp.</p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3 flex items-center gap-2">
-                <div className="w-7 h-7 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Percent className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 dark:text-[#94A3B8] leading-tight">Contratos Ativos</p>
-                  <p className="text-base font-bold text-gray-900 dark:text-[#F1F5F9] leading-none">{stats.contratoAtivo}</p>
-                  <p className="text-[10px] text-green-600 dark:text-green-400">Aprovado+Vencida</p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-[#1A1F2E] rounded-lg p-3 flex items-center gap-2">
-                <div className="w-7 h-7 bg-[#D93030]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-3.5 h-3.5 text-[#D93030]" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 dark:text-[#94A3B8] leading-tight">Propostas Abertas</p>
-                  <p className="text-base font-bold text-gray-900 dark:text-[#F1F5F9] leading-none">{stats.propostasAbertas}</p>
-                  <p className="text-[10px] text-[#D93030]">em análise</p>
-                </div>
-              </div>
-
-              <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-3 flex items-center gap-2 border border-orange-100 dark:border-orange-700/20">
-                <div className="w-7 h-7 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-3.5 h-3.5 text-orange-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-orange-600 dark:text-orange-400 leading-tight">Contr. &lt;60 dias</p>
-                  <p className="text-base font-bold text-orange-600 dark:text-orange-400 leading-none">{stats.vencendo}</p>
-                  <p className="text-[10px] text-gray-400">venc. próximo</p>
-                </div>
-              </div>
-        </MobileExpandableSection>
-
-        {/* ── REGIÃO 2: Gráficos ── */}
-        <MobileExpandableSection
-          icon={BarChart2}
-          title="Gráficos"
-          isOpen={mobileSection === 'graficos'}
-          onToggle={() => toggleSection('graficos')}
-          grow={false}
-          hiddenOnDesktop={false}
-          contentClassName="h-[230px]"
-        >
-
-          <MobileCarousel
-                index={chartIndex}
-                total={4}
-                onPrev={() => setChartIndex(i => Math.max(0, i - 1))}
-                onNext={() => setChartIndex(i => Math.min(3, i + 1))}
-              >
-                <div className="h-full p-2">
-                  {chartIndex === 0 && (
-                    <>
-                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2 flex items-center gap-1.5 px-2">
-                        <BarChart2 className="w-3.5 h-3.5 text-[#D93030]" /> Ocupação por Segmento
-                      </h3>
-                      {segmentosChart.length === 0 ? (
-                        <div className="flex items-center justify-center h-[170px] text-gray-400 text-xs">Sem dados</div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height={170}>
-                          <BarChart data={segmentosChart} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={DS.grid} />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 9 }} dy={6} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 9 }} />
-                            <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(217,48,48,0.05)" }} />
-                            <Bar dataKey="value" fill={DS.primary} radius={[3, 3, 0, 0]} barSize={18} name="Lojas" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )}
-                    </>
-                  )}
-                  {chartIndex === 1 && (
-                    <>
-                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2 flex items-center gap-1.5 px-2">
-                        <BarChart2 className="w-3.5 h-3.5 text-[#D93030]" /> Por Categoria
-                      </h3>
-                      {pieData.length > 0 ? (
-                        <div className="flex items-center h-[170px]">
-                          <ResponsiveContainer width="55%" height="100%">
-                            <PieChart>
-                              <Pie data={pieData} cx="50%" cy="50%" outerRadius={50} innerRadius={22}
-                                dataKey="value" paddingAngle={2}>
-                                {pieData.map((item, i) => (
-                                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip content={<ChartTooltip />} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="flex-1 space-y-1 pl-2">
-                            {pieData.slice(0, 5).map((item, i) => (
-                              <div key={i} className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                                  <span className="text-[10px] text-gray-500 dark:text-[#94A3B8] truncate">{item.name}</span>
-                                </div>
-                                <span className="text-[10px] font-semibold text-gray-800 dark:text-[#F1F5F9]">{item.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-16 text-gray-400 text-xs">Sem dados</div>
-                      )}
-                    </>
-                  )}
-                  {chartIndex === 2 && (
-                    <>
-                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2 flex items-center gap-1.5 px-2">
-                        <Info className="w-3.5 h-3.5 text-[#D93030]" /> Ocupação por Piso
-                      </h3>
-                      <div className="flex items-center h-[170px]">
-                        <ResponsiveContainer width="55%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={PISOS.map(p => ({
-                                name: PISO_LABEL[p.value],
-                                value: allLojistas.filter(l =>
-                                  l.piso === p.value && l.status === "Ocupado"
-                                ).length,
-                              }))}
-                              cx="50%" cy="50%" outerRadius={50} innerRadius={22}
-                              dataKey="value" paddingAngle={4}
-                            >
-                              {PISOS.map((_, i) => (
-                                <Cell key={i} fill={CHART_COLORS[i]} />
-                              ))}
-                            </Pie>
-                            <Tooltip content={<ChartTooltip />} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="flex-1 space-y-1 pl-2">
-                          {PISOS.map((p, i) => {
-                            const count = allLojistas.filter(l =>
-                              l.piso === p.value && l.status === "Ocupado"
-                            ).length;
-                            return (
-                              <div key={p.value} className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i] }} />
-                                  <span className="text-[10px] text-gray-500 dark:text-[#94A3B8]">{PISO_LABEL[p.value]}</span>
-                                </div>
-                                <span className="text-[10px] font-bold text-gray-800 dark:text-[#F1F5F9]">{count}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  {chartIndex === 3 && (
-                    <>
-                      <h3 className="text-xs font-semibold text-gray-900 dark:text-[#F1F5F9] mb-2 flex items-center gap-1.5 px-2">
-                        <FileText className="w-3.5 h-3.5 text-[#D93030]" /> Status das Propostas
-                      </h3>
-                      {proposalStatusChart.length > 0 ? (
-                        <div className="flex items-center h-[170px]">
-                          <ResponsiveContainer width="55%" height="100%">
-                            <PieChart>
-                              <Pie data={proposalStatusChart} cx="50%" cy="50%" outerRadius={50}
-                                dataKey="value" paddingAngle={3}>
-                                {proposalStatusChart.map((_, i) => (
-                                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip content={<ChartTooltip />} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="flex-1 space-y-1 pl-2 overflow-hidden">
-                            {proposalStatusChart.map((item, i) => (
-                              <div key={item.name} className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                                  <span className="text-[10px] text-gray-500 dark:text-[#94A3B8] truncate leading-tight">{item.name}</span>
-                                </div>
-                                <span className="text-[10px] font-bold text-gray-800 dark:text-[#F1F5F9] ml-1 flex-shrink-0">{item.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-16 text-gray-400 text-xs">Sem propostas</div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </MobileCarousel>
-        </MobileExpandableSection>
-
-      </div>
-      {/* ═══════════════════════════════════════ */}
-      {/* FIM LAYOUT MOBILE                      */}
-      {/* ═══════════════════════════════════════ */}
-      {/* Fim da área com scroll interno */}
-    </PageShell>
-  );
-}
-````
-
-## File: Figma/src/app/pages/comercial/ComercialProposals.tsx
-````typescript
-/**
- * ComercialProposals.tsx — View de Propostas Comerciais.
- *
- * Papel na arquitetura MVVM: camada VIEW.
- * Toda lógica está em useComercialProposals (ViewModel).
- *
- * O que exibe:
- *  - Filtros: status da proposta e intervalo de data de criação
- *  - Toggle de visualização: cards | tabela
- *  - Cards: cada proposta via DataCard (mobile-first)
- *  - Tabela: TableProposta com todos os campos de PropostaResumo
- *  - Modal PropostaManutencaoModal: edição/visualização de proposta
- *  - FAB (mobile): botão flutuante "+" para nova proposta
- */
-import { useComercialProposals } from "../../viewmodels/useComercialProposals";
-import { Plus } from "lucide-react";
-import { PageShell, FilterBar, FilterSeparator, FilterDateRange, ViewModeToggle, DesktopRender } from "../../components/PageShared";
-import { ViewMode, STATUS_PROPOSTA } from "../../enums";
-import type { StatusProposta } from "../../enums";
-import { PropostaManutencaoModal } from "../../components/PropostaManutencaoModal";
-import { DataCardContainer } from "../../components/DataCardContainer";
-import { TableProposta } from "../../components/TableProposta";
-import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
-import { fmtCurrency } from "../../utils/manutencao";
-
-export function ComercialProposals() {
-  const {
-    filtered, counts, tableRows,
-    filterStatuses, setFilterStatuses,
-    dateFrom, setDateFrom, dateTo, setDateTo,
-    viewMode, setViewMode,
-    showMobileFilters, setShowMobileFilters,
-    modalPropostaAberta, setModalPropostaAberta,
-    abrirNovaProposta, refresh,
-  } = useComercialProposals();
-
-  return (
-    <PageShell>
-      {/* Header — altura fixa */}
-      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <DesktopRender>
-          <button onClick={abrirNovaProposta}
-            className="flex items-center gap-2 bg-[#D93030] hover:bg-[#c02828] text-white rounded-xl px-5 py-2.5 text-sm font-medium transition-colors shadow-sm">
-            <Plus className="w-4 h-4" /> Nova Proposta
-          </button>
-        </DesktopRender>
-      </div>
-
-      <FilterBar
-        isOpen={showMobileFilters}
-        onToggle={() => setShowMobileFilters(f => !f)}
-        hasActiveFilters={!!(dateFrom || dateTo || filterStatuses.length > 0)}
-      >
-        <FilterDateRange label="Data da proposta" from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
-        <FilterSeparator />
-        <EnumCheckboxFilter
-          label="Status da proposta"
-          options={STATUS_PROPOSTA}
-          selected={filterStatuses}
-          onToggle={s => setFilterStatuses(prev =>
-            prev.includes(s as StatusProposta)
-              ? prev.filter(x => x !== s)
-              : [...prev, s as StatusProposta]
-          )}
-          getCount={s => counts[s] || 0}
-          mobileGrid="grid-cols-2"
-        />
-      </FilterBar>
-
-      {/* Área de listagem — cresce para preencher o restante, scroll interno */}
+      {/* Área de listagem */}
       <div className="flex-1 overflow-hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col">
+
+        {/* Contador */}
         <div className="px-5 py-3.5 border-b border-gray-100 dark:border-[#2E3447] bg-gray-50/50 dark:bg-[#1A1F2E] flex-shrink-0 flex items-center justify-between">
           <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
-            {viewMode === ViewMode.Cards ? filtered.length : tableRows.length} proposta{(viewMode === ViewMode.Cards ? filtered.length : tableRows.length) !== 1 ? 's' : ''}
+            {filtered.length} unidade{filtered.length !== 1 ? 's' : ''}
           </span>
           <ViewModeToggle value={viewMode} onChange={setViewMode} />
         </div>
 
-        {/* Modo Card */}
+        {/* Modo Cards */}
         {viewMode === ViewMode.Cards && (
           <DataCardContainer
-            cols={4}
-            data={filtered}
-            keyField="id"
-            fieldMap={{
-              title:       { field: 'nomeFantasia', format: (v: any, row: any) => v || row.id },
-              titleBadge:  'tipoOperacao',
-              subtitle:    ['id', 'codigoUnidade', 'segmento'],
-              value:       { field: 'valorProposto', format: (v: any) => fmtCurrency(v) },
-              valueSub:    { field: 'area', format: (v: any) => `${v} m²` },
-              statusBadge: 'status',
-              footer:      'dataVencimento',
-            }}
-            onClick={row => setModalPropostaAberta(row)}
-            emptyMessage="Nenhuma proposta encontrada"
-          />
+          cols={6}
+          data={filtered}
+          keyField="id"
+          fieldMap={{
+            title:    'codigo',
+            subtitle: { fields: ['piso', 'corredor'], format: ([piso, corredor]: any[]) => `${piso} · ${corredor}` },
+            value:    { field: 'area', format: (v: any) => `${v} m²` },
+          }}
+          onClick={u => setManutencaoUnidade(u)}
+          emptyMessage="Nenhuma unidade encontrada"
+          getCardClassName={u =>                                              // ← adicione
+            unidadesComProposta.has(u.id)
+              ? '!border-red-400 !bg-red-50 dark:!bg-red-950/30 dark:!border-red-700'
+              : ''
+          }
+        />
         )}
 
         {/* Modo Tabela */}
         {viewMode === ViewMode.Tabela && (
-          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-            <TableProposta
-              data={tableRows}
-              onRowClick={p => setModalPropostaAberta(p)}
-              emptyMessage="Nenhuma proposta encontrada"
+          <div className="overflow-auto flex-1">
+            <DataTable
+              data={filtered}
+              columnConfig={{
+                id:       { _specified: false },
+                criadoEm: { _specified: false },
+                codigo:   { label: 'Unidade' },
+                piso:     { label: 'Piso', _allowFilter: false },
+                corredor: { label: 'Corredor', _allowFilter: false },
+                area:     { label: 'Área (m²)', _allowFilter: false, render: (_, v) => `${v} m²` },
+                status:   { _specified: false },
+              } as any}
+              onRowClick={setManutencaoUnidade}
+              emptyMessage="Nenhuma unidade encontrada"
             />
           </div>
         )}
       </div>
 
-      {/* Proposta Manutencao Modal */}
-      {modalPropostaAberta && (
-        <PropostaManutencaoModal
-          proposta={modalPropostaAberta}
-          allPropostas={viewMode === ViewMode.Cards ? filtered : tableRows}
-          onClose={() => {
-            setModalPropostaAberta(null);
-            refresh();
-          }}
+      {/* Modals */}
+      {manutencaoUnidade && (
+        <DisponibilidadeManutencaoModal
+          unidade={manutencaoUnidade}
+          allUnidades={filtered}
+          onClose={() => { setManutencaoUnidade(null); refetch(); }}
         />
       )}
-
-      {/* FAB Nova Proposta — mobile only */}
-      <button
-        onClick={abrirNovaProposta}
-        className="block sm:hidden fixed bottom-20 right-4 z-40 w-14 h-14 bg-[#D93030] hover:bg-[#c02828] text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
-        aria-label="Nova Proposta"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
     </PageShell>
   );
 }
@@ -16867,6 +17694,9 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 
 	// Rotas públicas
 	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
+	r.GET("/api/v1/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
 
@@ -16914,591 +17744,89 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 }
 ````
 
-## File: Figma/src/app/components/Layout.tsx
-````typescript
-/**
- * Layout.tsx — Shell principal da aplicação autenticada.
- *
- * Estrutura visual:
- *  ┌─────────────────────────────────────────────────────┐
- *  │ Sidebar (fixo, retrátil)  │  Header (título da pg.) │
- *  │  - Logo JP Mall           ├─────────────────────────┤
- *  │  - Nav: Comercial         │  <Outlet />             │
- *  │    ├ Dashboard            │  (conteúdo da rota)     │
- *  │    ├ Propostas            │                         │
- *  │    ├ Disponibilidade      │                         │
- *  │    └ Relatórios           │                         │
- *  │  - Usuário + Logout       │                         │
- *  └───────────────────────────┴─────────────────────────┘
- *  [Mobile: nav bar inferior com 4 ícones]
- */
-import { useState, useEffect } from "react";
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
-import {
-  Briefcase,
-  Menu,
-  Sun,
-  Moon,
-  LogOut,
-  ChevronLeft,
-  ChevronDown,
-  LayoutDashboard,
-  FileText,
-  Store,
-  BarChart2,
-  WifiOff,
-} from "lucide-react";
-import logoFlamboyant from "../../assets/isotipo_flamboyant.webp";
-import { useAuth } from "../AuthContext";
-import { useApiHealth } from "../data/useApiHealth";
-import { MobileRender } from "./PageShared";
+## File: API/cmd/main.go
+````go
+package main
 
-interface SubTabDef {
-  label: string;
-  path: string;
-  icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+import (
+	"context"
+	"log"
+	"net/http"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	"go-api/internal/config"
+	"go-api/internal/database"
+	"go-api/internal/routes"
+)
+
+func main() {
+	cfg := config.Load()
+	gin.SetMode(cfg.Server.Mode)
+
+	db, err := database.Connect(&cfg.Database)
+	if err != nil {
+		log.Fatalf("Falha ao conectar ao banco de dados: %v", err)
+	}
+	defer database.Close()
+
+	runMigrations(cfg)
+
+	r := gin.Default()
+
+	// Montar lista de origens ignorando strings vazias
+	allowedOrigins := []string{
+		"http://localhost:5173",
+		"http://localhost:4173",
+		"http://localhost",
+	}
+	if cfg.Server.AllowedOrigin != "" {
+		allowedOrigins = append(allowedOrigins, cfg.Server.AllowedOrigin)
+	}
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     allowedOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
+	routes.Register(r, db, cfg.Server)
+
+	r.GET("/health", func(c *gin.Context) {
+		if err := db.Ping(context.Background()); err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "error", "database": "desconectado"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "database": "conectado"})
+	})
+
+	log.Printf("Servidor iniciando na porta %s", cfg.Server.Port)
+	if err := r.Run(":" + cfg.Server.Port); err != nil {
+		log.Fatalf("Falha ao iniciar servidor: %v", err)
+	}
 }
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  path: string;
-  subTabs?: SubTabDef[];
-}
+func runMigrations(cfg *config.Config) {
+	dsn := "postgres://" + cfg.Database.User + ":" + cfg.Database.Password +
+		"@" + cfg.Database.Host + ":" + cfg.Database.Port +
+		"/" + cfg.Database.Name + "?sslmode=" + cfg.Database.SSLMode
 
-const navigationItems: NavItem[] = [
-  {
-    id: "comercial",
-    label: "Comercial",
-    icon: Briefcase,
-    path: "/comercial/dashboard",
-    subTabs: [
-      { label: "Dashboard",       path: "/comercial/dashboard",       icon: LayoutDashboard },
-      { label: "Propostas",       path: "/comercial/propostas",       icon: FileText },
-      { label: "Disponibilidade", path: "/comercial/disponibilidade", icon: Store },
-      { label: "Relatórios",      path: "/comercial/relatorios",      icon: BarChart2 },
-    ],
-  },
-];
+	m, err := migrate.New("file://migrations", dsn)
+	if err != nil {
+		log.Fatalf("Falha ao inicializar migrations: %v", err)
+	}
+	defer m.Close()
 
-function getInitials(name: string): string {
-  return name.split(' ').filter(Boolean).slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'JP';
-}
-
-// ---------------------------------------------------------------------------
-// BottomNavItem — item da barra de navegação inferior (mobile)
-// ---------------------------------------------------------------------------
-function BottomNavItem({
-  label,
-  path,
-  icon: Icon,
-}: {
-  label: string;
-  path: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-}) {
-  return (
-    <NavLink
-      to={path}
-      className={({ isActive }) =>
-        `flex flex-col items-center gap-0.5 px-1 py-1 rounded-lg transition-colors flex-1 ${
-          isActive
-            ? "text-[#D93030] dark:text-[#E04444]"
-            : "text-gray-400 dark:text-[#64748B]"
-        }`
-      }
-    >
-      <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={1.5} />
-      <span className="text-[10px] font-medium leading-tight text-center whitespace-nowrap">
-        {label}
-      </span>
-    </NavLink>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SidebarNavSection — item de nav com subitens expansíveis
-// ---------------------------------------------------------------------------
-function SidebarNavSection({
-  item,
-  pathname,
-}: {
-  item: NavItem;
-  pathname: string;
-}) {
-  const isActive = item.subTabs
-    ? item.subTabs.some(s => pathname.startsWith(s.path))
-    : pathname.startsWith(item.path);
-
-  const [expanded, setExpanded] = useState(isActive);
-
-  useEffect(() => {
-    if (isActive) setExpanded(true);
-  }, [isActive]);
-
-  const Icon = item.icon;
-
-  if (!item.subTabs?.length) {
-    return (
-      <NavLink
-        to={item.path}
-        className={`flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap
-          ${isActive ? 'bg-white/15 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
-      >
-        <Icon className="w-4 h-4 mr-3 flex-shrink-0 opacity-90" strokeWidth={1.5} />
-        <span className="truncate">{item.label}</span>
-      </NavLink>
-    );
-  }
-
-  return (
-    <div>
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className={`w-full flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors
-          ${isActive ? 'text-white' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}
-      >
-        <Icon className="w-4 h-4 mr-3 flex-shrink-0 opacity-90" strokeWidth={1.5} />
-        <span className="flex-1 truncate text-left">{item.label}</span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-          strokeWidth={1.5}
-        />
-      </button>
-
-      {expanded && (
-        <div className="mt-0.5 ml-3 pl-3 border-l border-white/20 space-y-0.5">
-          {item.subTabs.map(sub => {
-            const SubIcon = sub.icon;
-            const isSubActive = pathname === sub.path || pathname.startsWith(sub.path + '/');
-            return (
-              <NavLink
-                key={sub.path}
-                to={sub.path}
-                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors
-                  ${isSubActive
-                    ? 'bg-white/15 text-white font-medium'
-                    : 'text-white/65 hover:bg-white/10 hover:text-white'}`}
-              >
-                {SubIcon && <SubIcon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />}
-                <span className="truncate">{sub.label}</span>
-              </NavLink>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// FloatingControls — visíveis quando sidebar está fechado
-// ---------------------------------------------------------------------------
-function FloatingControls({
-  sidebarOpen,
-  onOpen,
-  onLogoClick,
-}: {
-  sidebarOpen: boolean;
-  onOpen: () => void;
-  onLogoClick: () => void;
-}) {
-  return (
-    <div className={`fixed top-0 left-0 z-50 h-16 flex items-center gap-2 px-4 transition-all duration-60 ease-in-out ${
-      sidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
-    }`}>
-      <button
-        onClick={onOpen}
-        className="w-9 h-9 bg-[#8B1A1A] text-white rounded-lg flex items-center justify-center shadow-md hover:bg-[#a43030] transition-colors"
-        aria-label="Abrir menu"
-      >
-        <Menu className="w-4 h-4" strokeWidth={1.5} />
-      </button>
-      <button
-        onClick={onLogoClick}
-        className="h-9 flex items-center hover:opacity-80 transition-opacity"
-        aria-label="Dashboard"
-      >
-        <img src={logoFlamboyant} alt="JP Mall" className="h-8 w-auto object-contain" />
-      </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SidebarOverlay — overlay escuro (mobile only)
-// ---------------------------------------------------------------------------
-function SidebarOverlay({
-  sidebarOpen,
-  onClose,
-}: {
-  sidebarOpen: boolean;
-  onClose: () => void;
-}) {
-  if (!sidebarOpen) return null;
-  return (
-    <MobileRender>
-      <div
-        className="fixed inset-0 z-[89] bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-    </MobileRender>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sidebar
-// ---------------------------------------------------------------------------
-function Sidebar({
-  sidebarOpen,
-  onClose,
-  pathname,
-  userSession,
-  apiStatus,
-  onLogout,
-}: {
-  sidebarOpen: boolean;
-  onClose: () => void;
-  pathname: string;
-  userSession: { name?: string; email?: string } | null;
-  apiStatus: ReturnType<typeof useApiHealth>;
-  onLogout: () => void;
-}) {
-  return (
-    <aside
-      className={`
-        bg-[#8B1A1A] text-white flex flex-col overflow-hidden
-        transition-all duration-200 ease-in-out
-        fixed top-0 left-0 h-full z-[90]
-        sm:relative sm:z-auto sm:flex-shrink-0
-        ${sidebarOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full sm:w-0 sm:translate-x-0"}
-      `}
-    >
-      {/* Cabeçalho: logo + fechar */}
-      <div className="h-16 flex items-center px-4 border-b border-white/10 flex-shrink-0 gap-3">
-        <img src={logoFlamboyant} alt="JP Mall" className="h-7 w-auto object-contain flex-shrink-0" />
-        <span className="text-sm font-semibold text-white whitespace-nowrap flex-1 truncate tracking-wide">
-          JP Mall
-        </span>
-        <button
-          onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors flex-shrink-0"
-          aria-label="Fechar menu"
-        >
-          <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
-        </button>
-      </div>
-
-      {/* Navegação */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navigationItems.map(item => (
-          <SidebarNavSection key={item.id} item={item} pathname={pathname} />
-        ))}
-      </nav>
-
-      {/* Rodapé: usuário + logout */}
-      <div className="px-3 py-4 border-t border-white/10 flex-shrink-0 space-y-2">
-        {apiStatus === 'offline' && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 text-white/70 text-xs">
-            <WifiOff className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>API indisponível</span>
-          </div>
-        )}
-        <div className="flex items-center gap-3 px-1">
-          <div className="w-8 h-8 rounded-full bg-[#C8A882] text-[#8B1A1A] font-bold flex items-center justify-center text-xs flex-shrink-0">
-            {getInitials(userSession?.name || 'JP Mall')}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate">{userSession?.name || 'Gerente JP Mall'}</p>
-            <p className="text-xs text-white/50 truncate">{userSession?.email || 'gerente@jpmall.com.br'}</p>
-          </div>
-        </div>
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-white/70 hover:bg-white/10 hover:text-white transition-colors text-sm"
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
-          <span>Sair do sistema</span>
-        </button>
-      </div>
-    </aside>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// DarkModeToggle — botão de alternância de tema
-// ---------------------------------------------------------------------------
-function DarkModeToggle({
-  darkMode,
-  onToggle,
-}: {
-  darkMode: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      className="p-2 text-gray-400 dark:text-[#94A3B8] hover:text-gray-600 dark:hover:text-[#F1F5F9] hover:bg-gray-100 dark:hover:bg-[#1A1F2E] rounded-lg transition-colors duration-[75ms]"
-      aria-label="Toggle dark mode"
-    >
-      {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-    </button>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// HeaderActions — agrupa os controles do canto direito do header
-// ---------------------------------------------------------------------------
-function HeaderActions({
-  darkMode,
-  onToggleDark,
-}: {
-  darkMode: boolean;
-  onToggleDark: () => void;
-}) {
-  return (
-    <div className="relative z-10 flex items-center gap-2 ml-auto">
-      <DarkModeToggle darkMode={darkMode} onToggle={onToggleDark} />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ContentArea — header + conteúdo da página
-// ---------------------------------------------------------------------------
-function ContentArea({
-  sidebarOpen,
-  darkMode,
-  onToggleDark,
-  currentPageLabel,
-}: {
-  sidebarOpen: boolean;
-  darkMode: boolean;
-  onToggleDark: () => void;
-  currentPageLabel: string;
-}) {
-  return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <header className={`relative h-16 bg-white dark:bg-[#242938] border-b border-gray-200 dark:border-[#2E3447] flex items-center z-10 transition-all duration-[75ms] ${
-        sidebarOpen ? 'sm:px-6 px-[4.5rem]' : 'pl-[4.5rem] sm:pl-[7.5rem] pr-6'
-      }`}>
-        {currentPageLabel && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <h1 className="text-sm font-semibold text-gray-800 dark:text-[#F1F5F9] tracking-wide">
-              {currentPageLabel}
-            </h1>
-          </div>
-        )}
-        <HeaderActions darkMode={darkMode} onToggleDark={onToggleDark} />
-      </header>
-
-      <main className="flex-1 overflow-hidden flex flex-col bg-[#F7F4EF] dark:bg-[#0F1117] transition-colors duration-[75ms] pb-16 sm:pb-0">
-        <Outlet />
-      </main>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// BottomNav — barra de navegação inferior (mobile only)
-// ---------------------------------------------------------------------------
-function BottomNav() {
-  return (
-    <MobileRender>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#242938] border-t border-gray-200 dark:border-[#2E3447] flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
-        {navigationItems.flatMap(item => item.subTabs ?? []).map(sub => (
-          sub.icon && (
-            <BottomNavItem key={sub.path} label={sub.label} path={sub.path} icon={sub.icon} />
-          )
-        ))}
-      </nav>
-    </MobileRender>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Layout
-// ---------------------------------------------------------------------------
-export function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
-    const saved = localStorage.getItem("sidebar_open");
-    return saved === null ? true : saved === "true";
-  });
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("jp-mall-dark-mode");
-    return saved === "true";
-  });
-  const apiStatus = useApiHealth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { logout, usuario } = useAuth();
-  const userSession = usuario ? { name: usuario.nome, email: usuario.email } : null;
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("jp-mall-dark-mode", darkMode.toString());
-  }, [darkMode]);
-
-  useEffect(() => {
-    localStorage.setItem("sidebar_open", sidebarOpen.toString());
-  }, [sidebarOpen]);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/", { replace: true });
-  };
-
-  const currentSection = navigationItems.find(item =>
-    item.subTabs?.some(s => location.pathname.startsWith(s.path)) ||
-    location.pathname.startsWith(item.path)
-  );
-  const currentPageLabel =
-    currentSection?.subTabs?.find(s => location.pathname.startsWith(s.path))?.label ??
-    currentSection?.label ??
-    '';
-
-  return (
-    <div className="h-screen flex overflow-hidden w-full bg-[#F7F4EF] dark:bg-[#0F1117] transition-colors duration-[0ms]">
-      <FloatingControls
-        sidebarOpen={sidebarOpen}
-        onOpen={() => setSidebarOpen(true)}
-        onLogoClick={() => navigate("/comercial/dashboard")}
-      />
-      <SidebarOverlay
-        sidebarOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        pathname={location.pathname}
-        userSession={userSession}
-        apiStatus={apiStatus}
-        onLogout={handleLogout}
-      />
-      <ContentArea
-        sidebarOpen={sidebarOpen}
-        darkMode={darkMode}
-        onToggleDark={() => setDarkMode(!darkMode)}
-        currentPageLabel={currentPageLabel}
-      />
-      <BottomNav />
-    </div>
-  );
-}
-````
-
-## File: Figma/src/app/pages/comercial/ComercialAvailability.tsx
-````typescript
-import { useComercialAvailability } from "../../viewmodels/useComercialAvailability";
-import { PageShell, FilterBar, FilterSeparator, ViewModeToggle } from "../../components/PageShared";
-import { DataTable } from "../../components/DataTable";
-import { DataCardContainer } from "../../components/DataCardContainer";
-import { DisponibilidadeManutencaoModal } from "../../components/DisponibilidadeManutencaoModal";
-import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
-import { PISOS, CORREDORES, ViewMode } from "../../enums";
-import type { Piso, Corredor } from "../../enums";
-
-export function ComercialAvailability() {
-  const {
-    todasUnidades, filtered,
-    filterPisos, setFilterPisos,
-    filterCorredores, setFilterCorredores,
-    viewMode, setViewMode,
-    showMobileFilters, setShowMobileFilters,
-    manutencaoUnidade, setManutencaoUnidade,
-    refetch,
-  } = useComercialAvailability();
-
-  return (
-    <PageShell>
-      <FilterBar isOpen={showMobileFilters} onToggle={() => setShowMobileFilters(f => !f)} hasActiveFilters={filterPisos.length > 0 || filterCorredores.length > 0}>
-        <EnumCheckboxFilter
-          label="Piso"
-          options={PISOS.map(p => ({ value: p.value, label: p.labelShort }))}
-          selected={filterPisos}
-          onToggle={p => setFilterPisos(prev =>
-            prev.includes(p as Piso) ? prev.filter(x => x !== p) : [...prev, p as Piso]
-          )}
-          getCount={p => todasUnidades === null ? 0 : todasUnidades?.filter(l => l.piso === p).length}
-          mobileGrid="grid-cols-3"
-        />
-        <FilterSeparator />
-        <EnumCheckboxFilter
-          label="Corredor"
-          options={CORREDORES.map(c => ({ value: c.value, label: c.label }))}
-          selected={filterCorredores}
-          onToggle={c => setFilterCorredores(prev =>
-            prev.includes(c as Corredor) ? prev.filter(x => x !== c) : [...prev, c as Corredor]
-          )}
-          getCount={c => todasUnidades === null ? 0 : todasUnidades?.filter(l => l.corredor === c).length}
-          mobileGrid="grid-cols-3"
-        />
-      </FilterBar>
-
-      {/* Área de listagem */}
-      <div className="flex-1 overflow-hidden bg-white dark:bg-[#242938] rounded-xl border border-gray-100 dark:border-[#2E3447] flex flex-col">
-
-        {/* Contador */}
-        <div className="px-5 py-3.5 border-b border-gray-100 dark:border-[#2E3447] bg-gray-50/50 dark:bg-[#1A1F2E] flex-shrink-0 flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
-            {filtered.length} unidade{filtered.length !== 1 ? 's' : ''}
-          </span>
-          <ViewModeToggle value={viewMode} onChange={setViewMode} />
-        </div>
-
-        {/* Modo Cards */}
-        {viewMode === ViewMode.Cards && (
-          <DataCardContainer
-            cols={6}
-            data={filtered}
-            keyField="id"
-            fieldMap={{
-              title:    'codigo',
-              subtitle: { fields: ['piso', 'corredor'], format: ([piso, corredor]: any[]) => `${piso} · ${corredor}` },
-              value:    { field: 'area', format: (v: any) => `${v} m²` },
-            }}
-            onClick={u => setManutencaoUnidade(u)}
-            emptyMessage="Nenhuma unidade encontrada"
-          />
-        )}
-
-        {/* Modo Tabela */}
-        {viewMode === ViewMode.Tabela && (
-          <div className="overflow-auto flex-1">
-            <DataTable
-              data={filtered}
-              columnConfig={{
-                id:       { _specified: false },
-                criadoEm: { _specified: false },
-                codigo:   { label: 'Unidade' },
-                piso:     { label: 'Piso', _allowFilter: false },
-                corredor: { label: 'Corredor', _allowFilter: false },
-                area:     { label: 'Área (m²)', _allowFilter: false, render: (_, v) => `${v} m²` },
-                status:   { _specified: false },
-              } as any}
-              onRowClick={setManutencaoUnidade}
-              emptyMessage="Nenhuma unidade encontrada"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Modals */}
-      {manutencaoUnidade && (
-        <DisponibilidadeManutencaoModal
-          unidade={manutencaoUnidade}
-          allUnidades={filtered}
-          onClose={() => { setManutencaoUnidade(null); refetch(); }}
-        />
-      )}
-    </PageShell>
-  );
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("Falha ao executar migrations: %v", err)
+	}
+	log.Println("Migrations executadas com sucesso")
 }
 ````
 
