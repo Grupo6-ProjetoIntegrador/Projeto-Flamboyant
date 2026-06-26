@@ -57,6 +57,10 @@ export function ComercialAvailability() {
     unidadesComProposta.has(u.id)
       ? "!border-red-400 !bg-red-50 dark:!bg-red-950/30 dark:!border-red-700"
       : "";
+  const getTableRowClassName = (u: any) =>
+    unidadesComProposta.has(u.id)
+      ? "!bg-red-50 dark:!bg-red-950/30 hover:!bg-red-100 dark:hover:!bg-red-950/40"
+      : "";
 
   const remainingCount = filtered.length - COLLAPSED_LIMIT;
 
@@ -146,6 +150,7 @@ export function ComercialAvailability() {
                   status: { _specified: false },
                 } as any}
                 onRowClick={setManutencaoUnidade}
+                rowClassName={getTableRowClassName}
                 emptyMessage="Nenhuma unidade encontrada"
               />
             </div>

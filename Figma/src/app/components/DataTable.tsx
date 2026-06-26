@@ -21,6 +21,7 @@
  *   onRowClick    — callback ao clicar em uma linha
  *   emptyMessage  — mensagem quando data está vazio
  *   className     — classe extra no wrapper
+ *   rowClassName  — classe extra por linha
  *
  * Uso mínimo (sem configuração — exibe todas as colunas):
  *   <DataTable data={minhaLista} />
@@ -81,6 +82,7 @@ interface DataTableProps<T extends Record<string, any>> {
   onRowClick?: (row: T) => void;
   emptyMessage?: string;
   className?: string;
+  rowClassName?: (row: T) => string;
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -125,6 +127,7 @@ export function DataTable<T extends Record<string, any>>({
   onRowClick,
   emptyMessage = 'Nenhum resultado encontrado.',
   className = '',
+  rowClassName,
 }: DataTableProps<T>) {
 
   // ── Inferir colunas a partir do primeiro item ─────────────
@@ -300,6 +303,7 @@ export function DataTable<T extends Record<string, any>>({
                   hover:bg-gray-50 dark:hover:bg-[#1E2435]
                   transition-colors
                   ${onRowClick ? 'cursor-pointer' : ''}
+                  ${rowClassName?.(row) ?? ''}
                 `}
               >
                 {visibleColumns.map(col => (
