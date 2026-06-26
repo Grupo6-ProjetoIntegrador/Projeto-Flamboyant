@@ -1,5 +1,6 @@
 import type { EnumOption } from '../enums';
 import { toOptionItems } from '../enums';
+import { StyledCheckbox } from './StyledCheckbox';
 
 interface EnumCheckboxFilterProps {
   label: string;
@@ -42,16 +43,11 @@ export function EnumCheckboxFilter({
       <div className={`grid ${mobileGrid} sm:flex sm:flex-wrap sm:items-center gap-x-4 gap-y-2 sm:gap-3 sm:min-h-[36px]`}>
         {items.map(({ value, label: itemLabel }) => (
           <label key={value} className="flex items-center gap-1.5 cursor-pointer select-none">
-            <div
+            <StyledCheckbox
+              checked={selected.includes(value)}
+              ariaLabel={`Selecionar ${itemLabel}`}
               onClick={() => onToggle(value)}
-              className={`w-4 h-4 border border-gray-400 dark:border-[#64748B] flex items-center justify-center text-xs font-bold cursor-pointer flex-shrink-0
-                ${selected.includes(value)
-                  ? 'bg-white dark:bg-[#1A1F2E] text-gray-900 dark:text-[#F1F5F9]'
-                  : 'bg-white dark:bg-[#1A1F2E]'
-                }`}
-            >
-              {selected.includes(value) && 'X'}
-            </div>
+            />
             <span className="text-xs text-gray-700 dark:text-[#CBD5E1] leading-tight">
               {itemLabel}{getCount !== undefined && ` (${getCount(value)})`}
             </span>
