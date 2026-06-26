@@ -13,7 +13,7 @@ import type {
   PropostaParecerComite,
 } from "../../data/apiClient";
 import {
-  SEGMENTOS, TIPOS_PROPOSTA,
+  SEGMENTOS,
   STATUS_PROPOSTA,
   STATUS_AGUARDANDO_FIN, STATUS_AGUARDANDO_COMITE, STATUS_APROVADO,
   STATUS_VENCIDA, STATUS_OCUPADO,
@@ -127,6 +127,19 @@ function createSubResourceState(): SubResourceState {
 
 function getErrorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
+}
+
+function getTipoOperacao(proposta?: Partial<Proposta> | null) {
+  return proposta?.tipoOperacao || proposta?.tipo || TIPO_TRANSFERENCIA;
+}
+
+function normalizeProposta(proposta: Proposta): Proposta {
+  const tipoOperacao = getTipoOperacao(proposta);
+  return {
+    ...proposta,
+    tipoOperacao,
+    tipo: proposta.tipo || tipoOperacao,
+  };
 }
 
 function mergeLojaAnterior(draft: Proposta, data: PropostaLojaAnterior | null): Proposta {
@@ -352,8 +365,8 @@ export function PropostaManutencaoModal({
   initialIndex,
 }: PropostaManutencaoModalProps) {
   const [editMode, setEditMode] = useState(false);
-  const [propostaOld, setPropostaOld] = useState<Proposta>(structuredClone(proposta as Proposta));
-  const [draft, setDraft] = useState<Proposta>(structuredClone(proposta as Proposta));
+  const [propostaOld, setPropostaOld] = useState<Proposta>(normalizeProposta(structuredClone(proposta as Proposta)));
+  const [draft, setDraft] = useState<Proposta>(normalizeProposta(structuredClone(proposta as Proposta)));
   const [activeTab, setActiveTab] = useState<string>(TAB.LOJA_PROPOSTA);
   const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>({
     [TAB.LOJA_PROPOSTA]:         SUBTAB_DEFAULT[TAB.LOJA_PROPOSTA],
@@ -383,9 +396,13 @@ export function PropostaManutencaoModal({
     ? initialIndex
     : allPropostas.findIndex(p => p.id === proposta.id);
 
-  const isCessaoAtiva = draft.tipoOperacao === TIPO_CESSAO || draft.tipoOperacao === TIPO_TRANSFERENCIA;
-  const isTTAtiva = draft.tipoOperacao === TIPO_TRANSFERENCIA;
+  const tipoOperacaoAtual = getTipoOperacao(draft);
+  const tipoOperacaoPersistido = getTipoOperacao(propostaOld);
+  const isCessaoAtiva = tipoOperacaoAtual === TIPO_CESSAO || tipoOperacaoAtual === TIPO_TRANSFERENCIA;
+  const isTTAtiva = tipoOperacaoAtual === TIPO_TRANSFERENCIA;
   const isParecerAtivo = draft.status === STATUS_AGUARDANDO_COMITE;
+  const persistedAllowsCessao = tipoOperacaoPersistido === TIPO_CESSAO || tipoOperacaoPersistido === TIPO_TRANSFERENCIA;
+  const persistedAllowsTT = tipoOperacaoPersistido === TIPO_TRANSFERENCIA;
 
   const isSubResourceVisible = (tab: SubResourceTab) => {
     if (tab === TAB.CESSAO) return isCessaoAtiva;
@@ -414,7 +431,10 @@ export function PropostaManutencaoModal({
     if (!force && (currentState.loaded || currentState.loading)) return;
 
     const isNova = proposta.id.startsWith('PROP-NOVO-');
-    if (isNova) {
+    const mustWaitMainSave =
+      (tab === TAB.CESSAO && !persistedAllowsCessao) ||
+      (tab === TAB.TAXA_TRANSFERENCIA && !persistedAllowsTT);
+    if (isNova || mustWaitMainSave) {
       patchSubResourceState(tab, { loaded: true, loading: false, error: null });
       return;
     }
@@ -499,8 +519,9 @@ export function PropostaManutencaoModal({
   resetSubResourceState();
   createdPropostaIdRef.current = null;
 
-  setPropostaOld(structuredClone(proposta as Proposta));
-  setDraft(structuredClone(proposta as Proposta));
+  const propostaNormalizada = normalizeProposta(structuredClone(proposta as Proposta));
+  setPropostaOld(propostaNormalizada);
+  setDraft(structuredClone(propostaNormalizada));
   if (!proposta.unidade) {
     setEditMode(true);
   } else if (forceEditMode) {
@@ -546,7 +567,8 @@ export function PropostaManutencaoModal({
       lojista: '',
       unidade: proposta.unidade,
       segmento: SEGMENTOS[0],
-      tipo: TIPOS_PROPOSTA[0],
+      tipo: TIPO_TRANSFERENCIA,
+      tipoOperacao: TIPO_TRANSFERENCIA,
       valorProposto: 0,
       area: proposta.area,
       status: STATUS_AGUARDANDO_FIN,
@@ -659,7 +681,7 @@ export function PropostaManutencaoModal({
   };
 
   const handleCancelar = () => {
-    setDraft(structuredClone(propostaOld));
+    setDraft(normalizeProposta(structuredClone(propostaOld)));
     setDocumentosPendentes([]);
     setDocumentosRemovidos([]);
     setDocumentoParaRemover(null);
@@ -881,7 +903,7 @@ export function PropostaManutencaoModal({
             <>
               <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={handleNovo} />
               <ToolbarDivider />
-              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setDocumentosPendentes([]); setDocumentosRemovidos([]); setDocumentoParaRemover(null); setSaveError(null); createdPropostaIdRef.current = null; setEditMode(true); }} />
+              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(normalizeProposta(structuredClone(propostaOld))); setDocumentosPendentes([]); setDocumentosRemovidos([]); setDocumentoParaRemover(null); setSaveError(null); createdPropostaIdRef.current = null; setEditMode(true); }} />
               {!forceEditMode && proposta.unidade && (
                 <>
                   <ToolbarDivider />
@@ -1014,7 +1036,7 @@ export function PropostaManutencaoModal({
             setShowSairModal(false);
           }}
           onCancel={() => {
-            setDraft(structuredClone(propostaOld));
+            setDraft(normalizeProposta(structuredClone(propostaOld)));
             setEditMode(false);
             setShowSairModal(false);
             onClose();
