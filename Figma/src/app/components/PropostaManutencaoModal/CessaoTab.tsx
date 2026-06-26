@@ -29,7 +29,7 @@ export function CessaoTab({ draft, setDraft, editMode, readOnly, activeSubTab, o
           <div className="grid grid-cols-2 gap-4">
             <Field label="Res Sperata Proposta (R$)" value={draft.resSperataProposta} onChange={v => setDraft(prev => ({ ...prev, resSperataProposta: parseFloat(v) || 0 }))} type="number" editMode={editMode} readOnly={readOnly} />
             <Field label="Res Sperata Proposta (R$/m²)" value={calculados.resSperataPropostaPorM2} calculated editMode={editMode} readOnly={readOnly} />
-            <Field label="Referência de Mercado (R$/m²)" value={draft.referenciadeMercadoPorM2} disabled type="number" editMode={editMode} readOnly={readOnly} />
+            <Field label="Referência de Mercado (R$/m²)" value={draft.referenciaMercadoPorM2} disabled type="number" editMode={editMode} readOnly={readOnly} />
             <Field label="Status Res Sperata" value={draft.statusResSperata} onChange={v => setDraft(prev => ({ ...prev, statusResSperata: v }))} options={[...STATUS_RES_SPERATA]} editMode={editMode} readOnly={readOnly} />
             <Field label="Observações" value={draft.observacoesResSperata} onChange={v => setDraft(prev => ({ ...prev, observacoesResSperata: v }))} textarea className="col-span-2" editMode={editMode} readOnly={readOnly} />
           </div>

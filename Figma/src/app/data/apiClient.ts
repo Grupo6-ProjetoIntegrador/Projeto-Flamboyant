@@ -156,6 +156,27 @@ export interface PropostaFiltros {
 /** Alias de PropostaDocumento — mantido para compatibilidade com imports existentes. */
 export type Documento = PropostaDocumento;
 
+export interface PropostaResumo extends Partial<Proposta> {
+  id: string;
+  idUnidade: string;
+  codigoUnidade: string;
+  unidade: string;
+  piso: string;
+  corredor: string;
+  segmento: string;
+  tipoOperacao: string;
+  tipo: string;
+  valorProposto: number;
+  area: number;
+  status: string;
+  nomeFantasia: string;
+  dataCriacao: string;
+  atualizadoEm: string;
+  dataVencimento?: string | null;
+  fimContrato?: string | null;
+  responsavel?: string;
+}
+
 export const propostas = {
   listar: (filtros?: PropostaFiltros) => {
     const params = new URLSearchParams();

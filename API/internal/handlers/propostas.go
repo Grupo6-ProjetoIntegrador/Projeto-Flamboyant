@@ -216,6 +216,76 @@ func (h *PropostasHandler) Criar(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
+func (h *PropostasHandler) Atualizar(c *gin.Context) {
+	ctx := context.Background()
+	id := c.Param("id")
+	userID := c.GetString("user_id")
+
+	var body struct {
+		IDUnidade          *string  `json:"idUnidade"`
+		Segmento           *string  `json:"segmento"`
+		TipoOperacao       *string  `json:"tipoOperacao"`
+		ValorProposto      *float64 `json:"valorProposto"`
+		Area               *float64 `json:"area"`
+		Abl                *float64 `json:"abl"`
+		NomeFantasia       *string  `json:"nomeFantasia"`
+		AluguelPercent     *float64 `json:"aluguelPercent"`
+		PrazoLocacaoMeses  *int     `json:"prazoLocacaoMeses"`
+		AluguelPorM2       *float64 `json:"aluguelPorM2"`
+		CondominioAprox    *float64 `json:"condominioAprox"`
+		FppAprox           *float64 `json:"fppAprox"`
+		DataVencimento     *string  `json:"dataVencimento"`
+		InicioContrato     *string  `json:"inicioContrato"`
+		FimContrato        *string  `json:"fimContrato"`
+		DataInauguracao    *string  `json:"dataInauguracao"`
+		Observacoes        *string  `json:"observacoes"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
+		return
+	}
+
+	tag, err := h.db.Exec(ctx, `
+		UPDATE "Proposta"
+		SET
+			id_usuario_ultima_alt_p = $1,
+			id_unidade_p = COALESCE(NULLIF($2, '')::uuid, id_unidade_p),
+			segmento_p = COALESCE(NULLIF($3, ''), segmento_p),
+			tipo_operacao_p = COALESCE(NULLIF($4, ''), tipo_operacao_p),
+			valor_proposto_p = COALESCE($5, valor_proposto_p),
+			area_p = COALESCE($6, area_p),
+			abl_p = COALESCE($7, abl_p),
+			nome_fantasia_p = COALESCE($8, nome_fantasia_p),
+			aluguel_percent_p = COALESCE($9, aluguel_percent_p),
+			prazo_locacao_meses_p = COALESCE($10, prazo_locacao_meses_p),
+			aluguel_por_m2_p = COALESCE($11, aluguel_por_m2_p),
+			condominio_aprox_p = COALESCE($12, condominio_aprox_p),
+			fpp_aprox_p = COALESCE($13, fpp_aprox_p),
+			data_vencimento_p = COALESCE(NULLIF($14, '')::date, data_vencimento_p),
+			inicio_contrato_p = COALESCE(NULLIF($15, '')::date, inicio_contrato_p),
+			fim_contrato_p = COALESCE(NULLIF($16, '')::date, fim_contrato_p),
+			data_inauguracao_p = COALESCE(NULLIF($17, '')::date, data_inauguracao_p),
+			observacoes_p = COALESCE($18, observacoes_p),
+			atualizado_em_p = NOW()
+		WHERE id_p = $19
+	`, userID, body.IDUnidade, body.Segmento, body.TipoOperacao,
+		body.ValorProposto, body.Area, body.Abl, body.NomeFantasia,
+		body.AluguelPercent, body.PrazoLocacaoMeses, body.AluguelPorM2,
+		body.CondominioAprox, body.FppAprox, body.DataVencimento,
+		body.InicioContrato, body.FimContrato, body.DataInauguracao,
+		body.Observacoes, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao atualizar proposta"})
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Proposta não encontrada"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Proposta atualizada"})
+}
+
 func (h *PropostasHandler) AtualizarStatus(c *gin.Context) {
 	ctx := context.Background()
 	id := c.Param("id")
