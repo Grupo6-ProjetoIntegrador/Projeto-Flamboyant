@@ -52,6 +52,29 @@ export type {
 };
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+const SESSION_KEY = 'jp-mall-session';
+
+function readSessionToken(): string | null {
+  const session = sessionStorage.getItem(SESSION_KEY);
+  if (!session) return null;
+
+  try {
+    const parsed = JSON.parse(session);
+    return parsed?.token || null;
+  } catch {
+    sessionStorage.removeItem(SESSION_KEY);
+    return null;
+  }
+}
+
+function handleUnauthorized(path: string) {
+  if (path === '/auth/login') return;
+
+  sessionStorage.removeItem(SESSION_KEY);
+  if (window.location.pathname !== '/login') {
+    window.location.assign('/login');
+  }
+}
 
 // ── Tipos ────────────────────────────────────────────────────
 
@@ -66,8 +89,7 @@ async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const session = sessionStorage.getItem('jp-mall-session');
-  const token = session ? JSON.parse(session).token : null;
+  const token = readSessionToken();
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -80,6 +102,7 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: 'Erro desconhecido' }));
+    if (res.status === 401) handleUnauthorized(path);
     throw { message: body.message || res.statusText, status: res.status } as ApiError;
   }
 
@@ -271,8 +294,7 @@ export const documentos = {
   },
 
   upload: (idProposta: string, file: File, codigo: string) => {
-    const session = sessionStorage.getItem('jp-mall-session');
-    const token = session ? JSON.parse(session).token : null;
+    const token = readSessionToken();
     const form = new FormData();
     form.append('file', file);
     form.append('id_proposta', idProposta);
@@ -286,6 +308,7 @@ export const documentos = {
     }).then(async r => {
       const body = await r.json().catch(() => null);
       if (!r.ok) {
+        if (r.status === 401) handleUnauthorized('/documentos');
         throw { message: body?.message || r.statusText, status: r.status } as ApiError;
       }
       return body as Documento;
@@ -296,8 +319,7 @@ export const documentos = {
     request<void>(`/documentos/${id}`, { method: 'DELETE' }),
 
   baixar: (id: string) => {
-    const session = sessionStorage.getItem('jp-mall-session');
-    const token = session ? JSON.parse(session).token : null;
+    const token = readSessionToken();
     return fetch(`${API_BASE}/documentos/${id}/download`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -305,6 +327,7 @@ export const documentos = {
     }).then(async r => {
       if (!r.ok) {
         const body = await r.json().catch(() => null);
+        if (r.status === 401) handleUnauthorized(`/documentos/${id}/download`);
         throw { message: body?.message || r.statusText, status: r.status } as ApiError;
       }
       return r.blob();

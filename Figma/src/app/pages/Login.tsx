@@ -72,7 +72,7 @@ export function Login() {
         <div className="bg-white dark:bg-[#242938] py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border-t-4 border-[#8B1A1A] dark:border-[#E04444]">
 
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-lg p-3 mb-6 text-sm text-center">
-            Modo protótipo — qualquer credencial é aceita
+            Usuario de teste: admin@flamboyant.com.br / 123
           </div>
 
           <form className="space-y-5" onSubmit={handleLogin}>

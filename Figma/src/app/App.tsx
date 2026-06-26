@@ -18,8 +18,9 @@
  * MODO PROTÓTIPO: não há PrivateRoute — todas as rotas são acessíveis
  * sem autenticação real. Para produção, adicionar guard de rota.
  */
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './AuthContext';
+import type { ReactNode } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './AuthContext';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { ComercialDashboard } from './pages/comercial/ComercialDashboard';
@@ -27,11 +28,22 @@ import { ComercialProposals } from './pages/comercial/ComercialProposals';
 import { ComercialAvailability } from './pages/comercial/ComercialAvailability';
 import { ComercialReports } from './pages/comercial/ComercialReports';
 
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace state={{ from: location }} />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
-      <Route path="/comercial" element={<Layout />}>
+      <Route path="/comercial" element={<RequireAuth><Layout /></RequireAuth>}>
         <Route path="dashboard" element={<ComercialDashboard />} />
         <Route path="propostas" element={<ComercialProposals />} />
         <Route path="disponibilidade" element={<ComercialAvailability />} />

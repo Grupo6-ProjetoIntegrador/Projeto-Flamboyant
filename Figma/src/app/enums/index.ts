@@ -119,6 +119,7 @@ export const TIPOS_OPERACAO_COLORS: Record<TipoOperacao, BadgeColors> = {
 export enum ViewMode {
   Cards  = 'cards',
   Tabela = 'tabela',
+  Planta = 'planta',
 }
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { useComercialAvailability } from "../../viewmodels/useComercialAvailabil
 import { PageShell, FilterBar, FilterSeparator, ViewModeToggle } from "../../components/PageShared";
 import { DataTable } from "../../components/DataTable";
 import { DataCard } from "../../components/DataCard";
+import { DisponibilidadePlantaView } from "../../components/DisponibilidadePlantaView";
 import { DisponibilidadeManutencaoModal } from "../../components/DisponibilidadeManutencaoModal";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
 import { PISOS, CORREDORES, ViewMode } from "../../enums";
@@ -50,6 +51,7 @@ export function ComercialAvailability() {
     () => (hasHiddenUnits ? filtered.slice(0, COLLAPSED_LIMIT) : filtered),
     [filtered, hasHiddenUnits],
   );
+  const modalUnits = viewMode === ViewMode.Planta ? filtered : visibleUnits;
 
   const getCardClassName = (u: any) =>
     unidadesComProposta.has(u.id)
@@ -93,7 +95,7 @@ export function ComercialAvailability() {
           <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
             {filtered.length} unidade{filtered.length !== 1 ? "s" : ""}
           </span>
-          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          <ViewModeToggle value={viewMode} onChange={setViewMode} showPlanta />
         </div>
 
         {viewMode === ViewMode.Cards && (
@@ -162,12 +164,20 @@ export function ComercialAvailability() {
             )}
           </div>
         )}
+
+        {viewMode === ViewMode.Planta && (
+          <DisponibilidadePlantaView
+            unidades={filtered as any}
+            unidadesComProposta={unidadesComProposta}
+            onSelectUnidade={setManutencaoUnidade as any}
+          />
+        )}
       </div>
 
       {manutencaoUnidade && (
         <DisponibilidadeManutencaoModal
           unidade={manutencaoUnidade}
-          allUnidades={showAllUnits ? filtered : visibleUnits}
+          allUnidades={modalUnits}
           onClose={() => { setManutencaoUnidade(null); refetch(); }}
         />
       )}
