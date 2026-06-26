@@ -273,4 +273,20 @@ export const documentos = {
 
   remover: (id: string) =>
     request<void>(`/documentos/${id}`, { method: 'DELETE' }),
+
+  baixar: (id: string) => {
+    const session = sessionStorage.getItem('jp-mall-session');
+    const token = session ? JSON.parse(session).token : null;
+    return fetch(`${API_BASE}/documentos/${id}/download`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }).then(async r => {
+      if (!r.ok) {
+        const body = await r.json().catch(() => null);
+        throw { message: body?.message || r.statusText, status: r.status } as ApiError;
+      }
+      return r.blob();
+    });
+  },
 };

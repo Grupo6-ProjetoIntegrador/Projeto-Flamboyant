@@ -1359,6 +1359,8 @@ func (h *PropostasHandler) ListarDocumentos(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao ler documentos"})
 			return
 		}
+		downloadURL := documentoDownloadURL(c, doc.Id)
+		doc.UrlStorage = &downloadURL
 		result = append(result, doc)
 	}
 	if err := rows.Err(); err != nil {
@@ -1468,7 +1470,67 @@ func (h *PropostasHandler) UploadDocumento(c *gin.Context) {
 		}
 	}
 
+	downloadURL := documentoDownloadURL(c, doc.Id)
+	doc.UrlStorage = &downloadURL
 	c.JSON(http.StatusCreated, doc)
+}
+
+func (h *PropostasHandler) DownloadDocumento(c *gin.Context) {
+	ctx := context.Background()
+	id := strings.TrimSpace(c.Param("id"))
+
+	var doc struct {
+		nomeOriginal string
+		tipo         string
+		storagePath  *string
+	}
+
+	err := h.db.QueryRow(ctx, `
+		SELECT nome_original_pd,
+		       CASE tipo_pd
+		           WHEN 'PDF' THEN 'application/pdf'
+		           WHEN 'JPG' THEN 'image/jpeg'
+		           WHEN 'PNG' THEN 'image/png'
+		           WHEN 'DOCX' THEN 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+		           ELSE tipo_pd
+		       END,
+		       url_storage_pd
+		FROM "PropostaDocumento"
+		WHERE id_pd = $1
+	`, id).Scan(&doc.nomeOriginal, &doc.tipo, &doc.storagePath)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Documento nao encontrado"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar documento"})
+		return
+	}
+
+	if doc.storagePath == nil || strings.TrimSpace(*doc.storagePath) == "" {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Arquivo do documento nao encontrado"})
+		return
+	}
+
+	filePath, err := h.resolveDocumentoStoragePath(*doc.storagePath)
+	if err != nil {
+		log.Printf("DownloadDocumento: caminho invalido para documento %s: %v", id, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Caminho do documento invalido"})
+		return
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Arquivo do documento nao encontrado"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao acessar arquivo do documento"})
+		return
+	}
+
+	if doc.tipo != "" {
+		c.Header("Content-Type", doc.tipo)
+	}
+	c.FileAttachment(filePath, doc.nomeOriginal)
 }
 
 func (h *PropostasHandler) RemoverDocumento(c *gin.Context) {
@@ -1606,6 +1668,56 @@ func validateDocumentoUpload(file multipart.File, header *multipart.FileHeader, 
 	}
 
 	return canonicalMime, nil
+}
+
+func documentoDownloadURL(c *gin.Context, id string) string {
+	scheme := strings.TrimSpace(c.GetHeader("X-Forwarded-Proto"))
+	if scheme == "" {
+		scheme = "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+	}
+
+	host := strings.TrimSpace(c.GetHeader("X-Forwarded-Host"))
+	if host == "" {
+		host = c.Request.Host
+	}
+
+	basePath := strings.TrimRight(c.Request.URL.EscapedPath(), "/")
+	if idx := strings.Index(basePath, "/documentos"); idx >= 0 {
+		basePath = basePath[:idx]
+	} else {
+		basePath = "/api/v1"
+	}
+
+	return fmt.Sprintf("%s://%s%s/documentos/%s/download", scheme, host, basePath, id)
+}
+
+func (h *PropostasHandler) resolveDocumentoStoragePath(storagePath string) (string, error) {
+	cleanStoragePath := filepath.Clean(storagePath)
+	if filepath.IsAbs(cleanStoragePath) {
+		return "", errors.New("caminho absoluto nao permitido")
+	}
+
+	baseAbs, err := filepath.Abs(filepath.Clean(h.cfg.DocumentUploadDir))
+	if err != nil {
+		return "", err
+	}
+	fileAbs, err := filepath.Abs(cleanStoragePath)
+	if err != nil {
+		return "", err
+	}
+
+	rel, err := filepath.Rel(baseAbs, fileAbs)
+	if err != nil {
+		return "", err
+	}
+	if rel == "." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
+		return "", errors.New("arquivo fora do diretorio de upload")
+	}
+
+	return fileAbs, nil
 }
 
 func documentoTipoLegado(nome string) string {
