@@ -1474,24 +1474,79 @@ func (h *PropostasHandler) UploadDocumento(c *gin.Context) {
 func (h *PropostasHandler) RemoverDocumento(c *gin.Context) {
 	ctx := context.Background()
 	id := strings.TrimSpace(c.Param("id"))
+	userID := c.GetString("user_id")
 
-	var storagePath *string
+	var doc struct {
+		id           string
+		idProposta   string
+		idUsuario    string
+		codigo       string
+		nomeOriginal string
+		tipo         string
+		tamanho      string
+		storagePath  *string
+		dataUpload   *time.Time
+	}
+
 	err := h.db.QueryRow(ctx, `
-		DELETE FROM "PropostaDocumento"
+		SELECT id_pd::text, id_proposta_pd::text, id_usuario_pd::text, codigo_pd,
+		       nome_original_pd, tipo_pd, tamanho_pd, url_storage_pd, data_upload_pd
+		FROM "PropostaDocumento"
 		WHERE id_pd = $1
-		RETURNING url_storage_pd
-	`, id).Scan(&storagePath)
+	`, id).Scan(
+		&doc.id, &doc.idProposta, &doc.idUsuario, &doc.codigo,
+		&doc.nomeOriginal, &doc.tipo, &doc.tamanho, &doc.storagePath, &doc.dataUpload,
+	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Documento nao encontrado"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao remover documento"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao buscar documento"})
 		return
 	}
 
-	if storagePath != nil && *storagePath != "" {
-		_ = os.Remove(filepath.Clean(*storagePath))
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transacao"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO "PropostaDocumentoHistorico" (
+			id_documento_pdh, id_proposta_pdh, id_usuario_pdh, codigo_pdh,
+			nome_original_pdh, tipo_pdh, tamanho_pdh, url_storage_pdh,
+			data_upload_pdh, acao_pdh, excluido_em_pdh
+		) VALUES ($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9,'EXCLUSAO',NOW())
+	`, doc.id, doc.idProposta, userID, doc.codigo,
+		doc.nomeOriginal, doc.tipo, doc.tamanho, doc.storagePath, doc.dataUpload,
+	)
+	if err != nil {
+		log.Printf("RemoverDocumento: erro ao gravar historico (documento=%s usuario=%s): %v", id, userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao gravar historico do documento"})
+		return
+	}
+
+	tag, err := tx.Exec(ctx, `DELETE FROM "PropostaDocumento" WHERE id_pd = $1`, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao remover documento"})
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Documento nao encontrado"})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar remocao do documento"})
+		return
+	}
+
+	if doc.storagePath != nil && *doc.storagePath != "" {
+		if err := os.Remove(filepath.Clean(*doc.storagePath)); err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Printf("RemoverDocumento: documento removido do banco, mas falhou ao remover arquivo %s: %v", *doc.storagePath, err)
+		}
 	}
 
 	c.Status(http.StatusNoContent)

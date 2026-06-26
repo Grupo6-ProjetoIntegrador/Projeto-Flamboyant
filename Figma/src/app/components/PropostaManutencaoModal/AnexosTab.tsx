@@ -23,6 +23,7 @@ interface DocumentoRow {
   idProposta: string;
   codigo: string;
   urlStorage: string;
+  _acoes?: string;
 }
 
 export function AnexosTab({ documentos, editMode, readOnly, onAnexar, onRemover }: Props) {
@@ -66,8 +67,9 @@ export function AnexosTab({ documentos, editMode, readOnly, onAnexar, onRemover 
       idProposta:   doc.idProposta,
       codigo:       doc.codigo,
       urlStorage:   doc.urlStorage ?? '',
+      ...(editMode && !readOnly ? { _acoes: '' } : {}),
     }))
-  , [documentos]);
+  , [documentos, editMode, readOnly]);
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
