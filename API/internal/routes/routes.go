@@ -48,7 +48,7 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 		api.POST("/propostas", propostasHandler.Criar)
 		api.PUT("/propostas/:id", propostasHandler.Atualizar)
 		api.PATCH("/propostas/:id/status", propostasHandler.AtualizarStatus)
-		api.POST("/propostas/check-vencidas", propostasHandler.PlaceholderOK)
+		api.POST("/propostas/check-vencidas", propostasHandler.CheckVencidas)
 
 		api.GET("/propostas/:id/historico", propostasHandler.Historico)
 		api.GET("/propostas/:id/loja-anterior", propostasHandler.GetLojaAnterior)
