@@ -129,6 +129,7 @@ export function PropostaManutencaoModal({
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [documentosPendentes, setDocumentosPendentes] = useState<DocumentoPendente[]>([]);
   const [documentosRemovidos, setDocumentosRemovidos] = useState<string[]>([]);
+  const [documentoParaRemover, setDocumentoParaRemover] = useState<string | null>(null);
   const [showSairModal, setShowSairModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -154,6 +155,7 @@ export function PropostaManutencaoModal({
   }
   setDocumentosPendentes([]);
   setDocumentosRemovidos([]);
+  setDocumentoParaRemover(null);
   setSaveError(null);
   createdPropostaIdRef.current = null;
 
@@ -318,6 +320,7 @@ export function PropostaManutencaoModal({
     setDraft(structuredClone(propostaOld));
     setDocumentosPendentes([]);
     setDocumentosRemovidos([]);
+    setDocumentoParaRemover(null);
     setSaveError(null);
     createdPropostaIdRef.current = null;
     setEditMode(false);
@@ -369,7 +372,13 @@ export function PropostaManutencaoModal({
       setDocumentosPendentes(prev => prev.filter(d => d.id !== docId));
       return;
     }
-    setDocumentosRemovidos(prev => prev.includes(docId) ? prev : [...prev, docId]);
+    setDocumentoParaRemover(docId);
+  };
+
+  const confirmarRemocaoDocumento = () => {
+    if (!documentoParaRemover) return;
+    setDocumentosRemovidos(prev => prev.includes(documentoParaRemover) ? prev : [...prev, documentoParaRemover]);
+    setDocumentoParaRemover(null);
   };
 
   const handleSair = () => {
@@ -438,7 +447,18 @@ export function PropostaManutencaoModal({
       case TAB.HISTORICO:
         return <HistoricoTab historico={historicoEdicoes} editMode={editMode} />;
       case TAB.ANEXOS:
-        return <AnexosTab documentos={documentosVisiveis} editMode={editMode} readOnly={readOnly} onAnexar={handleAnexarDocumento} onRemover={handleRemoverDocumento} />;
+        return (
+          <AnexosTab
+            documentos={documentosVisiveis}
+            editMode={editMode}
+            readOnly={readOnly}
+            isSaving={isSaving}
+            pendentesCount={documentosPendentes.length}
+            removidosCount={documentosRemovidos.length}
+            onAnexar={handleAnexarDocumento}
+            onRemover={handleRemoverDocumento}
+          />
+        );
       default:
         return null;
     }
@@ -452,7 +472,7 @@ export function PropostaManutencaoModal({
             <>
               <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={handleNovo} />
               <ToolbarDivider />
-              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setDocumentosPendentes([]); setDocumentosRemovidos([]); setSaveError(null); createdPropostaIdRef.current = null; setEditMode(true); }} />
+              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setDocumentosPendentes([]); setDocumentosRemovidos([]); setDocumentoParaRemover(null); setSaveError(null); createdPropostaIdRef.current = null; setEditMode(true); }} />
               {!forceEditMode && proposta.unidade && (
                 <>
                   <ToolbarDivider />
@@ -591,6 +611,24 @@ export function PropostaManutencaoModal({
             onClose();
           }}
           onDismiss={() => setShowSairModal(false)}
+        />
+      )}
+
+      {documentoParaRemover && (
+        <ConfirmModal
+          title="Remover documento?"
+          subtitle="A remoção será aplicada ao gravar"
+          message={
+            <>
+              O documento sairá da lista agora, mas só será removido definitivamente quando você clicar em{' '}
+              <span className="font-semibold text-gray-800 dark:text-[#F1F5F9]">Gravar</span>.
+            </>
+          }
+          variant="sim-nao"
+          labelConfirm={<><X className="w-4 h-4" /> Remover</>}
+          labelCancel="Manter documento"
+          onConfirm={confirmarRemocaoDocumento}
+          onCancel={() => setDocumentoParaRemover(null)}
         />
       )}
 
