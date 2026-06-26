@@ -38,11 +38,12 @@
 import React from "react";
 import {
   Download, CheckSquare,
-  FileText, Check, ChevronDown, X, BarChart2
+  FileText, ChevronDown, X, BarChart2
 } from "lucide-react";
 import { PageShell, FilterBar, FilterSeparator, FilterDateRange, MobileExpandableSection } from "../../components/PageShared";
 import { MobileCarousel } from "../../components/MobileCarousel";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
+import { StyledCheckbox } from "../../components/StyledCheckbox";
 import { SEGMENTOS, PISOS, STATUS_LOJA } from "../../enums";
 import { useComercialReports, type ReportField } from "../../viewmodels/useComercialReports";
 import { DataTable } from "../../components/DataTable";
@@ -194,14 +195,12 @@ export function ComercialReports() {
                       </button>
 
                       {/* Checkbox da categoria */}
-                      <button
+                      <StyledCheckbox
+                        checked={allSel}
+                        indeterminate={someSel && !allSel}
+                        ariaLabel={`Selecionar categoria ${category}`}
                         onClick={() => toggleCategory(category)}
-                        className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
-                          ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-[#D93030]/30 border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
-                      >
-                        {allSel && <Check className="w-2.5 h-2.5 text-white" />}
-                        {someSel && !allSel && <div className="w-2 h-0.5 bg-[#D93030] rounded" />}
-                      </button>
+                      />
 
                       {/* Badge da categoria + indicação filho */}
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -225,13 +224,12 @@ export function ComercialReports() {
                             key={field.id}
                             className="flex items-center gap-2 py-1 px-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1A1F2E] transition-colors group"
                           >
-                            <button
+                            <StyledCheckbox
+                              checked={field.selected}
+                              size="sm"
+                              ariaLabel={`Selecionar campo ${field.label}`}
                               onClick={() => toggleField(field.id)}
-                              className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
-                                ${field.selected ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#3E4557] hover:border-[#D93030]'}`}
-                            >
-                              {field.selected && <Check className="w-2 h-2 text-white" />}
-                            </button>
+                            />
                             <span className="text-xs text-gray-700 dark:text-[#CBD5E1] group-hover:text-[#D93030] transition-colors leading-tight">
                               {field.label}
                             </span>
@@ -449,14 +447,13 @@ export function ComercialReports() {
                   <button onClick={() => toggleExpanded(category)} className="flex-shrink-0">
                     <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isExpandedCat ? '' : '-rotate-90'}`} />
                   </button>
-                  <div
+                  <StyledCheckbox
+                    checked={allSel}
+                    indeterminate={someSel && !allSel}
+                    size="sm"
+                    ariaLabel={`Selecionar categoria ${category}`}
                     onClick={() => toggleCategory(category)}
-                    className={`w-3.5 h-3.5 border rounded flex items-center justify-center flex-shrink-0 cursor-pointer transition-colors
-                      ${allSel ? 'bg-[#D93030] border-[#D93030]' : someSel ? 'bg-gray-300 dark:bg-[#3E4557] border-gray-400 dark:border-[#64748B]' : 'border-gray-400 dark:border-[#64748B]'}`}
-                  >
-                    {allSel && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
-                    {someSel && !allSel && <div className="w-1.5 h-0.5 bg-gray-700 dark:bg-[#CBD5E1]" />}
-                  </div>
+                  />
                   <span className={`text-xs font-semibold flex-1 ${CATEGORY_COLORS[category]}`}>{category}</span>
                   <span className="text-[10px] text-gray-400 dark:text-[#64748B] font-mono">{catFields.filter(f => f.selected).length}/{catFields.length}</span>
                 </div>
@@ -466,10 +463,12 @@ export function ComercialReports() {
                       <div key={field.id}
                         onClick={() => toggleField(field.id)}
                         className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50 dark:hover:bg-[#1A1F2E] cursor-pointer transition-colors">
-                        <div className={`w-3 h-3 border rounded flex items-center justify-center flex-shrink-0
-                          ${field.selected ? 'bg-[#D93030] border-[#D93030]' : 'border-gray-300 dark:border-[#64748B]'}`}>
-                          {field.selected && <Check className="w-2 h-2 text-white" strokeWidth={3} />}
-                        </div>
+                        <StyledCheckbox
+                          checked={field.selected}
+                          size="sm"
+                          ariaLabel={`Selecionar campo ${field.label}`}
+                          onClick={() => toggleField(field.id)}
+                        />
                         <span className="text-xs text-gray-700 dark:text-[#CBD5E1] flex-1">{field.label}</span>
                       </div>
                     ))}

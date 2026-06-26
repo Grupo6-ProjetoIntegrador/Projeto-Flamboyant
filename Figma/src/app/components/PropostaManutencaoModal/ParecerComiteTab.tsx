@@ -1,5 +1,6 @@
 import { DatePickerInput } from "../DatePickerInput";
 import { STATUS_AGUARDANDO_COMITE } from "../../enums";
+import { StyledCheckbox } from "../StyledCheckbox";
 import type { TabSharedProps } from "./types";
 
 const APROVADORES = [
@@ -27,24 +28,31 @@ export function ParecerComiteTab({ draft, setDraft, editMode, readOnly }: TabSha
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {APROVADORES.map(apr => {
           const assinado = (draft as any)[apr.campoAprovado] === 'Assinado';
+          const toggleAssinatura = () => {
+            setDraft(prev => ({
+              ...prev,
+              [apr.campoAprovado]: assinado ? '' : 'Assinado',
+              [apr.campoData]: assinado ? '' : new Date().toISOString().slice(0, 10),
+            }));
+          };
           return (
             <div key={apr.nome} className="bg-gray-50 dark:bg-[#1A1F2E] rounded-xl p-4 flex flex-col gap-3 border border-gray-100 dark:border-[#2E3447]">
               <p className="text-xs font-semibold text-gray-700 dark:text-[#F1F5F9]">{apr.nome}</p>
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <StyledCheckbox
                   checked={assinado}
-                  onChange={e => {
-                    setDraft(prev => ({
-                      ...prev,
-                      [apr.campoAprovado]: e.target.checked ? 'Assinado' : '',
-                      [apr.campoData]: e.target.checked ? new Date().toISOString().slice(0, 10) : '',
-                    }));
-                  }}
                   disabled={disabled || !podeAssinar}
-                  className="w-4 h-4 text-[#D93030] border-gray-300 dark:border-[#2E3447] rounded focus:ring-[#D93030] disabled:cursor-not-allowed"
+                  ariaLabel={`Assinar ${apr.nome}`}
+                  onClick={toggleAssinatura}
                 />
-                <label className="text-xs text-gray-600 dark:text-[#94A3B8]">Assinado</label>
+                <button
+                  type="button"
+                  onClick={disabled || !podeAssinar ? undefined : toggleAssinatura}
+                  disabled={disabled || !podeAssinar}
+                  className="text-xs text-gray-600 dark:text-[#94A3B8] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Assinado
+                </button>
                 {assinado && (
                   <span className="ml-auto text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">✓ OK</span>
                 )}

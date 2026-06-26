@@ -5,8 +5,15 @@ import { unidades } from "../../data/apiClient";
 import { useApi } from "../../data/useApi";
 import type { Proposta, StatusProposta } from "../../data/comercialData";
 import type { Unidade } from "../../data/apiClient";
+import type {
+  PropostaLojaAnterior,
+  PropostaNecessidadesTecnicas,
+  PropostaCessaoDireitos,
+  PropostaTaxaTransferencia,
+  PropostaParecerComite,
+} from "../../data/apiClient";
 import {
-  SEGMENTOS, TIPOS_PROPOSTA,
+  SEGMENTOS,
   STATUS_PROPOSTA,
   STATUS_AGUARDANDO_FIN, STATUS_AGUARDANDO_COMITE, STATUS_APROVADO,
   STATUS_VENCIDA, STATUS_OCUPADO,
@@ -92,6 +99,250 @@ const ABAS_BASE: TabDef[] = [
   { id: TAB.ANEXOS,                label: 'Anexos' },
 ];
 
+const SUBRESOURCE_TABS = [
+  TAB.LOJA_ANTERIOR,
+  TAB.NECESSIDADES_TECNICAS,
+  TAB.CESSAO,
+  TAB.TAXA_TRANSFERENCIA,
+  TAB.PARECER_COMITE,
+] as const;
+
+type SubResourceTab = typeof SUBRESOURCE_TABS[number];
+
+type SubResourceState = Record<SubResourceTab, {
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
+}>;
+
+function createSubResourceState(): SubResourceState {
+  return {
+    [TAB.LOJA_ANTERIOR]: { loading: false, loaded: false, error: null },
+    [TAB.NECESSIDADES_TECNICAS]: { loading: false, loaded: false, error: null },
+    [TAB.CESSAO]: { loading: false, loaded: false, error: null },
+    [TAB.TAXA_TRANSFERENCIA]: { loading: false, loaded: false, error: null },
+    [TAB.PARECER_COMITE]: { loading: false, loaded: false, error: null },
+  };
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  return (err as { message?: string })?.message || fallback;
+}
+
+function getTipoOperacao(proposta?: Partial<Proposta> | null) {
+  return proposta?.tipoOperacao || proposta?.tipo || TIPO_TRANSFERENCIA;
+}
+
+function normalizeProposta(proposta: Proposta): Proposta {
+  const tipoOperacao = getTipoOperacao(proposta);
+  return {
+    ...proposta,
+    tipoOperacao,
+    tipo: proposta.tipo || tipoOperacao,
+  };
+}
+
+function mergeLojaAnterior(draft: Proposta, data: PropostaLojaAnterior | null): Proposta {
+  if (!data) return draft;
+  return {
+    ...draft,
+    lojaAnteriorNomeFantasia: data.nomeFantasia ?? '',
+    lojaAnteriorSegmento: data.segmento ?? '',
+    lojaAnteriorTipoOperacao: data.tipoOperacao ?? '',
+    lojaAnteriorCTO: data.cto ?? 0,
+    lojaAnteriorABL: data.abl ?? 0,
+    lojaAnteriorAMM: data.amm ?? 0,
+    lojaAnteriorDividaAMM: data.dividaAmm ?? 0,
+    lojaAnteriorDividaNegociada: data.dividaNegociada ?? 0,
+    lojaAnteriorDividaCondominio: data.dividaCondominio ?? 0,
+    lojaAnteriorDividaFPP: data.dividaFpp ?? 0,
+    lojaAnteriorFormaPagamento: data.formaPagamento ?? '',
+  };
+}
+
+function lojaAnteriorPayload(draft: Proposta): Partial<PropostaLojaAnterior> {
+  return {
+    nomeFantasia: draft.lojaAnteriorNomeFantasia || null,
+    segmento: draft.lojaAnteriorSegmento || null,
+    tipoOperacao: draft.lojaAnteriorTipoOperacao || null,
+    cto: draft.lojaAnteriorCTO ?? null,
+    abl: draft.lojaAnteriorABL ?? null,
+    amm: draft.lojaAnteriorAMM ?? null,
+    dividaAmm: draft.lojaAnteriorDividaAMM ?? null,
+    dividaNegociada: draft.lojaAnteriorDividaNegociada ?? null,
+    dividaCondominio: draft.lojaAnteriorDividaCondominio ?? null,
+    dividaFpp: draft.lojaAnteriorDividaFPP ?? null,
+    formaPagamento: draft.lojaAnteriorFormaPagamento || null,
+  };
+}
+
+function mergeNecessidadesTecnicas(draft: Proposta, data: PropostaNecessidadesTecnicas | null): Proposta {
+  if (!data) return draft;
+  return {
+    ...draft,
+    demandaEletricaKva: data.demandaEletricaKva ?? undefined,
+    tensaoNecessaria: data.tensaoNecessaria ?? '',
+    circuitosEspeciais: data.circuitosEspeciais,
+    obsEletrica: data.obsEletrica ?? '',
+    pontoAgua: data.pontoAgua,
+    quantidadePontosAgua: data.quantidadePontosAgua ?? undefined,
+    pontoEsgoto: data.pontoEsgoto,
+    vazaoNecessariaLmin: data.vazaoNecessariaLmin ?? undefined,
+    caixaGordura: data.caixaGordura,
+    obsHidraulica: data.obsHidraulica ?? '',
+    necessitaGas: data.necessitaGas,
+    tipoGas: data.tipoGas ?? '',
+    consumoGasM3h: data.consumoGasM3h ?? undefined,
+    obsGas: data.obsGas ?? '',
+    necessitaExaustao: data.necessitaExaustao,
+    vazaoExaustaoM3h: data.vazaoExaustaoM3h ?? undefined,
+    necessitaMakeUpAr: data.necessitaMakeUpAr,
+    obsVentilacao: data.obsVentilacao ?? '',
+    areaMinimaM2: data.areaMinimaM2 ?? undefined,
+    areaMaximaM2: data.areaMaximaM2 ?? undefined,
+    peDireitoMinimoM: data.peDireitoMinimoM ?? undefined,
+    cargaPisoKgm2: data.cargaPisoKgm2 ?? undefined,
+    necessitaMezanino: data.necessitaMezanino,
+    obsEstrutura: data.obsEstrutura ?? '',
+    frenteMinimaM: data.frenteMinimaM ?? undefined,
+    tipoFachada: data.tipoFachada ?? '',
+    comunicacaoVisualLed: data.comunicacaoVisualLed,
+    obsFachada: data.obsFachada ?? '',
+    pontosDados: data.pontosDados ?? undefined,
+    necessitaFibra: data.necessitaFibra,
+    obsTelecom: data.obsTelecom ?? '',
+    statusNecessidadesTecnicas: data.status ?? '',
+    responsavelTecnico: data.idUsuarioResponsavel ?? '',
+  };
+}
+
+function necessidadesTecnicasPayload(draft: Proposta): Partial<PropostaNecessidadesTecnicas> {
+  return {
+    demandaEletricaKva: draft.demandaEletricaKva ?? null,
+    tensaoNecessaria: draft.tensaoNecessaria || null,
+    circuitosEspeciais: !!draft.circuitosEspeciais,
+    obsEletrica: draft.obsEletrica || null,
+    pontoAgua: !!draft.pontoAgua,
+    quantidadePontosAgua: draft.quantidadePontosAgua ?? null,
+    pontoEsgoto: !!draft.pontoEsgoto,
+    vazaoNecessariaLmin: draft.vazaoNecessariaLmin ?? null,
+    caixaGordura: !!draft.caixaGordura,
+    obsHidraulica: draft.obsHidraulica || null,
+    necessitaGas: !!draft.necessitaGas,
+    tipoGas: draft.tipoGas || null,
+    consumoGasM3h: draft.consumoGasM3h ?? null,
+    obsGas: draft.obsGas || null,
+    necessitaExaustao: !!draft.necessitaExaustao,
+    vazaoExaustaoM3h: draft.vazaoExaustaoM3h ?? null,
+    necessitaMakeUpAr: !!draft.necessitaMakeUpAr,
+    obsVentilacao: draft.obsVentilacao || null,
+    areaMinimaM2: draft.areaMinimaM2 ?? null,
+    areaMaximaM2: draft.areaMaximaM2 ?? null,
+    peDireitoMinimoM: draft.peDireitoMinimoM ?? null,
+    cargaPisoKgm2: draft.cargaPisoKgm2 ?? null,
+    necessitaMezanino: !!draft.necessitaMezanino,
+    obsEstrutura: draft.obsEstrutura || null,
+    frenteMinimaM: draft.frenteMinimaM ?? null,
+    tipoFachada: draft.tipoFachada || null,
+    comunicacaoVisualLed: !!draft.comunicacaoVisualLed,
+    obsFachada: draft.obsFachada || null,
+    pontosDados: draft.pontosDados ?? null,
+    necessitaFibra: !!draft.necessitaFibra,
+    obsTelecom: draft.obsTelecom || null,
+    status: draft.statusNecessidadesTecnicas || null,
+    idUsuarioResponsavel: draft.responsavelTecnico || null,
+  };
+}
+
+function mergeCessaoDireitos(draft: Proposta, data: PropostaCessaoDireitos | null): Proposta {
+  if (!data) return draft;
+  return {
+    ...draft,
+    resSperataProposta: data.resSperataProposta ?? 0,
+    referenciaMercadoPorM2: data.referenciaMercadoPorM2 ?? 0,
+    referenciadeMercadoPorM2: data.referenciaMercadoPorM2 ?? 0,
+    sinalResSperata: data.sinalResSperata ?? 0,
+    formaPagamentoSaldoResSperata: data.formaPagamentoSaldo ?? '',
+    numParcelasResSperata: data.numParcelas ?? 0,
+    statusResSperata: data.statusResSperata ?? '',
+    observacoesResSperata: data.observacoes ?? '',
+  };
+}
+
+function cessaoDireitosPayload(draft: Proposta): Partial<PropostaCessaoDireitos> {
+  return {
+    resSperataProposta: draft.resSperataProposta ?? null,
+    referenciaMercadoPorM2: draft.referenciaMercadoPorM2 ?? draft.referenciadeMercadoPorM2 ?? null,
+    sinalResSperata: draft.sinalResSperata ?? null,
+    formaPagamentoSaldo: draft.formaPagamentoSaldoResSperata || null,
+    numParcelas: draft.numParcelasResSperata ?? null,
+    statusResSperata: draft.statusResSperata || null,
+    observacoes: draft.observacoesResSperata || null,
+  };
+}
+
+function mergeTaxaTransferencia(draft: Proposta, data: PropostaTaxaTransferencia | null): Proposta {
+  if (!data) return draft;
+  return {
+    ...draft,
+    ttContratual: data.ttContratual ?? 0,
+    ttProposta: data.ttProposta ?? 0,
+    ttPropostaNumAMM: data.ttPropostaNumAmm ?? 0,
+    sinalTT: data.sinalTt ?? 0,
+    formaPagamentoTT: data.formaPagamentoTt ?? '',
+    justificativaTT: data.justificativaTt ?? '',
+    statusTT: data.statusTt ?? '',
+  };
+}
+
+function taxaTransferenciaPayload(draft: Proposta): Partial<PropostaTaxaTransferencia> {
+  return {
+    ttContratual: draft.ttContratual ?? null,
+    ttProposta: draft.ttProposta ?? null,
+    ttPropostaNumAmm: draft.ttPropostaNumAMM ?? null,
+    sinalTt: draft.sinalTT ?? null,
+    formaPagamentoTt: draft.formaPagamentoTT || null,
+    justificativaTt: draft.justificativaTT || null,
+    statusTt: draft.statusTT || null,
+  };
+}
+
+function assinaturaParaTexto(assinado: boolean) {
+  return assinado ? 'Assinado' : '';
+}
+
+function mergeParecerComite(draft: Proposta, data: PropostaParecerComite | null): Proposta {
+  if (!data) return draft;
+  return {
+    ...draft,
+    parecerPresidente: assinaturaParaTexto(data.presidente),
+    parecerPresidenteData: data.presidenteData ?? '',
+    parecerDiretoriaComp1: assinaturaParaTexto(data.diretoriaComp1),
+    parecerDiretoriaComp1Data: data.diretoriaComp1Data ?? '',
+    parecerDiretoriaComp2: assinaturaParaTexto(data.diretoriaComp2),
+    parecerDiretoriaComp2Data: data.diretoriaComp2Data ?? '',
+    parecerSuperintendente: assinaturaParaTexto(data.superintendente),
+    parecerSuperintendenteData: data.superintendenteData ?? '',
+    parecerInNetworking: assinaturaParaTexto(data.inNetworking),
+    parecerInNetworkingData: data.inNetworkingData ?? '',
+  };
+}
+
+function parecerComitePayload(draft: Proposta): Partial<PropostaParecerComite> {
+  return {
+    presidente: draft.parecerPresidente === 'Assinado',
+    presidenteData: draft.parecerPresidenteData || null,
+    diretoriaComp1: draft.parecerDiretoriaComp1 === 'Assinado',
+    diretoriaComp1Data: draft.parecerDiretoriaComp1Data || null,
+    diretoriaComp2: draft.parecerDiretoriaComp2 === 'Assinado',
+    diretoriaComp2Data: draft.parecerDiretoriaComp2Data || null,
+    superintendente: draft.parecerSuperintendente === 'Assinado',
+    superintendenteData: draft.parecerSuperintendenteData || null,
+    inNetworking: draft.parecerInNetworking === 'Assinado',
+    inNetworkingData: draft.parecerInNetworkingData || null,
+  };
+}
+
 type PropostaInput = Proposta | PropostaResumo;
 
 interface PropostaManutencaoModalProps {
@@ -114,8 +365,8 @@ export function PropostaManutencaoModal({
   initialIndex,
 }: PropostaManutencaoModalProps) {
   const [editMode, setEditMode] = useState(false);
-  const [propostaOld, setPropostaOld] = useState<Proposta>(structuredClone(proposta as Proposta));
-  const [draft, setDraft] = useState<Proposta>(structuredClone(proposta as Proposta));
+  const [propostaOld, setPropostaOld] = useState<Proposta>(normalizeProposta(structuredClone(proposta as Proposta)));
+  const [draft, setDraft] = useState<Proposta>(normalizeProposta(structuredClone(proposta as Proposta)));
   const [activeTab, setActiveTab] = useState<string>(TAB.LOJA_PROPOSTA);
   const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>({
     [TAB.LOJA_PROPOSTA]:         SUBTAB_DEFAULT[TAB.LOJA_PROPOSTA],
@@ -133,6 +384,8 @@ export function PropostaManutencaoModal({
   const [showSairModal, setShowSairModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [subResources, setSubResources] = useState<SubResourceState>(() => createSubResourceState());
+  const subResourcesRef = useRef<SubResourceState>(createSubResourceState());
   const isSavingRef = useRef(false);
   const createdPropostaIdRef = useRef<string | null>(null);
 
@@ -142,6 +395,112 @@ export function PropostaManutencaoModal({
   const currentIndex = initialIndex !== undefined
     ? initialIndex
     : allPropostas.findIndex(p => p.id === proposta.id);
+
+  const tipoOperacaoAtual = getTipoOperacao(draft);
+  const tipoOperacaoPersistido = getTipoOperacao(propostaOld);
+  const isCessaoAtiva = tipoOperacaoAtual === TIPO_CESSAO || tipoOperacaoAtual === TIPO_TRANSFERENCIA;
+  const isTTAtiva = tipoOperacaoAtual === TIPO_TRANSFERENCIA;
+  const isParecerAtivo = draft.status === STATUS_AGUARDANDO_COMITE;
+  const persistedAllowsCessao = tipoOperacaoPersistido === TIPO_CESSAO || tipoOperacaoPersistido === TIPO_TRANSFERENCIA;
+  const persistedAllowsTT = tipoOperacaoPersistido === TIPO_TRANSFERENCIA;
+
+  const isSubResourceVisible = (tab: SubResourceTab) => {
+    if (tab === TAB.CESSAO) return isCessaoAtiva;
+    if (tab === TAB.TAXA_TRANSFERENCIA) return isTTAtiva;
+    if (tab === TAB.PARECER_COMITE) return isParecerAtivo;
+    return true;
+  };
+
+  const patchSubResourceState = (tab: SubResourceTab, patch: Partial<SubResourceState[SubResourceTab]>) => {
+    setSubResources(prev => {
+      const next = { ...prev, [tab]: { ...prev[tab], ...patch } };
+      subResourcesRef.current = next;
+      return next;
+    });
+  };
+
+  const resetSubResourceState = () => {
+    const next = createSubResourceState();
+    subResourcesRef.current = next;
+    setSubResources(next);
+  };
+
+  const loadSubResource = async (tab: SubResourceTab, force = false) => {
+    if (!isSubResourceVisible(tab)) return;
+    const currentState = subResourcesRef.current[tab];
+    if (!force && (currentState.loaded || currentState.loading)) return;
+
+    const isNova = proposta.id.startsWith('PROP-NOVO-');
+    const mustWaitMainSave =
+      (tab === TAB.CESSAO && !persistedAllowsCessao) ||
+      (tab === TAB.TAXA_TRANSFERENCIA && !persistedAllowsTT);
+    if (isNova || mustWaitMainSave) {
+      patchSubResourceState(tab, { loaded: true, loading: false, error: null });
+      return;
+    }
+
+    patchSubResourceState(tab, { loading: true, error: null });
+    try {
+      if (tab === TAB.LOJA_ANTERIOR) {
+        const data = await propostasApi.lojaAnterior.detalhe(proposta.id);
+        setDraft(prev => mergeLojaAnterior(prev, data ?? null));
+        setPropostaOld(prev => mergeLojaAnterior(prev, data ?? null));
+      } else if (tab === TAB.NECESSIDADES_TECNICAS) {
+        const data = await propostasApi.necessidadesTecnicas.detalhe(proposta.id);
+        setDraft(prev => mergeNecessidadesTecnicas(prev, data ?? null));
+        setPropostaOld(prev => mergeNecessidadesTecnicas(prev, data ?? null));
+      } else if (tab === TAB.CESSAO) {
+        const data = await propostasApi.cessaoDireitos.detalhe(proposta.id);
+        setDraft(prev => mergeCessaoDireitos(prev, data ?? null));
+        setPropostaOld(prev => mergeCessaoDireitos(prev, data ?? null));
+      } else if (tab === TAB.TAXA_TRANSFERENCIA) {
+        const data = await propostasApi.taxaTransferencia.detalhe(proposta.id);
+        setDraft(prev => mergeTaxaTransferencia(prev, data ?? null));
+        setPropostaOld(prev => mergeTaxaTransferencia(prev, data ?? null));
+      } else if (tab === TAB.PARECER_COMITE) {
+        const data = await propostasApi.parecerComite.detalhe(proposta.id);
+        setDraft(prev => mergeParecerComite(prev, data ?? null));
+        setPropostaOld(prev => mergeParecerComite(prev, data ?? null));
+      }
+      patchSubResourceState(tab, { loading: false, loaded: true, error: null });
+    } catch (err) {
+      patchSubResourceState(tab, {
+        loading: false,
+        loaded: false,
+        error: getErrorMessage(err, 'Nao foi possivel carregar esta aba.'),
+      });
+    }
+  };
+
+  const salvarSubRecursosCarregados = async (idProposta: string) => {
+    const saveTab = async (tab: SubResourceTab, action: () => Promise<unknown>) => {
+      if (!subResources[tab].loaded || !isSubResourceVisible(tab)) return;
+      patchSubResourceState(tab, { error: null });
+      try {
+        await action();
+      } catch (err) {
+        const error = getErrorMessage(err, 'Nao foi possivel salvar esta aba.');
+        patchSubResourceState(tab, { error });
+        throw new Error(error);
+      }
+    };
+
+    await saveTab(TAB.LOJA_ANTERIOR, () =>
+      propostasApi.lojaAnterior.salvar(idProposta, lojaAnteriorPayload(draft))
+    );
+    await saveTab(TAB.NECESSIDADES_TECNICAS, () =>
+      propostasApi.necessidadesTecnicas.salvar(idProposta, necessidadesTecnicasPayload(draft))
+    );
+    await saveTab(TAB.CESSAO, () =>
+      propostasApi.cessaoDireitos.salvar(idProposta, cessaoDireitosPayload(draft))
+    );
+    await saveTab(TAB.TAXA_TRANSFERENCIA, () =>
+      propostasApi.taxaTransferencia.salvar(idProposta, taxaTransferenciaPayload(draft))
+    );
+    await saveTab(TAB.PARECER_COMITE, () =>
+      propostasApi.parecerComite.salvar(idProposta, parecerComitePayload(draft))
+    );
+  };
 
   useEffect(() => {
   const isNova = proposta.id.startsWith('PROP-NOVO-');
@@ -157,10 +516,12 @@ export function PropostaManutencaoModal({
   setDocumentosRemovidos([]);
   setDocumentoParaRemover(null);
   setSaveError(null);
+  resetSubResourceState();
   createdPropostaIdRef.current = null;
 
-  setPropostaOld(structuredClone(proposta as Proposta));
-  setDraft(structuredClone(proposta as Proposta));
+  const propostaNormalizada = normalizeProposta(structuredClone(proposta as Proposta));
+  setPropostaOld(propostaNormalizada);
+  setDraft(structuredClone(propostaNormalizada));
   if (!proposta.unidade) {
     setEditMode(true);
   } else if (forceEditMode) {
@@ -206,7 +567,8 @@ export function PropostaManutencaoModal({
       lojista: '',
       unidade: proposta.unidade,
       segmento: SEGMENTOS[0],
-      tipo: TIPOS_PROPOSTA[0],
+      tipo: TIPO_TRANSFERENCIA,
+      tipoOperacao: TIPO_TRANSFERENCIA,
       valorProposto: 0,
       area: proposta.area,
       status: STATUS_AGUARDANDO_FIN,
@@ -278,6 +640,8 @@ export function PropostaManutencaoModal({
         setPropostaOld(structuredClone(draft));
       }
 
+      await salvarSubRecursosCarregados(idPropostaParaAnexos);
+
       for (const docId of documentosRemovidos) {
         await documentosApi.remover(docId);
       }
@@ -317,7 +681,7 @@ export function PropostaManutencaoModal({
   };
 
   const handleCancelar = () => {
-    setDraft(structuredClone(propostaOld));
+    setDraft(normalizeProposta(structuredClone(propostaOld)));
     setDocumentosPendentes([]);
     setDocumentosRemovidos([]);
     setDocumentoParaRemover(null);
@@ -427,23 +791,69 @@ export function PropostaManutencaoModal({
     }
   };
 
-  const isCessaoAtiva = draft.tipoOperacao === TIPO_CESSAO || draft.tipoOperacao === TIPO_TRANSFERENCIA;
-  const isTTAtiva = draft.tipoOperacao === TIPO_TRANSFERENCIA;
-
   const ABAS_PRINCIPAIS = useMemo<TabDef[]>(() =>
     ABAS_BASE
       .filter(a => a.id !== TAB.HISTORICO || !readOnly)
-      .map(a => {
-        if (a.id === TAB.CESSAO)           return { ...a, disabled: !isCessaoAtiva };
-        if (a.id === TAB.TAXA_TRANSFERENCIA) return { ...a, disabled: !isTTAtiva };
-        return a;
-      })
-  , [isCessaoAtiva, isTTAtiva, readOnly]);
+      .filter(a => a.id !== TAB.CESSAO || isCessaoAtiva)
+      .filter(a => a.id !== TAB.TAXA_TRANSFERENCIA || isTTAtiva)
+      .filter(a => a.id !== TAB.PARECER_COMITE || isParecerAtivo)
+  , [isCessaoAtiva, isTTAtiva, isParecerAtivo, readOnly]);
+
+  useEffect(() => {
+    if (!ABAS_PRINCIPAIS.some(aba => aba.id === activeTab)) {
+      setActiveTab(TAB.LOJA_PROPOSTA);
+    }
+  }, [ABAS_PRINCIPAIS, activeTab]);
+
+  useEffect(() => {
+    if (SUBRESOURCE_TABS.includes(activeTab as SubResourceTab)) {
+      void loadSubResource(activeTab as SubResourceTab);
+    }
+  }, [activeTab, proposta.id, isCessaoAtiva, isTTAtiva, isParecerAtivo]);
 
   const tabProps = { draft, setDraft, editMode, readOnly };
 
   const subTabChange = (tab: string) => (st: string) =>
     setActiveSubTab((prev: Record<string, string>) => ({ ...prev, [tab]: st }));
+
+  function renderSubResourceTab(tab: SubResourceTab, content: React.ReactNode) {
+    const state = subResources[tab];
+    if (state.loading) {
+      return (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <p className="text-sm font-medium text-gray-500 dark:text-[#94A3B8]">Carregando dados da aba...</p>
+        </div>
+      );
+    }
+    if (state.error && state.loaded) {
+      return (
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-900/40">
+            <p className="text-xs font-medium text-red-700 dark:text-red-300">{state.error}</p>
+          </div>
+          {content}
+        </div>
+      );
+    }
+    if (state.error) {
+      return (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20 p-4">
+            <p className="text-sm font-semibold text-red-700 dark:text-red-300">Nao foi possivel carregar ou salvar esta aba.</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-300">{state.error}</p>
+            <button
+              type="button"
+              onClick={() => void loadSubResource(tab, true)}
+              className="mt-3 h-8 px-3 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return content;
+  }
 
   function renderTabContent() {
     const documentosVisiveis = [
@@ -455,15 +865,15 @@ export function PropostaManutencaoModal({
       case TAB.LOJA_PROPOSTA:
         return <LojaPropostaTab {...tabProps} activeSubTab={activeSubTab[TAB.LOJA_PROPOSTA]} onSubTabChange={subTabChange(TAB.LOJA_PROPOSTA)} />;
       case TAB.LOJA_ANTERIOR:
-        return <LojaAnteriorTab {...tabProps} activeSubTab={activeSubTab[TAB.LOJA_ANTERIOR] || SUBTAB_DEFAULT[TAB.LOJA_ANTERIOR]} onSubTabChange={subTabChange(TAB.LOJA_ANTERIOR)} calculados={calculados} />;
+        return renderSubResourceTab(TAB.LOJA_ANTERIOR, <LojaAnteriorTab {...tabProps} activeSubTab={activeSubTab[TAB.LOJA_ANTERIOR] || SUBTAB_DEFAULT[TAB.LOJA_ANTERIOR]} onSubTabChange={subTabChange(TAB.LOJA_ANTERIOR)} calculados={calculados} />);
       case TAB.NECESSIDADES_TECNICAS:
-        return <NecessidadesTecnicasTab {...tabProps} activeSubTab={activeSubTab[TAB.NECESSIDADES_TECNICAS] || SUBTAB_DEFAULT[TAB.NECESSIDADES_TECNICAS]} onSubTabChange={subTabChange(TAB.NECESSIDADES_TECNICAS)} />;
+        return renderSubResourceTab(TAB.NECESSIDADES_TECNICAS, <NecessidadesTecnicasTab {...tabProps} activeSubTab={activeSubTab[TAB.NECESSIDADES_TECNICAS] || SUBTAB_DEFAULT[TAB.NECESSIDADES_TECNICAS]} onSubTabChange={subTabChange(TAB.NECESSIDADES_TECNICAS)} />);
       case TAB.CESSAO:
-        return <CessaoTab {...tabProps} activeSubTab={activeSubTab[TAB.CESSAO]} onSubTabChange={subTabChange(TAB.CESSAO)} calculados={calculados} />;
+        return renderSubResourceTab(TAB.CESSAO, <CessaoTab {...tabProps} activeSubTab={activeSubTab[TAB.CESSAO]} onSubTabChange={subTabChange(TAB.CESSAO)} calculados={calculados} />);
       case TAB.TAXA_TRANSFERENCIA:
-        return <TaxaTransferenciaTab {...tabProps} activeSubTab={activeSubTab[TAB.TAXA_TRANSFERENCIA]} onSubTabChange={subTabChange(TAB.TAXA_TRANSFERENCIA)} calculados={calculados} />;
+        return renderSubResourceTab(TAB.TAXA_TRANSFERENCIA, <TaxaTransferenciaTab {...tabProps} activeSubTab={activeSubTab[TAB.TAXA_TRANSFERENCIA]} onSubTabChange={subTabChange(TAB.TAXA_TRANSFERENCIA)} calculados={calculados} />);
       case TAB.PARECER_COMITE:
-        return <ParecerComiteTab {...tabProps} />;
+        return renderSubResourceTab(TAB.PARECER_COMITE, <ParecerComiteTab {...tabProps} />);
       case TAB.HISTORICO:
         return <HistoricoTab historico={historicoEdicoes} editMode={editMode} />;
       case TAB.ANEXOS:
@@ -493,7 +903,7 @@ export function PropostaManutencaoModal({
             <>
               <ToolbarBtn icon={<FilePlus className="w-4 h-4" />} label="Novo" onClick={handleNovo} />
               <ToolbarDivider />
-              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(structuredClone(propostaOld)); setDocumentosPendentes([]); setDocumentosRemovidos([]); setDocumentoParaRemover(null); setSaveError(null); createdPropostaIdRef.current = null; setEditMode(true); }} />
+              <ToolbarBtn icon={<Pencil className="w-4 h-4" />} label="Editar" onClick={() => { setDraft(normalizeProposta(structuredClone(propostaOld))); setDocumentosPendentes([]); setDocumentosRemovidos([]); setDocumentoParaRemover(null); setSaveError(null); createdPropostaIdRef.current = null; setEditMode(true); }} />
               {!forceEditMode && proposta.unidade && (
                 <>
                   <ToolbarDivider />
@@ -626,7 +1036,7 @@ export function PropostaManutencaoModal({
             setShowSairModal(false);
           }}
           onCancel={() => {
-            setDraft(structuredClone(propostaOld));
+            setDraft(normalizeProposta(structuredClone(propostaOld)));
             setEditMode(false);
             setShowSairModal(false);
             onClose();
