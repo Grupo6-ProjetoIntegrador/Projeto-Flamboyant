@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from "react";
 import {
   CheckCircle2,
   Clock3,
+  Download,
   File,
   FileText,
   ImageIcon,
@@ -22,6 +23,7 @@ interface Props {
   removidosCount?: number;
   onAnexar: () => void;
   onRemover: (docId: string) => void;
+  onBaixar: (docId: string) => void;
 }
 
 interface DocumentoRow {
@@ -103,6 +105,7 @@ export function AnexosTab({
   removidosCount = 0,
   onAnexar,
   onRemover,
+  onBaixar,
 }: Props) {
   const columnConfig = useMemo(() => ({
     nomeOriginal: {
@@ -145,22 +148,38 @@ export function AnexosTab({
         _allowFilter: false,
         sortable: false,
         render: (row: DocumentoRow) => (
-          <button
-            type="button"
-            disabled={isSaving}
-            title={row.status === "Pendente" ? "Remover anexo pendente" : "Remover documento"}
-            onClick={e => {
-              e.stopPropagation();
-              if (!isSaving) onRemover(row.id);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center justify-end gap-1">
+            {row.status !== "Pendente" && (
+              <button
+                type="button"
+                disabled={isSaving}
+                title="Baixar documento"
+                onClick={e => {
+                  e.stopPropagation();
+                  if (!isSaving) onBaixar(row.id);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={isSaving}
+              title={row.status === "Pendente" ? "Remover anexo pendente" : "Remover documento"}
+              onClick={e => {
+                e.stopPropagation();
+                if (!isSaving) onRemover(row.id);
+              }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         ),
       },
     } : {}),
-  }), [editMode, readOnly, isSaving, onRemover]);
+  }), [editMode, readOnly, isSaving, onBaixar, onRemover]);
 
   const rows = useMemo<DocumentoRow[]>(() =>
     documentos.map(doc => ({

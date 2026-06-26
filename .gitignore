@@ -16,6 +16,7 @@ API/*.out
 # Cache de build e testes
 API/vendor/
 API/tmp/
+API/uploads/
 API/coverage.out
 API/coverage.html
 API/*.test

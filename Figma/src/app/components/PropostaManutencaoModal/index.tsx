@@ -381,6 +381,26 @@ export function PropostaManutencaoModal({
     setDocumentoParaRemover(null);
   };
 
+  const handleBaixarDocumento = async (docId: string) => {
+    const doc = documentos.find(d => d.id === docId);
+    if (!doc) return;
+
+    try {
+      setSaveError(null);
+      const blob = await documentosApi.baixar(docId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.nomeOriginal || 'documento';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setSaveError(err?.message || 'Nao foi possivel baixar o documento.');
+    }
+  };
+
   const handleSair = () => {
     if (editMode) { setShowSairModal(true); }
     else { onClose(); }
@@ -457,6 +477,7 @@ export function PropostaManutencaoModal({
             removidosCount={documentosRemovidos.length}
             onAnexar={handleAnexarDocumento}
             onRemover={handleRemoverDocumento}
+            onBaixar={handleBaixarDocumento}
           />
         );
       default:

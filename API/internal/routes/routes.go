@@ -67,6 +67,7 @@ func Register(r *gin.Engine, db *pgxpool.Pool, cfg config.ServerConfig) {
 		// Documentos
 		api.GET("/documentos", propostasHandler.ListarDocumentos)
 		api.POST("/documentos", propostasHandler.UploadDocumento)
+		api.GET("/documentos/:id/download", propostasHandler.DownloadDocumento)
 		api.DELETE("/documentos/:id", propostasHandler.RemoverDocumento)
 	}
 }
