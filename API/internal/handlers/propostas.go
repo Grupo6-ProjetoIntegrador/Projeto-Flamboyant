@@ -202,8 +202,14 @@ func (h *PropostasHandler) Criar(c *gin.Context) {
 	err := h.db.QueryRow(ctx, `
 		INSERT INTO "Proposta"
 			(id_unidade_p, id_usuario_criacao_p, segmento_p, tipo_operacao_p,
-			 valor_proposto_p, area_p, nome_fantasia_p, data_vencimento_p, observacoes_p)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id_p
+			 valor_proposto_p, area_p, nome_fantasia_p, data_vencimento_p, observacoes_p, status_p)
+		VALUES (
+			$1,$2,$3,$4,$5,$6,$7,NULLIF($8, '')::date,$9,
+			CASE
+				WHEN NULLIF($8, '')::date < CURRENT_DATE THEN 'Vencida'
+				ELSE 'Aguardando análise financeira'
+			END
+		) RETURNING id_p
 	`, body.IDUnidade, userID, body.Segmento, body.TipoOperacao,
 		body.ValorProposto, body.Area, body.NomeFantasia,
 		body.DataVencimento, body.Observacoes,
@@ -222,23 +228,23 @@ func (h *PropostasHandler) Atualizar(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	var body struct {
-		IDUnidade          *string  `json:"idUnidade"`
-		Segmento           *string  `json:"segmento"`
-		TipoOperacao       *string  `json:"tipoOperacao"`
-		ValorProposto      *float64 `json:"valorProposto"`
-		Area               *float64 `json:"area"`
-		Abl                *float64 `json:"abl"`
-		NomeFantasia       *string  `json:"nomeFantasia"`
-		AluguelPercent     *float64 `json:"aluguelPercent"`
-		PrazoLocacaoMeses  *int     `json:"prazoLocacaoMeses"`
-		AluguelPorM2       *float64 `json:"aluguelPorM2"`
-		CondominioAprox    *float64 `json:"condominioAprox"`
-		FppAprox           *float64 `json:"fppAprox"`
-		DataVencimento     *string  `json:"dataVencimento"`
-		InicioContrato     *string  `json:"inicioContrato"`
-		FimContrato        *string  `json:"fimContrato"`
-		DataInauguracao    *string  `json:"dataInauguracao"`
-		Observacoes        *string  `json:"observacoes"`
+		IDUnidade         *string  `json:"idUnidade"`
+		Segmento          *string  `json:"segmento"`
+		TipoOperacao      *string  `json:"tipoOperacao"`
+		ValorProposto     *float64 `json:"valorProposto"`
+		Area              *float64 `json:"area"`
+		Abl               *float64 `json:"abl"`
+		NomeFantasia      *string  `json:"nomeFantasia"`
+		AluguelPercent    *float64 `json:"aluguelPercent"`
+		PrazoLocacaoMeses *int     `json:"prazoLocacaoMeses"`
+		AluguelPorM2      *float64 `json:"aluguelPorM2"`
+		CondominioAprox   *float64 `json:"condominioAprox"`
+		FppAprox          *float64 `json:"fppAprox"`
+		DataVencimento    *string  `json:"dataVencimento"`
+		InicioContrato    *string  `json:"inicioContrato"`
+		FimContrato       *string  `json:"fimContrato"`
+		DataInauguracao   *string  `json:"dataInauguracao"`
+		Observacoes       *string  `json:"observacoes"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Dados inválidos"})
@@ -262,6 +268,12 @@ func (h *PropostasHandler) Atualizar(c *gin.Context) {
 			condominio_aprox_p = COALESCE($12, condominio_aprox_p),
 			fpp_aprox_p = COALESCE($13, fpp_aprox_p),
 			data_vencimento_p = COALESCE(NULLIF($14, '')::date, data_vencimento_p),
+			status_p = CASE
+				WHEN COALESCE(NULLIF($14, '')::date, data_vencimento_p) < CURRENT_DATE
+				 AND status_p IN ('Aguardando análise financeira', 'Aguardando análise do comitê')
+				THEN 'Vencida'
+				ELSE status_p
+			END,
 			inicio_contrato_p = COALESCE(NULLIF($15, '')::date, inicio_contrato_p),
 			fim_contrato_p = COALESCE(NULLIF($16, '')::date, fim_contrato_p),
 			data_inauguracao_p = COALESCE(NULLIF($17, '')::date, data_inauguracao_p),
@@ -301,7 +313,14 @@ func (h *PropostasHandler) AtualizarStatus(c *gin.Context) {
 
 	_, err := h.db.Exec(ctx, `
 		UPDATE "Proposta"
-		SET status_p = $1, observacoes_p = COALESCE($2, observacoes_p), atualizado_em_p = $3
+		SET status_p = CASE
+				WHEN $1 IN ('Aguardando análise financeira', 'Aguardando análise do comitê')
+				 AND data_vencimento_p < CURRENT_DATE
+				THEN 'Vencida'
+				ELSE $1
+			END,
+			observacoes_p = COALESCE($2, observacoes_p),
+			atualizado_em_p = $3
 		WHERE id_p = $4
 	`, body.Status, body.Observacoes, time.Now(), id)
 
@@ -310,6 +329,102 @@ func (h *PropostasHandler) AtualizarStatus(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Status atualizado"})
+}
+
+func (h *PropostasHandler) CheckVencidas(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tx, err := h.db.Begin(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao iniciar transacao"})
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var sistemaID string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO "Usuario" (nome_u, email_u, senha_hash_u, setor_u)
+		VALUES ('Sistema', 'sistema@flamboyant.local', 'sistema', 'Sistema')
+		ON CONFLICT (email_u) DO UPDATE
+		SET nome_u = EXCLUDED.nome_u,
+		    setor_u = EXCLUDED.setor_u
+		RETURNING id_u
+	`).Scan(&sistemaID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao preparar usuario do sistema"})
+		return
+	}
+
+	var atualizadas int
+	err = tx.QueryRow(ctx, `
+		WITH atualizadas AS (
+			UPDATE "Proposta" p
+			SET status_p = 'Vencida',
+			    id_usuario_ultima_alt_p = $1,
+			    atualizado_em_p = NOW()
+			FROM "Unidade" u
+			WHERE u.id_un = p.id_unidade_p
+			  AND p.status_p IN ('Aguardando análise financeira', 'Aguardando análise do comitê')
+			  AND p.data_vencimento_p < CURRENT_DATE
+			RETURNING
+				p.id_p,
+				u.codigo_un,
+				p.segmento_p,
+				p.tipo_operacao_p,
+				p.valor_proposto_p,
+				p.area_p,
+				p.abl_p,
+				p.status_p,
+				p.data_criacao_p,
+				p.data_vencimento_p,
+				p.nome_fantasia_p,
+				p.aluguel_percent_p,
+				p.prazo_locacao_meses_p,
+				p.aluguel_por_m2_p,
+				p.condominio_aprox_p,
+				p.fpp_aprox_p,
+				p.inicio_contrato_p,
+				p.fim_contrato_p,
+				p.data_inauguracao_p,
+				p.observacoes_p,
+				p.atualizado_em_p
+		),
+		historico AS (
+			INSERT INTO "PropostaHistorico" (
+				id_proposta_ph, id_usuario_ph, editado_em_ph,
+				codigo_unidade_ph, segmento_ph, tipo_operacao_ph,
+				valor_proposto_ph, area_ph, abl_ph, status_ph,
+				data_criacao_ph, data_vencimento_ph, nome_fantasia_ph,
+				aluguel_percent_ph, prazo_locacao_meses_ph, aluguel_por_m2_ph,
+				condominio_aprox_ph, fpp_aprox_ph,
+				inicio_contrato_ph, fim_contrato_ph, data_inauguracao_ph,
+				observacoes_ph, atualizado_em_snapshot_ph
+			)
+			SELECT
+				id_p, $1, NOW(),
+				codigo_un, segmento_p, tipo_operacao_p,
+				valor_proposto_p, area_p, abl_p, status_p,
+				data_criacao_p, data_vencimento_p, nome_fantasia_p,
+				aluguel_percent_p, prazo_locacao_meses_p, aluguel_por_m2_p,
+				condominio_aprox_p, fpp_aprox_p,
+				inicio_contrato_p, fim_contrato_p, data_inauguracao_p,
+				observacoes_p, atualizado_em_p
+			FROM atualizadas
+			RETURNING id_ph
+		)
+		SELECT COUNT(*) FROM historico
+	`, sistemaID).Scan(&atualizadas)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao verificar propostas vencidas"})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Erro ao confirmar verificacao"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"atualizadas": atualizadas})
 }
 
 // === PASSO 3: DTO do Histórico ===
