@@ -4,6 +4,7 @@ import { useComercialAvailability } from "../../viewmodels/useComercialAvailabil
 import { PageShell, FilterBar, FilterSeparator, ViewModeToggle } from "../../components/PageShared";
 import { DataTable } from "../../components/DataTable";
 import { DataCard } from "../../components/DataCard";
+import { DisponibilidadePlantaView } from "../../components/DisponibilidadePlantaView";
 import { DisponibilidadeManutencaoModal } from "../../components/DisponibilidadeManutencaoModal";
 import { EnumCheckboxFilter } from "../../components/EnumCheckboxFilter";
 import { PISOS, CORREDORES, ViewMode } from "../../enums";
@@ -50,10 +51,15 @@ export function ComercialAvailability() {
     () => (hasHiddenUnits ? filtered.slice(0, COLLAPSED_LIMIT) : filtered),
     [filtered, hasHiddenUnits],
   );
+  const modalUnits = viewMode === ViewMode.Planta ? filtered : visibleUnits;
 
   const getCardClassName = (u: any) =>
     unidadesComProposta.has(u.id)
       ? "!border-red-400 !bg-red-50 dark:!bg-red-950/30 dark:!border-red-700"
+      : "";
+  const getTableRowClassName = (u: any) =>
+    unidadesComProposta.has(u.id)
+      ? "!bg-red-50 dark:!bg-red-950/30 hover:!bg-red-100 dark:hover:!bg-red-950/40"
       : "";
 
   const remainingCount = filtered.length - COLLAPSED_LIMIT;
@@ -93,7 +99,7 @@ export function ComercialAvailability() {
           <span className="text-sm font-semibold text-gray-700 dark:text-[#F1F5F9]">
             {filtered.length} unidade{filtered.length !== 1 ? "s" : ""}
           </span>
-          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          <ViewModeToggle value={viewMode} onChange={setViewMode} showPlanta />
         </div>
 
         {viewMode === ViewMode.Cards && (
@@ -144,6 +150,7 @@ export function ComercialAvailability() {
                   status: { _specified: false },
                 } as any}
                 onRowClick={setManutencaoUnidade}
+                rowClassName={getTableRowClassName}
                 emptyMessage="Nenhuma unidade encontrada"
               />
             </div>
@@ -162,12 +169,20 @@ export function ComercialAvailability() {
             )}
           </div>
         )}
+
+        {viewMode === ViewMode.Planta && (
+          <DisponibilidadePlantaView
+            unidades={filtered as any}
+            unidadesComProposta={unidadesComProposta}
+            onSelectUnidade={setManutencaoUnidade as any}
+          />
+        )}
       </div>
 
       {manutencaoUnidade && (
         <DisponibilidadeManutencaoModal
           unidade={manutencaoUnidade}
-          allUnidades={showAllUnits ? filtered : visibleUnits}
+          allUnidades={modalUnits}
           onClose={() => { setManutencaoUnidade(null); refetch(); }}
         />
       )}

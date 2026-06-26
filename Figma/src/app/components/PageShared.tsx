@@ -1,5 +1,5 @@
 import type { ReactNode, ComponentType } from "react";
-import { Filter, ChevronDown, LayoutGrid, Table2 } from "lucide-react";
+import { Filter, ChevronDown, LayoutGrid, Map, Table2 } from "lucide-react";
 import { DatePickerInput } from "./DatePickerInput";
 
 // ── TableLayoutContainer + TableLayoutItem ─────────────────
@@ -237,25 +237,36 @@ import { ViewMode } from "../enums";
 interface ViewModeToggleProps {
   value: ViewMode;
   onChange: (mode: ViewMode) => void;
+  showPlanta?: boolean;
 }
 
-export function ViewModeToggle({ value, onChange }: ViewModeToggleProps) {
+export function ViewModeToggle({ value, onChange, showPlanta = false }: ViewModeToggleProps) {
+  const baseClass = "h-8 px-2.5 border text-xs font-medium flex items-center gap-1.5 transition-colors";
+  const inactiveClass = "bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]";
+  const activeClass = "bg-[#D93030] text-white border-[#D93030]";
+
   return (
     <div className="hidden sm:flex items-center gap-1">
       <button
         onClick={() => onChange(ViewMode.Cards)}
-        className={`h-8 px-2.5 rounded-l-lg border text-xs font-medium flex items-center gap-1.5 transition-colors
-          ${value === ViewMode.Cards ? 'bg-[#D93030] text-white border-[#D93030]' : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}
+        className={`${baseClass} rounded-l-lg ${showPlanta ? '' : 'rounded-r-none'} ${value === ViewMode.Cards ? activeClass : inactiveClass}`}
       >
         <LayoutGrid className="w-3.5 h-3.5" /> Cards
       </button>
       <button
         onClick={() => onChange(ViewMode.Tabela)}
-        className={`h-8 px-2.5 rounded-r-lg border-t border-r border-b text-xs font-medium flex items-center gap-1.5 transition-colors
-          ${value === ViewMode.Tabela ? 'bg-[#D93030] text-white border-[#D93030]' : 'bg-white dark:bg-[#1A1F2E] text-gray-600 dark:text-[#94A3B8] border-gray-200 dark:border-[#2E3447] hover:border-[#D93030]'}`}
+        className={`${baseClass} border-l-0 ${showPlanta ? '' : 'rounded-r-lg'} ${value === ViewMode.Tabela ? activeClass : inactiveClass}`}
       >
         <Table2 className="w-3.5 h-3.5" /> Tabela
       </button>
+      {showPlanta && (
+        <button
+          onClick={() => onChange(ViewMode.Planta)}
+          className={`${baseClass} rounded-r-lg border-l-0 ${value === ViewMode.Planta ? activeClass : inactiveClass}`}
+        >
+          <Map className="w-3.5 h-3.5" /> Planta
+        </button>
+      )}
     </div>
   );
 }

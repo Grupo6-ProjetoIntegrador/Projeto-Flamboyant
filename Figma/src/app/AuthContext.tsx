@@ -25,15 +25,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<AuthState>(() => {
     const session = sessionStorage.getItem('jp-mall-session');
     if (session) {
-      const parsed = JSON.parse(session);
-      return {
-        token: parsed.token || null,
-        usuario: parsed.token ? {
-          nome: parsed.name,
-          email: parsed.email,
-          setor: parsed.sector,
-        } : null,
-      };
+      try {
+        const parsed = JSON.parse(session);
+        return {
+          token: parsed.token || null,
+          usuario: parsed.token ? {
+            nome: parsed.name,
+            email: parsed.email,
+            setor: parsed.sector,
+          } : null,
+        };
+      } catch {
+        sessionStorage.removeItem('jp-mall-session');
+      }
     }
     return { token: null, usuario: null };
   });

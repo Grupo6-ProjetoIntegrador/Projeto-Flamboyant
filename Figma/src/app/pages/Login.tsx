@@ -17,8 +17,9 @@
  */
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Building2, Lock, Mail } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { useAuth } from "../AuthContext";
+import flamboyantLogo from "../../assets/logo-flamboyant-2016.png";
 
 export function Login() {
   const navigate = useNavigate();
@@ -56,8 +57,12 @@ export function Login() {
     <div className="min-h-screen bg-[#F7F4EF] dark:bg-[#0F1117] flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B1A1A] to-[#a43030] dark:from-[#8B1A1A] dark:to-[#E04444] shadow-lg flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-            <Building2 className="w-8 h-8 text-[#C8A882] dark:text-[#D4A96A]" />
+          <div className="w-20 h-20 flex items-center justify-center">
+            <img
+              src={flamboyantLogo}
+              alt="Flamboyant"
+              className="max-w-full max-h-full object-contain drop-shadow-sm"
+            />
           </div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-[#F1F5F9]">
             JP Mall
@@ -72,7 +77,7 @@ export function Login() {
         <div className="bg-white dark:bg-[#242938] py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border-t-4 border-[#8B1A1A] dark:border-[#E04444]">
 
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 rounded-lg p-3 mb-6 text-sm text-center">
-            Modo protótipo — qualquer credencial é aceita
+            Usuario de teste: admin@flamboyant.com.br / 123
           </div>
 
           <form className="space-y-5" onSubmit={handleLogin}>
